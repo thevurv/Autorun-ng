@@ -1,0 +1,11 @@
+[workspace]
+members = [
+	"autorun",
+	"autorun_lib",
+	"injector"
+]
+
+[profile.release]
+panic = "abort"
+opt-level = "z"
+lto = "fat"

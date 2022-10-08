@@ -1,0 +1,1 @@
+Bindings to use https://github.com/kubo/injector in Rust.
