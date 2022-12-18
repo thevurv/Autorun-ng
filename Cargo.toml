@@ -2,10 +2,20 @@
 members = [
 	"autorun",
 	"autorun_lib",
-	"injector"
+	"injector",
+	"locator"
 ]
 
 [profile.release]
 panic = "abort"
 opt-level = "z"
 lto = "fat"
+
+[workspace.package]
+edition = "2021"
+authors = ["Vurv78 <vurvdevelops@gmail.com>"]
+description = "..."
+thiserror = "1.0.32"
+
+[workspace.dependencies]
+thiserror = "1.0.32"

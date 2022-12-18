@@ -18,7 +18,7 @@ pub unsafe extern "system" fn DllMain(_: *const u8, reason: u32, _: *const u8) -
 	match reason {
 		// attach
 		1 => {
-			let tier0 = libloading::Library::new("tier0.dll").unwrap();
+			/*let tier0 = libloading::Library::new("tier0.dll").unwrap();
 			let msg = tier0
 				.get::<extern "C" fn(fmt: *const c_char, ...)>(b"Msg\0")
 				.unwrap();
@@ -71,7 +71,7 @@ pub unsafe extern "system" fn DllMain(_: *const u8, reason: u32, _: *const u8) -
 			*NewState.lock().unwrap() =
 				Some(detour::GenericDetour::new(luaL_newstate, h_luaL_newstate).unwrap());
 			*LoadBufferX.lock().unwrap() =
-				Some(detour::GenericDetour::new(luaL_loadbufferx, h_luaL_loadbufferx).unwrap());
+				Some(detour::GenericDetour::new(luaL_loadbufferx, h_luaL_loadbufferx).unwrap());*/
 		}
 
 		// detach

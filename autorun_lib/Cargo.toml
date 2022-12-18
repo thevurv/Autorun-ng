@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 shh = "1.0.1"
 
 # For robust error handling
-thiserror = "1.0.32"
+thiserror = { workspace = true }
 
 # Getting dll exports
 libloading = "0.7.3"

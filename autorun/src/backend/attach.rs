@@ -36,11 +36,9 @@ fn launch_gmod(gmod: &Path) -> Result<Child, AttachError> {
 impl Autorun {
 	/// Launches the game with Autorun injected.
 	pub fn launch_attached(&mut self) -> Result<(), AttachError> {
-		let mut steam_dir = steamlocate::SteamDir::locate().ok_or(AttachError::LibraryNotFound)?;
+		let gmod_dir = locator::gmod_dir().ok_or(AttachError::GameNotFound)?;
 
-		let gmod = steam_dir.app(&4000).ok_or(AttachError::GameNotFound)?;
-
-		let mut gmod = launch_gmod(&gmod.path)?;
+		let _gmod = launch_gmod(&gmod_dir)?;
 		self.set_status(Status::Injected);
 
 		Ok(())
