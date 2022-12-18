@@ -2,7 +2,6 @@
 members = [
 	"autorun",
 	"autorun_lib",
-	"injector",
 	"locator"
 ]
 
@@ -15,7 +14,6 @@ lto = "fat"
 edition = "2021"
 authors = ["Vurv78 <vurvdevelops@gmail.com>"]
 description = "..."
-thiserror = "1.0.32"
 
 [workspace.dependencies]
 thiserror = "1.0.32"

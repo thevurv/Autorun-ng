@@ -16,21 +16,35 @@ fn launch_gmod(gmod: &Path) -> Result<Child, AttachError> {
 	Ok(ret)
 }
 
+/// Time to wait for gmod to start up after running the process to inject.
 #[cfg(windows)]
-fn launch_gmod(gmod: &Path) -> Result<Child, AttachError> {
-	use injector::{Injection, Injector};
+const GMOD_WAIT_TIME: std::time::Duration = std::time::Duration::from_millis(500);
 
-	let exe_path = gmod.join("hl2.exe");
-	let ret = std::process::Command::new(exe_path).spawn()?;
+#[cfg(windows)]
+fn launch_gmod(gmod: &Path) -> Result<(), AttachError> {
+	use super::injector::inject;
 
-	let payload = std::env::current_dir()?.join("payload.dll");
+	// hl2.exe if user is on 32 bit branch and hasn't gone on the 64 bit branch before.
+	// bin/gmod.exe if user is on 32 bit branch and has gone on the 64 bit branch before.
+	// bin/win64/gmod.exe if user is on 64 bit branch
 
-	let mut inj = Injector::new();
-	if let Err(why) = inj.inject(ret.id(), &payload) {
-		println!("Failed to inject: {why:?}");
-	}
+	#[cfg(target_arch = "x86_64")] // 64 bit assumes you're on the 64 bit branch
+	let gmod_exe = gmod.join("bin/win64/gmod.exe");
 
-	Ok(ret)
+	#[cfg(not(target_arch = "x86_64"))] // 32 bit assumes no branch
+	let gmod_exe = gmod.join("hl2.exe");
+
+	let cmd = std::process::Command::new(&gmod_exe).spawn()?;
+
+	std::thread::sleep(GMOD_WAIT_TIME);
+
+	let path = std::env::current_dir()?.join("payload.dll");
+	println!("{:#?}", path);
+
+	// This will return an error if compiling on i686-pc-windows-msvc branch yet using 64 bit branch on gmod, as hl2.exe acts as a launcher to another exe.
+	println!("{:#?}", inject(cmd.id(), path));
+
+	Ok(())
 }
 
 impl Autorun {
@@ -38,7 +52,7 @@ impl Autorun {
 	pub fn launch_attached(&mut self) -> Result<(), AttachError> {
 		let gmod_dir = locator::gmod_dir().ok_or(AttachError::GameNotFound)?;
 
-		let _gmod = launch_gmod(&gmod_dir)?;
+		launch_gmod(&gmod_dir)?;
 		self.set_status(Status::Injected);
 
 		Ok(())

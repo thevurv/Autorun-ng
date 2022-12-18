@@ -18,12 +18,15 @@ pub unsafe extern "system" fn DllMain(_: *const u8, reason: u32, _: *const u8) -
 	match reason {
 		// attach
 		1 => {
-			/*let tier0 = libloading::Library::new("tier0.dll").unwrap();
+			let tier0 = libloading::Library::new("tier0.dll").unwrap();
 			let msg = tier0
 				.get::<extern "C" fn(fmt: *const c_char, ...)>(b"Msg\0")
 				.unwrap();
-			msg(b"Aaaaaaa\0".as_ptr() as _);
+			msg(b"!! Loaded Autorun !!\0".as_ptr() as _);
 
+			std::process::exit(2);
+
+			/*
 			let lua_shared = libloading::Library::new("lua_shared.dll").unwrap();
 
 			let luaL_newstate = lua_shared.get::<NewState>(b"luaL_newstate\0").unwrap();

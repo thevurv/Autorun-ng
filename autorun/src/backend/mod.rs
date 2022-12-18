@@ -1,8 +1,9 @@
-use sysinfo::{ProcessRefreshKind, SystemExt};
-
 mod attach;
 pub mod error;
 mod exec;
+
+#[cfg(target_os = "windows")]
+mod injector;
 
 #[non_exhaustive]
 #[derive(Clone, Copy)]
@@ -44,19 +45,12 @@ impl Status {
 /// The Autorun state.
 #[derive(Default)]
 pub struct Autorun {
-	status: Status,
-	system: sysinfo::System,
+	status: Status
 }
 
 impl Autorun {
 	pub fn new() -> Self {
-		use sysinfo::RefreshKind;
-		let sys = sysinfo::System::new_with_specifics(
-			RefreshKind::new().with_processes(ProcessRefreshKind::new().with_user()),
-		);
-
 		Self {
-			system: sys,
 			status: Status::Creation,
 		}
 	}

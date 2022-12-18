@@ -13,9 +13,6 @@ shh = "1.0.1"
 # For robust error handling
 thiserror = { workspace = true }
 
-# Need this to get system info and find the Garry's Mod process.
-sysinfo = "0.25.3"
-
 # Getting dll exports
 libloading = "0.7.3"
 
@@ -23,6 +20,5 @@ libloading = "0.7.3"
 detour = { git = "https://github.com/lostinspiration/detour-rs.git", default-features = false }
 
 [target.'cfg(windows)'.dependencies]
-injector = { path = "../injector" }
-
 locator = { path = "../locator" }
+winapi = { version = "0.3.9", features = ["handleapi", "libloaderapi", "memoryapi", "processthreadsapi", "synchapi"] }
