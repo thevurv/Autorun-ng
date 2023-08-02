@@ -1,5 +1,5 @@
-#[cfg(target_os = "windows")]
-mod windows;
+mod raw;
+mod vdf;
 
 #[cfg(target_os = "windows")]
-pub use windows::gmod_dir;
+pub use raw::windows::gmod_dir;
