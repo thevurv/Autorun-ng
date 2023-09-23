@@ -15,7 +15,7 @@ const HKEYS: &[RegKey] = &[
 	RegKey::predef(HKEY_CURRENT_USER),
 ];
 
-fn steam_install_dir() -> Option<PathBuf> {
+pub fn steam_install_dir() -> Option<PathBuf> {
 	STEAM_PATHS
 		.iter()
 		.find_map(|path| {
@@ -29,17 +29,4 @@ fn steam_install_dir() -> Option<PathBuf> {
 			})
 		})
 		.map(PathBuf::from)
-}
-
-pub fn gmod_dir() -> Option<PathBuf> {
-	let gmod_dir = steam_install_dir()?
-		.join("steamapps")
-		.join("common")
-		.join("GarrysMod");
-
-	if gmod_dir.exists() {
-		Some(gmod_dir)
-	} else {
-		None
-	}
 }

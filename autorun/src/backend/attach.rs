@@ -24,6 +24,8 @@ const GMOD_WAIT_TIME: std::time::Duration = std::time::Duration::from_millis(500
 fn launch_gmod(gmod: &Path) -> Result<(), AttachError> {
 	use super::injector::inject;
 
+	println!("launching {gmod:#?}");
+
 	// hl2.exe if user is on 32 bit branch and hasn't gone on the 64 bit branch before.
 	// bin/gmod.exe if user is on 32 bit branch and has gone on the 64 bit branch before.
 	// bin/win64/gmod.exe if user is on 64 bit branch

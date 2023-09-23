@@ -75,7 +75,7 @@ struct App {
 }
 
 impl App {
-	fn new(cc: &CreationContext, autorun: Autorun) -> Self {
+	pub fn new(cc: &CreationContext, autorun: Autorun) -> Self {
 		cc.egui_ctx.request_repaint_after(REPAINT_TIME);
 
 		let log = Arc::new(RwLock::new(String::new()));
@@ -191,7 +191,7 @@ impl App {
 
 impl eframe::App for App {
 	fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-		self.autorun.detach();
+		let _ = self.autorun.detach();
 	}
 
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
