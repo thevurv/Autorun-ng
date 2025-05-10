@@ -2,16 +2,13 @@ use super::{error::AttachError, Autorun, Status};
 use std::{path::Path, process::Child};
 
 #[cfg(unix)]
-fn launch_gmod(gmod: &Path) -> Result<Child, AttachError> {
-	// todo: maybe also support hl2_darwin
+fn launch_gmod(_gmod_dir: &Path) -> Result<Child, AttachError> {
+	let payload = std::env::current_dir()?.join("payload.so");
 
-	let exe_path = gmod.join("hl2_linux");
-
-	let payload = std::env::current_dir()?.join("payload.dll");
-
-	std::env::set_var("LD_PRELOAD", payload);
-
-	let ret = std::process::Command::new(exe_path).spawn()?;
+	let ret = std::process::Command::new("xdg-open")
+		.env("LD_PRELOAD", payload)
+		.arg("steam://rungameid/4000")
+		.spawn()?;
 
 	Ok(ret)
 }

@@ -8,7 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # To redirect stdout to the terminal
-shh = "1.0.1"
+# shh = "1.0.1"
 
 # For robust error handling
 thiserror = { workspace = true }
@@ -17,4 +17,4 @@ thiserror = { workspace = true }
 libloading = "0.7.3"
 
 # Self explanatory
-detour = { git = "https://github.com/lostinspiration/detour-rs.git", default-features = false }
+# detour = { git = "https://github.com/lostinspiration/detour-rs.git", default-features = false }

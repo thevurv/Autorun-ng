@@ -13,8 +13,9 @@ enum TotalError {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-	let lib = include_bytes!(concat!(env!("OUT_DIR"), "/../../../autorun_lib.dll"));
-	std::fs::write( std::env::current_dir().unwrap().join("payload.dll"), lib )?;
+	#[cfg(target_os = "linux")]
+	let lib = include_bytes!(concat!(env!("OUT_DIR"), "/../../../libautorun_lib.so"));
+	std::fs::write( std::env::current_dir().unwrap().join("payload.so"), lib )?;
 
 	// println!("Included lib size {} kb", lib.len() / 1024);
 

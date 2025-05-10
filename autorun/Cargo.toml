@@ -19,6 +19,7 @@ libloading = "0.7.3"
 # Self explanatory
 detour = { git = "https://github.com/lostinspiration/detour-rs.git", default-features = false }
 
-[target.'cfg(windows)'.dependencies]
 locator = { path = "../locator" }
+
+[target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["handleapi", "libloaderapi", "memoryapi", "processthreadsapi", "synchapi"] }

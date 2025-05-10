@@ -2,8 +2,17 @@ mod raw;
 mod vdf;
 
 #[cfg(target_os = "windows")]
+use raw::windows::steam_install_dir;
+
+#[cfg(target_os = "linux")]
+use raw::linux::steam_install_dir;
+
 pub fn gmod_dir() -> Option<std::path::PathBuf> {
-	let library_folders = raw::windows::steam_install_dir()?
+	if let Ok(env) = std::env::var("GMOD_DIR") {
+		return Some(std::path::PathBuf::from(env));
+	}
+
+	let library_folders = steam_install_dir()?
 		.join("steamapps")
 		.join("libraryfolders.vdf");
 
@@ -18,22 +27,22 @@ pub fn gmod_dir() -> Option<std::path::PathBuf> {
 				if let Some((_, crate::vdf::Value::Object(apps))) = folder.iter().find(|x| x.0 == "apps") {
 					if apps.iter().find(|x| x.0 == "4000").is_some() {
 						// This is the folder that contains gmod
-						let steam_dir = std::path::PathBuf::from(path)
+						let gmod_dir = std::path::PathBuf::from(path)
 							.join("steamapps")
 							.join("common")
 							.join("GarrysMod");
 
-						return Some(steam_dir);
+						return Some(gmod_dir);
 					}
 				} else {
-					// todo!()
+					todo!()
 				}
 			} else {
-				// todo!()
+				todo!()
 			}
 		}
 
-		// todo!();
+		todo!();
 	}
 
 	None
