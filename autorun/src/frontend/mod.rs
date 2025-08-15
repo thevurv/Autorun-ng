@@ -1,5 +1,3 @@
-pub mod error;
-
 use std::{
 	sync::{Arc, RwLock},
 	time::Duration,
@@ -110,12 +108,13 @@ impl App {
 
 			const RED: Color32 = Color32::from_rgb(255, 0, 0);
 			const GREEN: Color32 = Color32::from_rgb(0, 255, 0);
+			const YELLOW: Color32 = Color32::from_rgb(255, 255, 0);
 
-			if self.autorun.status().is_ready() {
-				ui.colored_label(GREEN, "Loaded");
-			} else {
-				ui.colored_label(RED, "Unloaded");
-			}
+			match self.autorun.status() {
+				crate::backend::AutorunStatus::Starting => ui.colored_label(RED, "Unloaded"),
+				crate::backend::AutorunStatus::Injected => ui.colored_label(YELLOW, "Injected"),
+				crate::backend::AutorunStatus::Attached => ui.colored_label(GREEN, "Attached"),
+			};
 		});
 
 		ui.separator();

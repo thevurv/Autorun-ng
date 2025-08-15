@@ -11,7 +11,7 @@ eframe = "0.19.0"
 shh = "1.0.1"
 
 # For robust error handling
-thiserror = { workspace = true }
+anyhow = { workspace = true }
 
 # Getting dll exports
 libloading = "0.7.3"
@@ -20,6 +20,3 @@ libloading = "0.7.3"
 detour = { git = "https://github.com/lostinspiration/detour-rs.git", default-features = false }
 
 locator = { path = "../locator" }
-
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.9", features = ["handleapi", "libloaderapi", "memoryapi", "processthreadsapi", "synchapi"] }

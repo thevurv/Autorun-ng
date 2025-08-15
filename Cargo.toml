@@ -1,9 +1,5 @@
 [workspace]
-members = [
-	"autorun",
-	"autorun_lib",
-	"locator"
-]
+members = ["autorun", "autorun_lib", "locator"]
 
 [profile.release]
 panic = "abort"
@@ -16,4 +12,4 @@ authors = ["Vurv78 <vurvdevelops@gmail.com>"]
 description = "..."
 
 [workspace.dependencies]
-thiserror = "1.0.32"
+anyhow = "1.0.99"
