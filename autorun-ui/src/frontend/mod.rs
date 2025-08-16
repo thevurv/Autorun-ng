@@ -4,7 +4,7 @@ use std::{
 };
 
 use eframe::{
-	egui::{self, Button, ComboBox, TextEdit, Ui},
+	egui::{self, Button, ComboBox, IconData, TextEdit, Ui, ViewportBuilder},
 	epaint::Color32,
 	CreationContext,
 };
@@ -16,16 +16,38 @@ const HALF: (f32, f32) = (SIZE.0 / 2.0, SIZE.1 / 2.0);
 const REPAINT_TIME: Duration = Duration::from_secs(2);
 const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
 
+fn load_icon() -> Option<std::sync::Arc<IconData>> {
+	let icon_bytes = include_bytes!("../../../assets/run.png");
+
+	match image::load_from_memory(icon_bytes) {
+		Ok(img) => {
+			let img = img.to_rgba8();
+			let (width, height) = img.dimensions();
+			Some(std::sync::Arc::new(IconData {
+				rgba: img.into_raw(),
+				width,
+				height,
+			}))
+		}
+		Err(_) => None,
+	}
+}
+
 pub fn run(autorun: Autorun) {
-	eframe::run_native(
+	let icon = load_icon();
+
+	let _ = eframe::run_native(
 		"Autorun",
 		eframe::NativeOptions {
-			max_window_size: Some(SIZE.into()),
-			min_window_size: Some(HALF.into()),
+			viewport: if let Some(icon) = icon {
+				ViewportBuilder::default().with_icon(icon)
+			} else {
+				ViewportBuilder::default()
+			},
 
 			..Default::default()
 		},
-		Box::new(|cc| Box::new(App::new(cc, autorun))),
+		Box::new(|cc| Ok(Box::new(App::new(cc, autorun)))),
 	);
 }
 
