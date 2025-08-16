@@ -16,6 +16,7 @@ pub enum Message {
 	Ping,
 	Pong,
 	Print(String),
+	RunCode(String),
 	Shutdown,
 }
 
@@ -69,6 +70,12 @@ impl Deref for Client {
 
 	fn deref(&self) -> &Self::Target {
 		&self.messenger
+	}
+}
+
+impl std::ops::DerefMut for Client {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.messenger
 	}
 }
 

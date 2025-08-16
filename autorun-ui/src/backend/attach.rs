@@ -83,4 +83,9 @@ impl Autorun {
 
 		Ok(())
 	}
+
+	/// Attempts to connect to the game's IPC server
+	pub fn try_connect_to_game(&mut self) -> anyhow::Result<()> {
+		self.try_connect()
+	}
 }

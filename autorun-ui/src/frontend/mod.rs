@@ -9,7 +9,7 @@ use eframe::{
 	CreationContext,
 };
 
-use crate::backend::Autorun;
+use crate::backend::{Autorun, AutorunStatus};
 
 const SIZE: (f32, f32) = (900.0, 500.0);
 const HALF: (f32, f32) = (SIZE.0 / 2.0, SIZE.1 / 2.0);
@@ -110,11 +110,14 @@ impl App {
 	}
 
 	fn show(&mut self, ui: &mut Ui) {
+		// Update autorun status
+		self.autorun.update();
+
 		ui.horizontal(|ui| {
 			ui.heading("Autorun-next");
 
 			match self.autorun.status() {
-				crate::backend::AutorunStatus::Disconnected => {
+				AutorunStatus::Disconnected => {
 					ui.colored_label(Color32::RED, "Disconnected");
 
 					if ui.button("Launch").clicked() {
@@ -122,8 +125,14 @@ impl App {
 							eprintln!("Failed to start attached: {}", e);
 						}
 					}
+
+					if ui.button("Connect").clicked() {
+						if let Err(e) = self.autorun.try_connect_to_game() {
+							eprintln!("Failed to connect: {}", e);
+						}
+					}
 				}
-				crate::backend::AutorunStatus::Connected => {
+				AutorunStatus::Connected => {
 					ui.colored_label(Color32::GREEN, "Connected");
 
 					if ui.button("Disconnect").clicked() {
@@ -189,8 +198,21 @@ impl App {
 						.desired_width(HALF.0 * 0.65 - 10.0) // Magic numbers. woop
 						.show(ui);
 
-					if input_box.response.lost_focus() {
-						println!("{}", self.input);
+					if input_box.response.lost_focus() && !self.input.is_empty() {
+						match self.console_mode {
+							ConsoleMode::Terminal => {
+								// Send command to game console
+								if let Err(e) = self.autorun.print_to_game(&self.input) {
+									eprintln!("Failed to send command: {}", e);
+								}
+							}
+							ConsoleMode::Executor => {
+								// Execute as Lua code
+								if let Err(e) = self.autorun.run_code(&self.input) {
+									eprintln!("Failed to execute code: {}", e);
+								}
+							}
+						}
 						self.input = String::new();
 					}
 
@@ -198,7 +220,23 @@ impl App {
 						.add_sized([0.0, ui.available_height()], Button::new("Execute"))
 						.clicked()
 					{
-						println!("Todo: Run code {}", self.code);
+						match self.console_mode {
+							ConsoleMode::Terminal => {
+								if !self.input.is_empty() {
+									if let Err(e) = self.autorun.print_to_game(&self.input) {
+										eprintln!("Failed to send command: {}", e);
+									}
+									self.input = String::new();
+								}
+							}
+							ConsoleMode::Executor => {
+								if !self.code.is_empty() {
+									if let Err(e) = self.autorun.run_code(&self.code) {
+										eprintln!("Failed to execute code: {}", e);
+									}
+								}
+							}
+						}
 					}
 				});
 			});
