@@ -82,17 +82,24 @@ impl App {
 		let mut stdio = shh::stdout().unwrap();
 		let mut stderr = shh::stderr().unwrap();
 
-		const WAIT_TIME: Duration = Duration::from_secs(1);
+		const WAIT_TIME: Duration = Duration::from_millis(200);
 
-		#[allow(unused_must_use)]
+		let ctx = cc.egui_ctx.clone();
 		std::thread::spawn(move || loop {
 			use std::io::Read;
 
 			std::thread::sleep(WAIT_TIME);
 
 			let mut log = log_thread.write().unwrap();
-			stdio.read_to_string(&mut log);
-			stderr.read_to_string(&mut log);
+			match (
+				stdio.read_to_string(&mut log),
+				stderr.read_to_string(&mut log),
+			) {
+				(Ok(_), Ok(_)) | (Ok(_), _) | (_, Ok(_)) => ctx.request_repaint(),
+				_ => (),
+			}
+
+			ctx.request_repaint();
 		});
 
 		Self {
@@ -106,14 +113,25 @@ impl App {
 		ui.horizontal(|ui| {
 			ui.heading("Autorun-next");
 
-			const RED: Color32 = Color32::from_rgb(255, 0, 0);
-			const GREEN: Color32 = Color32::from_rgb(0, 255, 0);
-			const YELLOW: Color32 = Color32::from_rgb(255, 255, 0);
-
 			match self.autorun.status() {
-				crate::backend::AutorunStatus::Starting => ui.colored_label(RED, "Unloaded"),
-				crate::backend::AutorunStatus::Injected => ui.colored_label(YELLOW, "Injected"),
-				crate::backend::AutorunStatus::Attached => ui.colored_label(GREEN, "Attached"),
+				crate::backend::AutorunStatus::Disconnected => {
+					ui.colored_label(Color32::RED, "Disconnected");
+
+					if ui.button("Launch").clicked() {
+						if let Err(e) = self.autorun.start_attached() {
+							eprintln!("Failed to start attached: {}", e);
+						}
+					}
+				}
+				crate::backend::AutorunStatus::Connected => {
+					ui.colored_label(Color32::GREEN, "Connected");
+
+					if ui.button("Disconnect").clicked() {
+						if let Err(e) = self.autorun.detach() {
+							eprintln!("Failed to detach: {}", e);
+						}
+					}
+				}
 			};
 		});
 

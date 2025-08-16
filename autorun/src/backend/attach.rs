@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 
-use super::{Autorun, AutorunStatus};
+use super::Autorun;
 use std::{path::Path, process::Child};
 
 #[cfg(unix)]
@@ -74,24 +74,12 @@ fn launch_gmod(steam_dir: &Path, gmod_dir: &Path) -> anyhow::Result<Child> {
 }
 
 impl Autorun {
-	/// Launches the game with Autorun injected.
-	pub fn launch(&mut self) -> anyhow::Result<()> {
+	/// Launches the game with Autorun attached.
+	pub fn start_attached(&mut self) -> anyhow::Result<()> {
 		let steam_dir = locator::steam_install_dir().ok_or(anyhow!("Steam not found"))?;
 		let gmod_dir = locator::gmod_dir().ok_or(anyhow!("Game not found"))?;
 
 		launch_gmod(&steam_dir, &gmod_dir)?;
-		self.set_status(AutorunStatus::Injected);
-
-		Ok(())
-	}
-
-	/// Detaches from the spawned Garry's Mod process.
-	/// # Note
-	/// This is called when the ui closes.
-	/// Normally I'd use Drop to call this but for some reason it's being called despite egui still running the app.
-	/// wtf
-	pub fn detach(&mut self) -> anyhow::Result<()> {
-		println!("Unloading hooks");
 
 		Ok(())
 	}
