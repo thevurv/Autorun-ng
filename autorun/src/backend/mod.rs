@@ -1,17 +1,18 @@
 mod attach;
 mod exec;
 
+use anyhow;
+
 #[non_exhaustive]
 #[derive(Clone, Copy)]
 pub enum AutorunStatus {
-	Starting,
-	Injected,
-	Attached,
+	Disconnected,
+	Connected,
 }
 
 impl Default for AutorunStatus {
 	fn default() -> Self {
-		Self::Starting
+		Self::Disconnected
 	}
 }
 
@@ -32,5 +33,11 @@ impl Autorun {
 
 	pub fn set_status(&mut self, status: AutorunStatus) {
 		self.status = status;
+	}
+
+	pub fn detach(&mut self) -> anyhow::Result<()> {
+		// TODO: Implement actual detach logic
+		self.status = AutorunStatus::Disconnected;
+		Ok(())
 	}
 }
