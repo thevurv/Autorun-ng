@@ -14,6 +14,7 @@ use crate::backend::{Autorun, AutorunStatus};
 const SIZE: (f32, f32) = (900.0, 500.0);
 const HALF: (f32, f32) = (SIZE.0 / 2.0, SIZE.1 / 2.0);
 const REPAINT_TIME: Duration = Duration::from_secs(2);
+const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
 
 pub fn run(autorun: Autorun) {
 	eframe::run_native(
@@ -58,7 +59,6 @@ impl Default for ConsoleMode {
 	}
 }
 
-#[derive(Default)]
 struct App {
 	// State
 	autorun: Autorun,
@@ -70,6 +70,20 @@ struct App {
 	log: Arc<RwLock<String>>,
 
 	console_mode: ConsoleMode,
+	last_update: std::time::Instant,
+}
+
+impl Default for App {
+	fn default() -> Self {
+		Self {
+			autorun: Autorun::default(),
+			input: String::default(),
+			code: String::default(),
+			log: Arc::new(RwLock::new(String::new())),
+			console_mode: ConsoleMode::default(),
+			last_update: std::time::Instant::now(),
+		}
+	}
 }
 
 impl App {
@@ -84,6 +98,7 @@ impl App {
 
 		const WAIT_TIME: Duration = Duration::from_millis(200);
 
+		// Background thread to read stdout/stderr to console
 		let ctx = cc.egui_ctx.clone();
 		std::thread::spawn(move || loop {
 			use std::io::Read;
@@ -105,14 +120,12 @@ impl App {
 		Self {
 			log,
 			autorun,
+			last_update: std::time::Instant::now(),
 			..Default::default()
 		}
 	}
 
 	fn show(&mut self, ui: &mut Ui) {
-		// Update autorun status
-		self.autorun.update();
-
 		ui.horizontal(|ui| {
 			ui.heading("Autorun-next");
 
@@ -250,6 +263,12 @@ impl eframe::App for App {
 	}
 
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+		// Only update autorun status periodically to avoid blocking UI
+		if self.last_update.elapsed() >= UPDATE_INTERVAL {
+			self.autorun.update();
+			self.last_update = std::time::Instant::now();
+		}
+
 		egui::CentralPanel::default().show(ctx, |ui| self.show(ui));
 	}
 }

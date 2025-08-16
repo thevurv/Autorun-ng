@@ -68,7 +68,7 @@ fn handle_client(messenger: &mut autorun_ipc::Messenger) -> anyhow::Result<()> {
 								if let Ok(msg_func) =
 									tier0.get::<extern "C" fn(fmt: *const c_char, ...)>(b"Msg\0")
 								{
-									let output = format!("Executing: {}", code);
+									let output = format!("Executing: {}\n", code);
 									if let Ok(c_text) = std::ffi::CString::new(output) {
 										msg_func(c_text.as_ptr());
 									}

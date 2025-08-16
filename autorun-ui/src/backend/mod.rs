@@ -26,6 +26,7 @@ pub struct Autorun {
 	status: AutorunStatus,
 	client: Option<Arc<Mutex<Client>>>,
 	last_connection_attempt: Option<Instant>,
+	last_ping_time: Option<Instant>,
 }
 
 impl Clone for Autorun {
@@ -34,6 +35,7 @@ impl Clone for Autorun {
 			status: self.status,
 			client: self.client.clone(),
 			last_connection_attempt: self.last_connection_attempt,
+			last_ping_time: self.last_ping_time,
 		}
 	}
 }
@@ -65,22 +67,33 @@ impl Autorun {
 			}
 		}
 
-		// Check if existing connection is still alive
+		// Check if existing connection is still alive (only every 5 seconds)
 		if self.status == AutorunStatus::Connected {
-			let should_disconnect = if let Some(ref client) = self.client {
-				if let Ok(mut client) = client.try_lock() {
-					// Try to send a ping to check connection
-					client.send(Message::Ping).is_err()
-				} else {
-					false
-				}
-			} else {
-				true
+			let should_ping = match self.last_ping_time {
+				Some(last) => last.elapsed() > Duration::from_secs(5),
+				None => true,
 			};
 
-			if should_disconnect {
-				self.status = AutorunStatus::Disconnected;
-				self.client = None;
+			if should_ping {
+				self.last_ping_time = Some(Instant::now());
+
+				let should_disconnect = if let Some(ref client) = self.client {
+					// Use try_lock to avoid blocking the UI
+					if let Ok(mut client) = client.try_lock() {
+						// Try to send a ping to check connection
+						client.send(Message::Ping).is_err()
+					} else {
+						// If we can't get the lock, assume connection is busy but alive
+						false
+					}
+				} else {
+					true
+				};
+
+				if should_disconnect {
+					self.status = AutorunStatus::Disconnected;
+					self.client = None;
+				}
 			}
 		}
 	}
@@ -112,16 +125,22 @@ impl Autorun {
 
 	pub fn send_message(&self, message: Message) -> anyhow::Result<()> {
 		if let Some(ref client) = self.client {
-			let mut client = client.lock().unwrap();
-			client.send(message)?;
+			// Use try_lock to avoid blocking the UI thread
+			if let Ok(mut client) = client.try_lock() {
+				client.send(message)?;
+			} else {
+				return Err(anyhow::anyhow!("Client is busy"));
+			}
 		}
 		Ok(())
 	}
 
 	pub fn detach(&mut self) -> anyhow::Result<()> {
 		if let Some(ref client) = self.client {
-			let mut client = client.lock().unwrap();
-			let _ = client.send(Message::Shutdown);
+			// Use try_lock to avoid blocking the UI thread
+			if let Ok(mut client) = client.try_lock() {
+				let _ = client.send(Message::Shutdown);
+			}
 		}
 		self.client = None;
 		self.status = AutorunStatus::Disconnected;
