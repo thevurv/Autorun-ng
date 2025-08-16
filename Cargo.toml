@@ -1,5 +1,5 @@
 [workspace]
-members = ["autorun", "autorun_lib", "locator"]
+members = ["autorun-ui", "autorun-lib", "autorun-ipc", "locator"]
 
 [profile.release]
 panic = "abort"

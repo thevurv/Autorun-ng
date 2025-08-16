@@ -1,5 +1,5 @@
 [package]
-name = "autorun_lib"
+name = "autorun-lib"
 version = "0.1.0"
 edition = "2021"
 

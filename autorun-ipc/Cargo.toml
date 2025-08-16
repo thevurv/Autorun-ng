@@ -1,5 +1,5 @@
 [package]
-name = "autorun_ipc"
+name = "autorun-ipc"
 version = "0.1.0"
 edition = "2021"
 

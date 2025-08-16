@@ -1,6 +1,6 @@
 build:
-	cargo build -p autorun_lib
-	cargo build -p autorun
+	cargo build -p autorun-lib
+	cargo build -p autorun-ui
 
 run: build
-	cargo run -p autorun
+	cargo run -p autorun-ui
