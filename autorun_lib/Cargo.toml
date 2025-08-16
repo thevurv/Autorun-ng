@@ -12,6 +12,8 @@ crate-type = ["cdylib"]
 
 # For robust error handling
 anyhow = { workspace = true }
+ctor = "0.5.0"
+interprocess = "2.2.3"
 
 # Getting dll exports
 libloading = "0.7.3"

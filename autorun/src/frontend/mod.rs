@@ -104,7 +104,7 @@ impl App {
 
 	fn show(&mut self, ui: &mut Ui) {
 		ui.horizontal(|ui| {
-			ui.heading("Autorun-rs");
+			ui.heading("Autorun-next");
 
 			const RED: Color32 = Color32::from_rgb(255, 0, 0);
 			const GREEN: Color32 = Color32::from_rgb(0, 255, 0);

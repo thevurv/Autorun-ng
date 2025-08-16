@@ -1,7 +1,7 @@
 use nom::{
 	branch::alt,
 	bytes::complete::{escaped_transform, take_while},
-	character::complete::{char, multispace0, multispace1, one_of},
+	character::complete::{char, multispace0, multispace1},
 	combinator::map,
 	error::{ContextError, ParseError},
 	multi::separated_list0,
@@ -28,7 +28,7 @@ fn string<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, String, E>
 			alt((
 				nom::combinator::value('\\', char('\\')),
 				nom::combinator::value('\n', char('n')),
-				nom::combinator::value('"', char('"'))
+				nom::combinator::value('"', char('"')),
 			)),
 		),
 		char('"'),
@@ -84,7 +84,10 @@ fn test_keyvalues() {
 		keyvalues::<nom::error::Error<&str>>("\"foo\" {}\n\"bar\" \"12\""),
 		Ok((
 			"",
-			vec![(String::from("foo"), Value::Object(vec![])), (String::from("bar"), Value::Str(String::from("12")))]
+			vec![
+				(String::from("foo"), Value::Object(vec![])),
+				(String::from("bar"), Value::Str(String::from("12")))
+			]
 		))
 	);
 }
@@ -105,7 +108,10 @@ fn test_object() {
 		object::<nom::error::Error<&str>>("{ \"foo\" {}\n\"bar\" \"12\" }"),
 		Ok((
 			"",
-			vec![(String::from("foo"), Value::Object(vec![])), (String::from("bar"), Value::Str(String::from("12")))]
+			vec![
+				(String::from("foo"), Value::Object(vec![])),
+				(String::from("bar"), Value::Str(String::from("12")))
+			]
 		))
 	);
 }

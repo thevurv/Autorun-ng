@@ -10,7 +10,7 @@ fn main() -> anyhow::Result<()> {
 	// println!("Included lib size {} kb", lib.len() / 1024);
 
 	let mut autorun = Autorun::new();
-	autorun.launch_attached()?;
+	autorun.launch()?;
 
 	frontend::run(autorun);
 
