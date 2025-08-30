@@ -1,4 +1,4 @@
-mod exports;
+mod lua;
 
 use autorun_ipc::{Message, Server};
 use std::os::raw::c_char;
@@ -11,6 +11,16 @@ pub fn main() -> anyhow::Result<()> {
 			eprintln!("Failed to start IPC server: {}", e);
 		}
 	});
+
+	thread::spawn(|| loop {
+		if let Ok(Some(menu_state)) = lua::get_menu_state() {
+			println!("Got the state");
+		}
+
+		std::thread::sleep(std::time::Duration::from_secs(1));
+	});
+
+	println!("main is done");
 
 	Ok(())
 }
@@ -61,18 +71,7 @@ fn handle_message(messenger: &mut autorun_ipc::Messenger, message: Message) -> a
 		Message::RunCode(code) => {
 			// TODO: Implement actual Lua code execution here
 			// For now, just print the code using the game's Msg function
-			unsafe {
-				if let Ok(tier0) = libloading::Library::new("libtier0_client.so") {
-					if let Ok(msg_func) =
-						tier0.get::<extern "C" fn(fmt: *const c_char, ...)>(b"Msg\0")
-					{
-						let output = format!("Executing: {}\n", code);
-						if let Ok(c_text) = std::ffi::CString::new(output) {
-							msg_func(c_text.as_ptr());
-						}
-					}
-				}
-			}
+			let menu_state = lua::get_menu_state()?;
 		}
 
 		_ => (),
