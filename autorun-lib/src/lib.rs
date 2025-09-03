@@ -14,13 +14,18 @@ pub fn main() -> anyhow::Result<()> {
 
 	thread::spawn(|| loop {
 		if let Ok(Some(menu_state)) = lua::get_menu_state() {
-			println!("Got the state");
+			let api = lua::get_api().expect("Failed to get api");
+
+			api.get_global(menu_state, c"print".as_ptr());
+			api.push_string(menu_state, c"Hello from Rust, Lua!".as_ptr());
+
+			if api.pcall(menu_state, 1, 0, 0) != 0 {
+				eprintln!("Failed to call Lua print function");
+			}
 		}
 
 		std::thread::sleep(std::time::Duration::from_secs(1));
 	});
-
-	println!("main is done");
 
 	Ok(())
 }
