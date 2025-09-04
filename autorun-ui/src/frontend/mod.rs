@@ -9,18 +9,17 @@ use commands::{CommandContext, CommandRegistry};
 use eframe::{
 	CreationContext,
 	egui::{
-		self, Button, ComboBox, FontId, IconData, TextEdit, TextFormat, Ui, ViewportBuilder,
-		text::LayoutJob,
+		self, Button, Color32, ComboBox, FontId, Frame, IconData, Margin, Rounding, Shadow, Stroke,
+		TextEdit, TextFormat, Ui, Vec2, ViewportBuilder, text::LayoutJob,
 	},
-	epaint::Color32,
+	epaint::FontFamily,
 };
 use egui_extras::syntax_highlighting::CodeTheme;
 
 use crate::backend::{Autorun, AutorunStatus};
 use autorun_types::Realm;
 
-const SIZE: (f32, f32) = (900.0, 500.0);
-const HALF: (f32, f32) = (SIZE.0 / 2.0, SIZE.1 / 2.0);
+const SIZE: (f32, f32) = (1200.0, 700.0);
 const REPAINT_TIME: Duration = Duration::from_secs(2);
 const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
 
@@ -45,14 +44,18 @@ pub fn run(autorun: Autorun) {
 	let icon = load_icon();
 
 	let _ = eframe::run_native(
-		"Autorun",
+		"Autorun-next",
 		eframe::NativeOptions {
 			viewport: if let Some(icon) = icon {
-				ViewportBuilder::default().with_icon(icon)
+				ViewportBuilder::default()
+					.with_icon(icon)
+					.with_inner_size(SIZE)
+					.with_min_inner_size([800.0, 500.0])
 			} else {
 				ViewportBuilder::default()
+					.with_inner_size(SIZE)
+					.with_min_inner_size([800.0, 500.0])
 			},
-
 			..Default::default()
 		},
 		Box::new(|cc| Ok(Box::new(App::new(cc, autorun)))),
@@ -60,32 +63,25 @@ pub fn run(autorun: Autorun) {
 }
 
 #[derive(Copy, Clone, PartialEq)]
-enum ConsoleMode {
-	Terminal,
-	Executor,
+enum ActiveTab {
+	Console,
+	Settings,
+	About,
 }
 
-impl ConsoleMode {
+impl ActiveTab {
 	fn as_str(&self) -> &str {
 		match *self {
-			ConsoleMode::Terminal => "Terminal",
-			ConsoleMode::Executor => "Executor",
+			ActiveTab::Console => "Console",
+			ActiveTab::Settings => "Settings",
+			ActiveTab::About => "About",
 		}
 	}
 }
 
-impl std::fmt::Display for ConsoleMode {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		match self {
-			ConsoleMode::Terminal => write!(f, "Terminal"),
-			ConsoleMode::Executor => write!(f, "Executor"),
-		}
-	}
-}
-
-impl Default for ConsoleMode {
+impl Default for ActiveTab {
 	fn default() -> Self {
-		ConsoleMode::Terminal
+		ActiveTab::Console
 	}
 }
 
@@ -93,35 +89,37 @@ struct App {
 	// State
 	autorun: Autorun,
 
-	// Command input
-	input: String,
-	code: String,
+	// UI State
+	active_tab: ActiveTab,
+	panel_split_ratio: f32,
 
+	// Terminal
+	terminal_input: String,
 	log: Arc<RwLock<String>>,
 
-	console_mode: ConsoleMode,
+	// Executor
+	code: String,
 	realm_state: Realm,
+
+	// System
 	last_update: std::time::Instant,
-
-	// Command system
 	command_registry: CommandRegistry,
-
-	// UI state
-	input_id: egui::Id,
+	terminal_input_id: egui::Id,
 }
 
 impl Default for App {
 	fn default() -> Self {
 		Self {
 			autorun: Autorun::default(),
-			input: String::default(),
-			code: String::default(),
+			active_tab: ActiveTab::default(),
+			panel_split_ratio: 0.5,
+			terminal_input: String::default(),
 			log: Arc::new(RwLock::new(String::new())),
-			console_mode: ConsoleMode::default(),
+			code: String::default(),
 			realm_state: Realm::Menu,
 			last_update: std::time::Instant::now(),
 			command_registry: CommandRegistry::new(),
-			input_id: egui::Id::new("terminal_input"),
+			terminal_input_id: egui::Id::new("terminal_input"),
 		}
 	}
 }
@@ -130,38 +128,35 @@ impl App {
 	pub fn new(cc: &CreationContext, autorun: Autorun) -> Self {
 		cc.egui_ctx.request_repaint_after(REPAINT_TIME);
 
-		// Set dark theme
+		// Set modern dark theme
 		let mut style = (*cc.egui_ctx.style()).clone();
 		style.visuals.dark_mode = true;
-		style.visuals.window_fill = Color32::from_rgb(25, 25, 25);
-		style.visuals.panel_fill = Color32::from_rgb(30, 30, 30);
+		style.visuals.window_fill = Color32::from_rgb(20, 20, 20);
+		style.visuals.panel_fill = Color32::from_rgb(25, 25, 25);
 		style.visuals.extreme_bg_color = Color32::from_rgb(15, 15, 15);
-		style.visuals.faint_bg_color = Color32::from_rgb(40, 40, 40);
-		style.visuals.code_bg_color = Color32::from_rgb(20, 20, 20);
-		style.visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(35, 35, 35);
-		style.visuals.widgets.inactive.bg_fill = Color32::from_rgb(45, 45, 45);
-		style.visuals.widgets.hovered.bg_fill = Color32::from_rgb(55, 55, 55);
-		style.visuals.widgets.active.bg_fill = Color32::from_rgb(65, 65, 65);
+		style.visuals.faint_bg_color = Color32::from_rgb(35, 35, 35);
+		style.visuals.code_bg_color = Color32::from_rgb(18, 18, 18);
+		style.visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(30, 30, 30);
+		style.visuals.widgets.inactive.bg_fill = Color32::from_rgb(40, 40, 40);
+		style.visuals.widgets.hovered.bg_fill = Color32::from_rgb(50, 50, 50);
+		style.visuals.widgets.active.bg_fill = Color32::from_rgb(60, 60, 60);
 		style.visuals.selection.bg_fill = Color32::from_rgb(70, 130, 180);
-		style.visuals.override_text_color = Some(Color32::from_rgb(230, 230, 230));
+		style.visuals.override_text_color = Some(Color32::from_rgb(235, 235, 235));
 		style.visuals.widgets.noninteractive.fg_stroke.color = Color32::from_rgb(200, 200, 200);
 		style.visuals.widgets.inactive.fg_stroke.color = Color32::from_rgb(180, 180, 180);
 		style.visuals.widgets.hovered.fg_stroke.color = Color32::WHITE;
 		style.visuals.widgets.active.fg_stroke.color = Color32::WHITE;
-		style.visuals.window_stroke = egui::Stroke::new(1.0, Color32::from_rgb(60, 60, 60));
+		style.visuals.window_stroke = Stroke::new(1.0, Color32::from_rgb(60, 60, 60));
 		style.visuals.widgets.noninteractive.bg_stroke =
-			egui::Stroke::new(1.0, Color32::from_rgb(50, 50, 50));
-		style.visuals.widgets.inactive.bg_stroke =
-			egui::Stroke::new(1.0, Color32::from_rgb(70, 70, 70));
-		style.visuals.widgets.hovered.bg_stroke =
-			egui::Stroke::new(1.0, Color32::from_rgb(100, 100, 100));
-		style.visuals.widgets.active.bg_stroke =
-			egui::Stroke::new(1.0, Color32::from_rgb(120, 120, 120));
-		style.visuals.window_rounding = egui::Rounding::same(8.0);
-		style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
-		style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
-		style.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
-		style.visuals.widgets.active.rounding = egui::Rounding::same(6.0);
+			Stroke::new(1.0, Color32::from_rgb(45, 45, 45));
+		style.visuals.widgets.inactive.bg_stroke = Stroke::new(1.0, Color32::from_rgb(55, 55, 55));
+		style.visuals.widgets.hovered.bg_stroke = Stroke::new(1.0, Color32::from_rgb(80, 80, 80));
+		style.visuals.widgets.active.bg_stroke = Stroke::new(1.0, Color32::from_rgb(100, 100, 100));
+		style.visuals.window_rounding = Rounding::same(6.0);
+		style.visuals.widgets.noninteractive.rounding = Rounding::same(4.0);
+		style.visuals.widgets.inactive.rounding = Rounding::same(4.0);
+		style.visuals.widgets.hovered.rounding = Rounding::same(4.0);
+		style.visuals.widgets.active.rounding = Rounding::same(4.0);
 		cc.egui_ctx.set_style(style);
 
 		let log = Arc::new(RwLock::new(String::new()));
@@ -194,370 +189,506 @@ impl App {
 		});
 
 		let command_registry = CommandRegistry::new();
-		// Uncomment the line below to enable additional example commands like console, echo and time
-		// command_registry.register_custom_commands();
 
 		Self {
 			log,
 			autorun,
 			command_registry,
 			last_update: std::time::Instant::now(),
-			input_id: egui::Id::new("terminal_input"),
+			terminal_input_id: egui::Id::new("terminal_input"),
 			..Default::default()
 		}
 	}
 
-	fn show(&mut self, ui: &mut Ui) {
-		ui.horizontal(|ui| {
-			ui.heading("Autorun-next");
-
-			match self.autorun.status() {
-				AutorunStatus::Disconnected => {
-					ui.colored_label(Color32::from_rgb(255, 100, 100), "Disconnected");
-
-					if ui.button("Launch").clicked() {
-						if let Err(e) = self.autorun.start_attached() {
-							eprintln!("Failed to start attached: {}", e);
-						}
-					}
-
-					if ui.button("Connect").clicked() {
-						if let Err(e) = self.autorun.try_connect_to_game() {
-							eprintln!("Failed to connect: {}", e);
-						}
-					}
-
-					#[cfg(debug_assertions)]
-					if ui.button("Test ANSI Colors").clicked() {
-						self.demo_ansi_colors();
-					}
-				}
-				AutorunStatus::Connected => {
-					ui.colored_label(Color32::from_rgb(100, 255, 100), "Connected");
-
-					if ui.button("Disconnect").clicked() {
-						if let Err(e) = self.autorun.detach() {
-							eprintln!("Failed to detach: {}", e);
-						}
-					}
-				}
-			};
-		});
-
-		ui.separator();
-
-		ui.horizontal(|ui| {
-			// Left side
-			ui.vertical(|ui| {
-				match self.console_mode {
-					ConsoleMode::Terminal => {
-						let log_content = self.log.read().unwrap().clone();
-						self.render_ansi_text(ui, &log_content);
-					}
-					ConsoleMode::Executor => {
-						// Allocate fixed space for the code editor (same as terminal)
-						let editor_size = egui::Vec2::new(HALF.0, SIZE.1 * 0.7 - 4.0);
-						let (rect, _response) =
-							ui.allocate_exact_size(editor_size, egui::Sense::hover());
-
-						ui.allocate_ui_at_rect(rect, |ui| {
-							let mut layouter = |ui: &egui::Ui, string: &str, wrap_width: f32| {
-								let mut layout_job = egui_extras::syntax_highlighting::highlight(
-									ui.ctx(),
-									&CodeTheme::dark(),
-									string,
-									"lua",
-								);
-								layout_job.wrap.max_width = wrap_width;
-								ui.fonts(|f| f.layout_job(layout_job))
-							};
-
-							// Style the text editor background and hint text
-							ui.style_mut().visuals.extreme_bg_color = Color32::BLACK;
-							ui.style_mut().visuals.widgets.inactive.bg_fill = Color32::BLACK;
-							ui.style_mut().visuals.widgets.noninteractive.bg_fill = Color32::BLACK;
-							ui.style_mut().visuals.widgets.hovered.bg_fill = Color32::BLACK;
-							ui.style_mut().visuals.widgets.active.bg_fill = Color32::BLACK;
-							ui.style_mut().visuals.widgets.inactive.fg_stroke.color =
-								Color32::from_rgb(120, 120, 120);
-							ui.style_mut().visuals.widgets.inactive.bg_stroke =
-								egui::Stroke::new(1.0, Color32::from_rgb(80, 80, 80));
-							ui.style_mut().visuals.widgets.noninteractive.bg_stroke =
-								egui::Stroke::new(1.0, Color32::from_rgb(80, 80, 80));
-							ui.style_mut().visuals.widgets.hovered.bg_stroke =
-								egui::Stroke::new(1.0, Color32::from_rgb(100, 100, 100));
-							ui.style_mut().visuals.widgets.active.bg_stroke =
-								egui::Stroke::new(1.0, Color32::from_rgb(120, 120, 120));
-							ui.style_mut().visuals.widgets.inactive.rounding =
-								egui::Rounding::same(8.0);
-							ui.style_mut().visuals.widgets.noninteractive.rounding =
-								egui::Rounding::same(8.0);
-							ui.style_mut().visuals.widgets.hovered.rounding =
-								egui::Rounding::same(8.0);
-							ui.style_mut().visuals.widgets.active.rounding =
-								egui::Rounding::same(8.0);
-
-							ui.add_sized(
-								editor_size,
-								egui::TextEdit::multiline(&mut self.code)
-									.font(egui::TextStyle::Monospace)
-									.code_editor()
-									.desired_width(f32::INFINITY)
-									.layouter(&mut layouter),
-							);
-						});
-					}
-				};
-
+	fn show_header(&mut self, ui: &mut Ui) {
+		// Header with title and connection controls
+		Frame::default()
+			.fill(Color32::from_rgb(30, 30, 30))
+			.stroke(Stroke::new(1.0, Color32::from_rgb(50, 50, 50)))
+			.inner_margin(Margin::symmetric(12.0, 8.0))
+			.show(ui, |ui| {
 				ui.horizontal(|ui| {
-					// Mode dropdown takes 20% of width
-					ComboBox::from_id_source("ConsoleMode")
-						.width(HALF.0 * 0.2)
-						.selected_text(self.console_mode.as_str())
-						.show_ui(ui, |ui| {
-							for mode in [ConsoleMode::Terminal, ConsoleMode::Executor] {
-								if mode != self.console_mode {
-									ui.selectable_value(
-										&mut self.console_mode,
-										mode,
-										mode.as_str(),
-									);
+					ui.heading("Autorun-next");
+
+					ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+						// Connection controls
+						match self.autorun.status() {
+							AutorunStatus::Disconnected => {
+								if ui.button("🔌 Connect").clicked() {
+									if let Err(e) = self.autorun.try_connect_to_game() {
+										eprintln!("Failed to connect: {}", e);
+									}
+								}
+
+								if ui.button("Launch").clicked() {
+									if let Err(e) = self.autorun.start_attached() {
+										eprintln!("Failed to start attached: {}", e);
+									}
+								}
+
+								ui.colored_label(
+									Color32::from_rgb(255, 120, 120),
+									"⛔ Disconnected",
+								);
+							}
+							AutorunStatus::Connected => {
+								if ui.button("Disconnect").clicked() {
+									if let Err(e) = self.autorun.detach() {
+										eprintln!("Failed to detach: {}", e);
+									}
+								}
+
+								ui.colored_label(Color32::from_rgb(120, 255, 120), "✅ Connected");
+							}
+						}
+					});
+				});
+			});
+	}
+
+	fn show_tab_bar(&mut self, ui: &mut Ui) {
+		// Tab bar with proper spacing
+		ui.add_space(12.0); // Add top margin
+		ui.horizontal(|ui| {
+			for tab in [ActiveTab::Console, ActiveTab::Settings, ActiveTab::About] {
+				let selected = self.active_tab == tab;
+
+				// Create button with generous padding for better click area
+				let button_text = format!("{}  {}  {}", "  ", tab.as_str(), "  ");
+				let mut button = Button::new(button_text).min_size(egui::Vec2::new(100.0, 36.0)); // Minimum size for better clicking
+
+				if selected {
+					// Active tab styling - elevated appearance
+					button = button
+						.fill(Color32::from_rgb(45, 45, 45))
+						.stroke(Stroke::new(2.0, Color32::from_rgb(70, 130, 180)))
+						.rounding(Rounding::same(8.0));
+				} else {
+					// Inactive tab styling - subtle but clickable
+					button = button
+						.fill(Color32::from_rgb(30, 30, 30))
+						.stroke(Stroke::new(1.0, Color32::from_rgb(60, 60, 60)))
+						.rounding(Rounding::same(6.0));
+				}
+
+				// Add hover effect
+				let response = ui.add(button);
+				if response.hovered() && !selected {
+					// Draw hover overlay
+					ui.painter().rect_filled(
+						response.rect,
+						Rounding::same(6.0),
+						Color32::from_rgba_premultiplied(70, 130, 180, 30),
+					);
+				}
+
+				if response.clicked() {
+					self.active_tab = tab;
+				}
+
+				ui.add_space(6.0); // Gap between tabs
+			}
+		});
+		ui.add_space(8.0); // Space after tabs
+	}
+
+	fn show_console_tab(&mut self, ui: &mut Ui) {
+		// Main content area with split panels
+		let available_rect = ui.available_rect_before_wrap();
+		let content_height = available_rect.height();
+
+		// Calculate panel sizes
+		let panel_width = available_rect.width() * self.panel_split_ratio;
+		let remaining_width = available_rect.width() - panel_width - 24.0; // Account for splitter and margins
+
+		ui.horizontal(|ui| {
+			// Terminal panel
+			ui.vertical(|ui| {
+				ui.set_width(panel_width);
+				ui.set_height(content_height);
+				self.show_terminal_panel(ui);
+			});
+
+			// Resizable splitter
+			let splitter_response = ui.allocate_response(
+				egui::Vec2::new(12.0, content_height),
+				egui::Sense::click_and_drag(),
+			);
+
+			if splitter_response.dragged() {
+				let delta = splitter_response.drag_delta().x;
+				let new_ratio = self.panel_split_ratio + (delta / available_rect.width());
+				self.panel_split_ratio = new_ratio.clamp(0.2, 0.8);
+			}
+
+			// Draw splitter
+			ui.painter().rect_filled(
+				splitter_response.rect,
+				egui::Rounding::same(2.0),
+				if splitter_response.hovered() || splitter_response.dragged() {
+					Color32::from_rgb(80, 80, 80)
+				} else {
+					Color32::from_rgb(50, 50, 50)
+				},
+			);
+
+			// Change cursor when hovering over splitter
+			if splitter_response.hovered() {
+				ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::ResizeHorizontal);
+			}
+
+			// Executor panel
+			ui.vertical(|ui| {
+				ui.set_width(remaining_width.max(250.0)); // Ensure minimum width
+				ui.set_height(content_height);
+				self.show_executor_panel(ui);
+			});
+		});
+	}
+
+	fn show_terminal_panel(&mut self, ui: &mut Ui) {
+		Frame::default()
+			.fill(Color32::from_rgb(22, 22, 22))
+			.stroke(Stroke::new(1.0, Color32::from_rgb(50, 50, 50)))
+			.rounding(Rounding::same(6.0))
+			.inner_margin(Margin::same(12.0))
+			.shadow(Shadow {
+				offset: Vec2::new(2.0, 2.0),
+				blur: 4.0,
+				spread: 0.0,
+				color: Color32::from_black_alpha(60),
+			})
+			.show(ui, |ui| {
+				ui.vertical(|ui| {
+					// Terminal header
+					ui.horizontal(|ui| {
+						ui.heading("💻 Terminal");
+						ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+							if ui.button("🗑 Clear").clicked() {
+								if let Ok(mut log) = self.log.write() {
+									log.clear();
 								}
 							}
 						});
+					});
 
-					// Show realm dropdown only in executor mode
-					if self.console_mode == ConsoleMode::Executor {
-						ComboBox::from_id_source("RealmState")
-							.width(HALF.0 * 0.15)
-							.selected_text(self.realm_state.to_string())
-							.show_ui(ui, |ui| {
-								for realm in [Realm::Menu, Realm::Client] {
-									if realm != self.realm_state {
-										ui.selectable_value(
-											&mut self.realm_state,
-											realm,
-											realm.to_string(),
-										);
-									}
-								}
+					ui.separator();
+
+					// Terminal output
+					let terminal_height = ui.available_height() - 60.0; // Reserve space for input
+					let log_content = self.log.read().unwrap().clone();
+
+					let (rect, _response) = ui.allocate_exact_size(
+						Vec2::new(ui.available_width(), terminal_height),
+						egui::Sense::hover(),
+					);
+
+					ui.allocate_ui_at_rect(rect, |ui| {
+						Frame::default()
+							.fill(Color32::BLACK)
+							.stroke(Stroke::new(1.0, Color32::from_rgb(60, 60, 60)))
+							.rounding(Rounding::same(4.0))
+							.inner_margin(Margin::same(8.0))
+							.show(ui, |ui| {
+								egui::ScrollArea::vertical()
+									.max_height(terminal_height - 20.0)
+									.auto_shrink([false, false])
+									.stick_to_bottom(true)
+									.show(ui, |ui| {
+										ui.set_width(ui.available_width());
+										self.render_ansi_text(ui, &log_content);
+									});
 							});
-					}
+					});
 
-					let input_width = if self.console_mode == ConsoleMode::Executor {
-						HALF.0 * 0.4825 - 10.0 // Shorter width in executor mode to align with terminal mode
-					} else {
-						HALF.0 * 0.65 - 10.0 // Full width in terminal mode
-					};
+					// Terminal input
+					ui.horizontal(|ui| {
+						ui.label("$");
 
-					let input_response = TextEdit::singleline(&mut self.input)
-						.desired_width(input_width)
-						.interactive(self.console_mode == ConsoleMode::Terminal)
-						.id(self.input_id)
-						.show(ui);
+						let input_response = TextEdit::singleline(&mut self.terminal_input)
+							.desired_width(ui.available_width() - 80.0)
+							.font(egui::TextStyle::Monospace)
+							.id(self.terminal_input_id)
+							.show(ui);
 
-					// Check if Enter was pressed to submit command
-					let should_submit = input_response.response.lost_focus()
-						&& input_response
+						// Handle Enter key
+						let enter_pressed = input_response
 							.response
 							.ctx
 							.input(|i| i.key_pressed(egui::Key::Enter))
-						&& !self.input.is_empty()
-						&& self.console_mode == ConsoleMode::Terminal;
+							&& !self.terminal_input.is_empty();
 
-					if should_submit {
-						// Execute command
-						let mut context = CommandContext::new(Arc::clone(&self.log), &self.autorun);
+						let should_submit = (input_response.response.lost_focus() && enter_pressed)
+							|| ui.button("Run").clicked();
 
-						match self
-							.command_registry
-							.execute_command(&self.input, &mut context)
-						{
-							Ok(true) => {
-								// Command was handled
-							}
-							Ok(false) => {
-								// Not a recognized command
-								context.write_error(&format!("Unknown command: '{}'", self.input));
-							}
-							Err(e) => {
-								eprintln!("Command execution error: {}", e);
+						if should_submit {
+							self.execute_terminal_command();
+							// Keep focus on the input after submitting
+							if enter_pressed {
+								input_response.response.request_focus();
 							}
 						}
-						self.input = String::new();
-					}
-
-					if ui
-						.add_sized([0.0, ui.available_height()], Button::new("Execute"))
-						.clicked()
-					{
-						match self.console_mode {
-							ConsoleMode::Terminal => {
-								if !self.input.is_empty() {
-									// Execute command
-									let mut context =
-										CommandContext::new(Arc::clone(&self.log), &self.autorun);
-
-									match self
-										.command_registry
-										.execute_command(&self.input, &mut context)
-									{
-										Ok(true) => {
-											// Command was handled
-										}
-										Ok(false) => {
-											// Not a recognized command
-											context.write_error(&format!(
-												"Unknown command: '{}'",
-												self.input
-											));
-										}
-										Err(e) => {
-											eprintln!("Command execution error: {}", e);
-										}
-									}
-									self.input = String::new();
-								}
-							}
-							ConsoleMode::Executor => {
-								if !self.code.is_empty() {
-									if let Err(e) =
-										self.autorun.run_code(self.realm_state, &self.code)
-									{
-										eprintln!("Failed to execute code: {}", e);
-									}
-								}
-							}
-						}
-					}
+					});
 				});
 			});
+	}
+
+	fn show_executor_panel(&mut self, ui: &mut Ui) {
+		Frame::default()
+			.fill(Color32::from_rgb(22, 22, 22))
+			.stroke(Stroke::new(1.0, Color32::from_rgb(50, 50, 50)))
+			.rounding(Rounding::same(6.0))
+			.inner_margin(Margin::same(12.0))
+			.shadow(Shadow {
+				offset: Vec2::new(2.0, 2.0),
+				blur: 4.0,
+				spread: 0.0,
+				color: Color32::from_black_alpha(60),
+			})
+			.show(ui, |ui| {
+				ui.vertical(|ui| {
+					// Executor header
+					ui.horizontal(|ui| {
+						ui.heading("Lua Executor");
+
+						ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+							ui.add_space(8.0); // Add space from right edge
+
+							if ui.button("Execute").clicked() {
+								self.execute_lua_code();
+							}
+
+							ui.add_space(4.0); // Add space between controls
+
+							// Color-coded realm selector
+							let (realm_color, realm_text) = match self.realm_state {
+								Realm::Menu => (Color32::from_rgb(100, 200, 100), "Menu"), // Green
+								Realm::Client => (Color32::from_rgb(255, 165, 0), "Client"), // Orange
+							};
+
+							ui.scope(|ui| {
+								ui.style_mut().visuals.override_text_color = Some(realm_color);
+								ComboBox::from_id_source("realm_selector")
+									.width(110.0)
+									.selected_text(realm_text)
+									.show_ui(ui, |ui| {
+										for realm in [Realm::Menu, Realm::Client] {
+											let (color, text) = match realm {
+												Realm::Menu => {
+													(Color32::from_rgb(100, 200, 100), "Menu")
+												}
+												Realm::Client => {
+													(Color32::from_rgb(255, 165, 0), "Client")
+												}
+											};
+											ui.scope(|ui| {
+												ui.style_mut().visuals.override_text_color =
+													Some(color);
+												ui.selectable_value(
+													&mut self.realm_state,
+													realm,
+													text,
+												);
+											});
+										}
+									});
+							});
+						});
+					});
+
+					ui.separator();
+
+					// Code editor
+					let editor_height = ui.available_height() - 40.0;
+
+					let (rect, _response) = ui.allocate_exact_size(
+						Vec2::new(ui.available_width(), editor_height),
+						egui::Sense::hover(),
+					);
+
+					ui.allocate_ui_at_rect(rect, |ui| {
+						let mut layouter = |ui: &egui::Ui, string: &str, wrap_width: f32| {
+							let mut layout_job = egui_extras::syntax_highlighting::highlight(
+								ui.ctx(),
+								&CodeTheme::dark(),
+								string,
+								"lua",
+							);
+							layout_job.wrap.max_width = wrap_width;
+							ui.fonts(|f| f.layout_job(layout_job))
+						};
+
+						ui.add_sized(
+							[ui.available_width(), editor_height],
+							TextEdit::multiline(&mut self.code)
+								.font(egui::TextStyle::Monospace)
+								.code_editor()
+								.desired_width(f32::INFINITY)
+								.layouter(&mut layouter),
+						);
+					});
+				});
+			});
+	}
+
+	fn show_settings_tab(&mut self, ui: &mut Ui) {
+		ui.vertical_centered(|ui| {
+			ui.add_space(50.0);
+			ui.heading("Settings");
+			ui.add_space(20.0);
+
+			Frame::default()
+				.fill(Color32::from_rgb(25, 25, 25))
+				.stroke(Stroke::new(1.0, Color32::from_rgb(50, 50, 50)))
+				.rounding(Rounding::same(8.0))
+				.inner_margin(Margin::same(20.0))
+				.show(ui, |ui| {
+					ui.label("Settings panel - Coming soon!");
+					ui.add_space(10.0);
+					ui.label("• Theme customization");
+					ui.label("• Hotkey configuration");
+					ui.label("• Auto-connect settings");
+					ui.label("• Font size preferences");
+				});
 		});
+	}
+
+	fn show_about_tab(&mut self, ui: &mut Ui) {
+		ui.vertical_centered(|ui| {
+			ui.add_space(50.0);
+			ui.heading("About Autorun-next");
+			ui.add_space(20.0);
+
+			Frame::default()
+				.fill(Color32::from_rgb(25, 25, 25))
+				.stroke(Stroke::new(1.0, Color32::from_rgb(50, 50, 50)))
+				.rounding(Rounding::same(8.0))
+				.inner_margin(Margin::same(20.0))
+				.show(ui, |ui| {
+					ui.label("A modern Lua executor and terminal for game automation");
+					ui.add_space(10.0);
+					ui.label(concat!("Version: ", env!("CARGO_PKG_VERSION")));
+					ui.label("Built with Rust + egui");
+					ui.add_space(15.0);
+
+					if ui.link("GitHub Repository").clicked() {
+						open_url("https://github.com/thevurv/Autorun-next");
+					}
+
+					if ui.link("📚 Documentation").clicked() {
+						// Handle link click
+					}
+				});
+		});
+	}
+
+	fn show_status_bar(&mut self, ui: &mut Ui) {
+		Frame::default()
+			.fill(Color32::from_rgb(30, 30, 30))
+			.stroke(Stroke::new(1.0, Color32::from_rgb(50, 50, 50)))
+			.inner_margin(Margin::symmetric(12.0, 6.0))
+			.show(ui, |ui| {
+				ui.horizontal(|ui| {
+					ui.label(concat!("v", env!("CARGO_PKG_VERSION")));
+
+					ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+						if ui.link("Discord").clicked() {
+							open_url("https://discord.gg/cSC3ebaR3q");
+						}
+
+						ui.separator();
+
+						if ui.link("GitHub").clicked() {
+							open_url("https://github.com/thevurv/Autorun-next");
+						}
+					});
+				});
+			});
+	}
+
+	fn execute_terminal_command(&mut self) {
+		if self.terminal_input.is_empty() {
+			return;
+		}
+
+		let mut context = CommandContext::new(Arc::clone(&self.log), &self.autorun);
+
+		match self
+			.command_registry
+			.execute_command(&self.terminal_input, &mut context)
+		{
+			Ok(true) => {
+				// Command was handled
+			}
+			Ok(false) => {
+				// Not a recognized command
+				context.write_error(&format!("Unknown command: '{}'", self.terminal_input));
+			}
+			Err(e) => {
+				eprintln!("Command execution error: {}", e);
+			}
+		}
+
+		self.terminal_input.clear();
+	}
+
+	fn execute_lua_code(&mut self) {
+		if self.code.is_empty() {
+			return;
+		}
+
+		if let Err(e) = self.autorun.run_code(self.realm_state, &self.code) {
+			eprintln!("Failed to execute code: {}", e);
+		}
 	}
 
 	fn render_ansi_text(&self, ui: &mut Ui, text: &str) {
 		let segments = parse_ansi_text(text);
 
-		// Create a frame with terminal-like styling with fixed size
-		let frame = egui::Frame::default()
-			.fill(Color32::BLACK)
-			.stroke(egui::Stroke::new(1.0, Color32::from_rgb(80, 80, 80)))
-			.rounding(egui::Rounding::same(8.0))
-			.inner_margin(egui::Margin::same(8.0))
-			.shadow(egui::Shadow {
-				offset: egui::Vec2::new(2.0, 2.0),
-				blur: 4.0,
-				spread: 0.0,
-				color: Color32::from_black_alpha(80),
-			});
+		ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
 
-		// Allocate fixed space for the terminal
-		let terminal_size = egui::Vec2::new(HALF.0, SIZE.1 * 0.7);
-		let (rect, _response) = ui.allocate_exact_size(terminal_size, egui::Sense::hover());
+		// Group segments by lines to render them inline
+		let mut current_job = LayoutJob::default();
+		let font_id = FontId::new(11.0, FontFamily::Monospace);
 
-		// Show the frame in the allocated space
-		ui.allocate_ui_at_rect(rect, |ui| {
-			frame.show(ui, |ui| {
-				egui::ScrollArea::vertical()
-					.min_scrolled_height(SIZE.1 * 0.7 - 20.0) // Account for frame margins
-					.max_height(SIZE.1 * 0.7 - 20.0)
-					.auto_shrink([false, false])
-					.stick_to_bottom(true)
-					.show(ui, |ui| {
-						ui.set_width(HALF.0 - 20.0); // Account for frame margins
-						ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
+		for segment in segments {
+			if segment.text.is_empty() {
+				continue;
+			}
 
-						// Group segments by lines to render them inline
-						let mut current_job = LayoutJob::default();
-						let font_id = FontId::monospace(12.0);
+			// Split by newlines and handle each line
+			let lines: Vec<&str> = segment.text.split('\n').collect();
+			for (line_idx, line) in lines.iter().enumerate() {
+				if line_idx > 0 {
+					// Finish current line and start a new one
+					if !current_job.text.is_empty() {
+						ui.label(current_job.clone());
+						current_job = LayoutJob::default();
+					}
+				}
 
-						for segment in segments {
-							if segment.text.is_empty() {
-								continue;
-							}
+				if !line.is_empty() {
+					// Add this line segment to the current job
+					let color = segment.color.unwrap_or(Color32::from_rgb(220, 220, 220));
+					let mut text_format = TextFormat {
+						font_id: font_id.clone(),
+						color,
+						..Default::default()
+					};
 
-							// Split by newlines and handle each line
-							let lines: Vec<&str> = segment.text.split('\n').collect();
-							for (line_idx, line) in lines.iter().enumerate() {
-								if line_idx > 0 {
-									// Finish current line and start a new one
-									if !current_job.text.is_empty() {
-										ui.label(current_job.clone());
-										current_job = LayoutJob::default();
-									}
-								}
+					// Set background color if available
+					if let Some(bg_color) = segment.background {
+						text_format.background = bg_color;
+					}
 
-								if !line.is_empty() {
-									// Add this line segment to the current job
-									let color = segment.color.unwrap_or(Color32::WHITE);
-									let mut text_format = TextFormat {
-										font_id: font_id.clone(),
-										color,
-										..Default::default()
-									};
+					current_job.append(line, 0.0, text_format);
+				}
+			}
+		}
 
-									// Set background color if available
-									if let Some(bg_color) = segment.background {
-										text_format.background = bg_color;
-									}
-
-									current_job.append(line, 0.0, text_format);
-								}
-							}
-						}
-
-						// Render any remaining text
-						if !current_job.text.is_empty() {
-							ui.label(current_job);
-						}
-					});
-			});
-		});
-	}
-
-	#[cfg(debug_assertions)]
-	fn demo_ansi_colors(&self) {
-		let demo_text = format!(
-			"{}ANSI Color Demo:{}\n\
-			{}Red text{} - {}Green text{} - {}Blue text{}\n\
-			{}Yellow{} - {}Magenta{} - {}Cyan{}\n\
-			{}Bright Red{} - {}Bright Green{} - {}Bright Blue{}\n\
-			{}Red on Yellow{} - {}White on Blue{} - {}Black on Cyan{}\n\
-			{}Normal text again{}",
-			"\x1b[1m",
-			"\x1b[0m", // Bold title and reset
-			"\x1b[31m",
-			"\x1b[0m",
-			"\x1b[32m",
-			"\x1b[0m",
-			"\x1b[34m",
-			"\x1b[0m", // Red, Green, Blue
-			"\x1b[33m",
-			"\x1b[0m",
-			"\x1b[35m",
-			"\x1b[0m",
-			"\x1b[36m",
-			"\x1b[0m", // Yellow, Magenta, Cyan
-			"\x1b[91m",
-			"\x1b[0m",
-			"\x1b[92m",
-			"\x1b[0m",
-			"\x1b[94m",
-			"\x1b[0m", // Bright Red, Green, Blue
-			"\x1b[31;43m",
-			"\x1b[0m",
-			"\x1b[37;44m",
-			"\x1b[0m",
-			"\x1b[30;46m",
-			"\x1b[0m", // Foreground + background combinations
-			"\x1b[37m",
-			"\x1b[0m" // White and reset
-		);
-
-		// Add the demo text to the log
-		if let Ok(mut log) = self.log.write() {
-			log.push_str(&demo_text);
-			log.push('\n');
+		// Render any remaining text
+		if !current_job.text.is_empty() {
+			ui.label(current_job);
 		}
 	}
 }
@@ -574,7 +705,28 @@ impl eframe::App for App {
 			self.last_update = std::time::Instant::now();
 		}
 
-		egui::CentralPanel::default().show(ctx, |ui| self.show(ui));
+		egui::CentralPanel::default().show(ctx, |ui| {
+			ui.vertical(|ui| {
+				// Header
+				self.show_header(ui);
+
+				// Tab bar
+				self.show_tab_bar(ui);
+
+				let content_height = ui.available_height() - 50.0; // Reserve space for status bar
+				ui.allocate_ui(Vec2::new(ui.available_width(), content_height), |ui| {
+					ui.set_min_height(content_height);
+					match self.active_tab {
+						ActiveTab::Console => self.show_console_tab(ui),
+						ActiveTab::Settings => self.show_settings_tab(ui),
+						ActiveTab::About => self.show_about_tab(ui),
+					}
+				});
+
+				// Status bar
+				self.show_status_bar(ui);
+			});
+		});
 	}
 }
 
@@ -642,6 +794,25 @@ fn parse_ansi_text(text: &str) -> Vec<TextSegment> {
 	}
 
 	segments
+}
+
+fn open_url(url: &str) {
+	#[cfg(target_os = "windows")]
+	{
+		let _ = std::process::Command::new("cmd")
+			.args(["/C", "start", url])
+			.spawn();
+	}
+
+	#[cfg(target_os = "macos")]
+	{
+		let _ = std::process::Command::new("open").arg(url).spawn();
+	}
+
+	#[cfg(target_os = "linux")]
+	{
+		let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+	}
 }
 
 fn parse_ansi_foreground_color(code: &str) -> Option<Color32> {
