@@ -5,6 +5,6 @@ pub enum Message {
 	Ping,
 	Pong,
 	Print(String),
-	RunCode(String),
+	RunCode(autorun_types::Realm, String),
 	Shutdown,
 }

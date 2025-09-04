@@ -1,5 +1,12 @@
 [workspace]
-members = ["autorun-ui", "autorun-lib", "autorun-ipc", "autorun-log", "locator"]
+members = [
+    "autorun-ui",
+    "autorun-lib",
+    "autorun-ipc",
+    "autorun-log",
+    "autorun-types",
+    "locator",
+]
 resolver = "3"
 
 [profile.release]

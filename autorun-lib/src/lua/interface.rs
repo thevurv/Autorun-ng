@@ -1,5 +1,7 @@
 use std::ffi::{c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
 
+use anyhow::anyhow;
+
 use crate::lua::LuaState;
 
 #[repr(C)]
@@ -63,7 +65,7 @@ const STATE_CLIENT: c_uchar = 0;
 const STATE_SERVER: c_uchar = 1;
 const STATE_MENU: c_uchar = 2;
 
-pub fn get_menu_state() -> anyhow::Result<Option<*mut LuaState>> {
+pub fn get_state(realm: autorun_types::Realm) -> anyhow::Result<Option<*mut LuaState>> {
 	let lua_shared_003 =
 		crate::util::get_interface("lua_shared_client.so", "LUASHARED003")? as *mut ILuaShared;
 	let lua_shared_003 = unsafe { lua_shared_003.as_mut().unwrap() };
@@ -71,7 +73,13 @@ pub fn get_menu_state() -> anyhow::Result<Option<*mut LuaState>> {
 	let vtable = lua_shared_003.vtable;
 	let vtable = unsafe { vtable.as_ref().unwrap() };
 
-	let menu = (vtable.get_lua_interface)(lua_shared_003 as *const _ as _, STATE_MENU);
+	let menu = (vtable.get_lua_interface)(
+		lua_shared_003 as *const _ as _,
+		match realm {
+			autorun_types::Realm::Client => STATE_CLIENT,
+			autorun_types::Realm::Menu => STATE_MENU,
+		},
+	);
 
 	if !menu.is_null() {
 		let menu = unsafe { menu.as_mut().unwrap() };

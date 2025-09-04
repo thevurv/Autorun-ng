@@ -12,7 +12,7 @@ pub fn start() -> anyhow::Result<()> {
 			Ok(mut messenger) => {
 				std::thread::spawn(move || {
 					if let Err(e) = handle_client(&mut messenger) {
-						eprintln!("Client handler error: {}", e);
+						autorun_log::error!("{e}");
 					}
 				});
 			}

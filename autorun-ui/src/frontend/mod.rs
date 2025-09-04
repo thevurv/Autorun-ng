@@ -3,6 +3,9 @@ use std::{
 	time::Duration,
 };
 
+mod commands;
+use commands::{CommandContext, CommandRegistry};
+
 use eframe::{
 	CreationContext,
 	egui::{
@@ -14,6 +17,7 @@ use eframe::{
 use egui_extras::syntax_highlighting::CodeTheme;
 
 use crate::backend::{Autorun, AutorunStatus};
+use autorun_types::Realm;
 
 const SIZE: (f32, f32) = (900.0, 500.0);
 const HALF: (f32, f32) = (SIZE.0 / 2.0, SIZE.1 / 2.0);
@@ -96,7 +100,14 @@ struct App {
 	log: Arc<RwLock<String>>,
 
 	console_mode: ConsoleMode,
+	realm_state: Realm,
 	last_update: std::time::Instant,
+
+	// Command system
+	command_registry: CommandRegistry,
+
+	// UI state
+	input_id: egui::Id,
 }
 
 impl Default for App {
@@ -107,7 +118,10 @@ impl Default for App {
 			code: String::default(),
 			log: Arc::new(RwLock::new(String::new())),
 			console_mode: ConsoleMode::default(),
+			realm_state: Realm::Menu,
 			last_update: std::time::Instant::now(),
+			command_registry: CommandRegistry::new(),
+			input_id: egui::Id::new("terminal_input"),
 		}
 	}
 }
@@ -179,10 +193,16 @@ impl App {
 			}
 		});
 
+		let command_registry = CommandRegistry::new();
+		// Uncomment the line below to enable additional example commands like console, echo and time
+		// command_registry.register_custom_commands();
+
 		Self {
 			log,
 			autorun,
+			command_registry,
 			last_update: std::time::Instant::now(),
+			input_id: egui::Id::new("terminal_input"),
 			..Default::default()
 		}
 	}
@@ -290,10 +310,7 @@ impl App {
 				};
 
 				ui.horizontal(|ui| {
-					// 20% of width goes to dropdown.
-					// 10% goes to the button
-					// 70% goes to input box.
-
+					// Mode dropdown takes 20% of width
 					ComboBox::from_id_source("ConsoleMode")
 						.width(HALF.0 * 0.2)
 						.selected_text(self.console_mode.as_str())
@@ -309,23 +326,62 @@ impl App {
 							}
 						});
 
-					let input_box = TextEdit::singleline(&mut self.input)
-						.desired_width(HALF.0 * 0.65 - 10.0) // Magic numbers. woop
+					// Show realm dropdown only in executor mode
+					if self.console_mode == ConsoleMode::Executor {
+						ComboBox::from_id_source("RealmState")
+							.width(HALF.0 * 0.15)
+							.selected_text(self.realm_state.to_string())
+							.show_ui(ui, |ui| {
+								for realm in [Realm::Menu, Realm::Client] {
+									if realm != self.realm_state {
+										ui.selectable_value(
+											&mut self.realm_state,
+											realm,
+											realm.to_string(),
+										);
+									}
+								}
+							});
+					}
+
+					let input_width = if self.console_mode == ConsoleMode::Executor {
+						HALF.0 * 0.4825 - 10.0 // Shorter width in executor mode to align with terminal mode
+					} else {
+						HALF.0 * 0.65 - 10.0 // Full width in terminal mode
+					};
+
+					let input_response = TextEdit::singleline(&mut self.input)
+						.desired_width(input_width)
+						.interactive(self.console_mode == ConsoleMode::Terminal)
+						.id(self.input_id)
 						.show(ui);
 
-					if input_box.response.lost_focus() && !self.input.is_empty() {
-						match self.console_mode {
-							ConsoleMode::Terminal => {
-								// Send command to game console
-								if let Err(e) = self.autorun.print_to_game(&self.input) {
-									eprintln!("Failed to send command: {}", e);
-								}
+					// Check if Enter was pressed to submit command
+					let should_submit = input_response.response.lost_focus()
+						&& input_response
+							.response
+							.ctx
+							.input(|i| i.key_pressed(egui::Key::Enter))
+						&& !self.input.is_empty()
+						&& self.console_mode == ConsoleMode::Terminal;
+
+					if should_submit {
+						// Execute command
+						let mut context = CommandContext::new(Arc::clone(&self.log), &self.autorun);
+
+						match self
+							.command_registry
+							.execute_command(&self.input, &mut context)
+						{
+							Ok(true) => {
+								// Command was handled
 							}
-							ConsoleMode::Executor => {
-								// Execute as Lua code
-								if let Err(e) = self.autorun.run_code(&self.input) {
-									eprintln!("Failed to execute code: {}", e);
-								}
+							Ok(false) => {
+								// Not a recognized command
+								context.write_error(&format!("Unknown command: '{}'", self.input));
+							}
+							Err(e) => {
+								eprintln!("Command execution error: {}", e);
 							}
 						}
 						self.input = String::new();
@@ -338,15 +394,36 @@ impl App {
 						match self.console_mode {
 							ConsoleMode::Terminal => {
 								if !self.input.is_empty() {
-									if let Err(e) = self.autorun.print_to_game(&self.input) {
-										eprintln!("Failed to send command: {}", e);
+									// Execute command
+									let mut context =
+										CommandContext::new(Arc::clone(&self.log), &self.autorun);
+
+									match self
+										.command_registry
+										.execute_command(&self.input, &mut context)
+									{
+										Ok(true) => {
+											// Command was handled
+										}
+										Ok(false) => {
+											// Not a recognized command
+											context.write_error(&format!(
+												"Unknown command: '{}'",
+												self.input
+											));
+										}
+										Err(e) => {
+											eprintln!("Command execution error: {}", e);
+										}
 									}
 									self.input = String::new();
 								}
 							}
 							ConsoleMode::Executor => {
 								if !self.code.is_empty() {
-									if let Err(e) = self.autorun.run_code(&self.code) {
+									if let Err(e) =
+										self.autorun.run_code(self.realm_state, &self.code)
+									{
 										eprintln!("Failed to execute code: {}", e);
 									}
 								}

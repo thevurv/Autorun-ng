@@ -20,5 +20,5 @@ retour = { git = "https://github.com/jon-zu/retour-rs" }
 
 # IPC communication
 autorun-ipc = { path = "../autorun-ipc" }
-
+autorun-types = { path = "../autorun-types" }
 autorun-log = { path = "../autorun-log" }

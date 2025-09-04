@@ -2,14 +2,18 @@ use super::Autorun;
 use autorun_ipc::Message;
 
 impl Autorun {
-	pub fn run_code(&mut self, code: impl Into<String>) -> anyhow::Result<()> {
+	pub fn run_code(
+		&mut self,
+		realm: autorun_types::Realm,
+		code: impl Into<String>,
+	) -> anyhow::Result<()> {
 		let code = code.into();
 
 		if self.client.is_none() {
 			return Err(anyhow::anyhow!("Not connected to autorun server"));
 		}
 
-		self.send_message(Message::RunCode(code))?;
+		self.send_message(Message::RunCode(realm, code))?;
 		Ok(())
 	}
 
