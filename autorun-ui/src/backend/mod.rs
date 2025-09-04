@@ -29,17 +29,6 @@ pub struct Autorun {
 	last_ping_time: Option<Instant>,
 }
 
-impl Clone for Autorun {
-	fn clone(&self) -> Self {
-		Self {
-			status: self.status,
-			client: self.client.clone(),
-			last_connection_attempt: self.last_connection_attempt,
-			last_ping_time: self.last_ping_time,
-		}
-	}
-}
-
 impl Autorun {
 	pub fn new() -> Self {
 		Self::default()

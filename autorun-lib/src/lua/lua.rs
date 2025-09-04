@@ -3,6 +3,14 @@ pub type LuaState = c_void;
 
 const LUA_GLOBALSINDEX: c_int = -10002;
 
+const LUA_OK: c_int = 0;
+const LUA_YIELD: c_int = 1;
+const LUA_ERRRUN: c_int = 2;
+const LUA_ERRSYNTAX: c_int = 3;
+const LUA_ERRMEM: c_int = 4;
+const LUA_ERRGCMM: c_int = 5;
+const LUA_ERRERR: c_int = 6;
+
 macro_rules! define_lua_api {
     (
         $(
@@ -69,7 +77,7 @@ define_lua_api! {
 	pub fn insert(state: *mut LuaState, index: c_int);
 
 	#[name = "luaL_loadstring"]
-	pub fn load_string(state: *mut LuaState, str: *const c_char) -> c_int;
+	pub fn _load_string(state: *mut LuaState, str: *const c_char) -> c_int;
 	#[name = "luaL_checknumber"]
 	pub fn check_number(state: *mut LuaState, index: c_int) -> c_double;
 	#[name = "luaL_checklstring"]
@@ -78,7 +86,7 @@ define_lua_api! {
 	#[name = "lua_call"]
 	pub fn call(state: *mut LuaState, n_args: c_int, n_results: c_int) -> c_int;
 	#[name = "lua_pcall"]
-	pub fn pcall(state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> c_int;
+	fn _pcall(state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> c_int;
 	#[name = "lua_createtable"]
 	pub fn create_table(state: *mut LuaState, narr: c_int, nrec: c_int);
 	#[name = "lua_equal"]
@@ -150,6 +158,57 @@ static LUA_API: std::sync::OnceLock<LuaApi> = std::sync::OnceLock::new();
 impl LuaApi {
 	pub fn get_global(&self, state: *mut LuaState, name: *const c_char) {
 		self.get_field(state, LUA_GLOBALSINDEX, name);
+	}
+
+	pub fn load_string(
+		&self,
+		state: *mut LuaState,
+		s: *const c_char,
+	) -> Result<(), std::borrow::Cow<'static, str>> {
+		match self._load_string(state, s) {
+			LUA_OK | LUA_YIELD => Ok(()),
+			_ => {
+				let err_msg = self.to_lstring(state, -1, std::ptr::null_mut());
+				self.pop(state, 1);
+
+				let err_str = if !err_msg.is_null() {
+					unsafe { std::ffi::CStr::from_ptr(err_msg) }.to_string_lossy()
+				} else {
+					std::borrow::Cow::Borrowed("Unknown error")
+				};
+
+				Err(err_str)
+			}
+		}
+	}
+
+	pub fn pcall(
+		&self,
+		state: *mut LuaState,
+		n_args: c_int,
+		n_results: c_int,
+		err_func: c_int,
+	) -> Result<(), std::borrow::Cow<'static, str>> {
+		match self._pcall(state, n_args, n_results, err_func) {
+			LUA_OK | LUA_YIELD => Ok(()),
+
+			_ => {
+				let err_msg = self.to_lstring(state, -1, std::ptr::null_mut());
+				self.pop(state, 1);
+
+				let err_str = if !err_msg.is_null() {
+					unsafe { std::ffi::CStr::from_ptr(err_msg) }.to_string_lossy()
+				} else {
+					std::borrow::Cow::Borrowed("Unknown error")
+				};
+
+				Err(err_str)
+			}
+		}
+	}
+
+	pub fn pop(&self, state: *mut LuaState, n: c_int) {
+		self.set_top(state, -n - 1);
 	}
 }
 

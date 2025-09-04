@@ -1,5 +1,6 @@
 [workspace]
-members = ["autorun-ui", "autorun-lib", "autorun-ipc", "locator"]
+members = ["autorun-ui", "autorun-lib", "autorun-ipc", "autorun-log", "locator"]
+resolver = "3"
 
 [profile.release]
 panic = "abort"
@@ -7,7 +8,7 @@ opt-level = "z"
 lto = "fat"
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 authors = ["Vurv78 <vurvdevelops@gmail.com>"]
 description = "..."
 

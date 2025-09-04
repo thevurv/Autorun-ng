@@ -1,16 +1,12 @@
 [package]
 name = "autorun-lib"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-# To redirect stdout to the terminal
-# shh = "1.0.1"
-
-# For robust error handling
 anyhow = { workspace = true }
 ctor = "0.5.0"
 interprocess = "2.2.3"
@@ -24,3 +20,5 @@ retour = { git = "https://github.com/jon-zu/retour-rs" }
 
 # IPC communication
 autorun-ipc = { path = "../autorun-ipc" }
+
+autorun-log = { path = "../autorun-log" }

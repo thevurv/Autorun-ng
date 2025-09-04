@@ -11,6 +11,10 @@ pub fn main() -> anyhow::Result<()> {
 		}
 	});
 
+	autorun_log::error!("Hi there");
+	autorun_log::info!("Hello there");
+	autorun_log::warn!("Hey there");
+
 	Ok(())
 }
 
@@ -24,7 +28,7 @@ fn on_library_load() {
 			// Ensure LD_PRELOAD doesn't affect other programs
 			// Without this, iirc steam messes up
 			if exe.file_name() == Some(std::ffi::OsStr::new("gmod")) {
-				std::env::remove_var("LD_PRELOAD");
+				unsafe { std::env::remove_var("LD_PRELOAD") };
 				main();
 			}
 		}

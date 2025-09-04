@@ -4,10 +4,14 @@ use std::{
 };
 
 use eframe::{
-	egui::{self, Button, ComboBox, IconData, TextEdit, Ui, ViewportBuilder},
-	epaint::Color32,
 	CreationContext,
+	egui::{
+		self, Button, ComboBox, FontId, IconData, TextEdit, TextFormat, Ui, ViewportBuilder,
+		text::LayoutJob,
+	},
+	epaint::Color32,
 };
+use egui_extras::syntax_highlighting::CodeTheme;
 
 use crate::backend::{Autorun, AutorunStatus};
 
@@ -112,6 +116,40 @@ impl App {
 	pub fn new(cc: &CreationContext, autorun: Autorun) -> Self {
 		cc.egui_ctx.request_repaint_after(REPAINT_TIME);
 
+		// Set dark theme
+		let mut style = (*cc.egui_ctx.style()).clone();
+		style.visuals.dark_mode = true;
+		style.visuals.window_fill = Color32::from_rgb(25, 25, 25);
+		style.visuals.panel_fill = Color32::from_rgb(30, 30, 30);
+		style.visuals.extreme_bg_color = Color32::from_rgb(15, 15, 15);
+		style.visuals.faint_bg_color = Color32::from_rgb(40, 40, 40);
+		style.visuals.code_bg_color = Color32::from_rgb(20, 20, 20);
+		style.visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(35, 35, 35);
+		style.visuals.widgets.inactive.bg_fill = Color32::from_rgb(45, 45, 45);
+		style.visuals.widgets.hovered.bg_fill = Color32::from_rgb(55, 55, 55);
+		style.visuals.widgets.active.bg_fill = Color32::from_rgb(65, 65, 65);
+		style.visuals.selection.bg_fill = Color32::from_rgb(70, 130, 180);
+		style.visuals.override_text_color = Some(Color32::from_rgb(230, 230, 230));
+		style.visuals.widgets.noninteractive.fg_stroke.color = Color32::from_rgb(200, 200, 200);
+		style.visuals.widgets.inactive.fg_stroke.color = Color32::from_rgb(180, 180, 180);
+		style.visuals.widgets.hovered.fg_stroke.color = Color32::WHITE;
+		style.visuals.widgets.active.fg_stroke.color = Color32::WHITE;
+		style.visuals.window_stroke = egui::Stroke::new(1.0, Color32::from_rgb(60, 60, 60));
+		style.visuals.widgets.noninteractive.bg_stroke =
+			egui::Stroke::new(1.0, Color32::from_rgb(50, 50, 50));
+		style.visuals.widgets.inactive.bg_stroke =
+			egui::Stroke::new(1.0, Color32::from_rgb(70, 70, 70));
+		style.visuals.widgets.hovered.bg_stroke =
+			egui::Stroke::new(1.0, Color32::from_rgb(100, 100, 100));
+		style.visuals.widgets.active.bg_stroke =
+			egui::Stroke::new(1.0, Color32::from_rgb(120, 120, 120));
+		style.visuals.window_rounding = egui::Rounding::same(8.0);
+		style.visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
+		style.visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
+		style.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
+		style.visuals.widgets.active.rounding = egui::Rounding::same(6.0);
+		cc.egui_ctx.set_style(style);
+
 		let log = Arc::new(RwLock::new(String::new()));
 		let log_thread = Arc::clone(&log);
 
@@ -122,21 +160,23 @@ impl App {
 
 		// Background thread to read stdout/stderr to console
 		let ctx = cc.egui_ctx.clone();
-		std::thread::spawn(move || loop {
-			use std::io::Read;
+		std::thread::spawn(move || {
+			loop {
+				use std::io::Read;
 
-			std::thread::sleep(WAIT_TIME);
+				std::thread::sleep(WAIT_TIME);
 
-			let mut log = log_thread.write().unwrap();
-			match (
-				stdio.read_to_string(&mut log),
-				stderr.read_to_string(&mut log),
-			) {
-				(Ok(_), Ok(_)) | (Ok(_), _) | (_, Ok(_)) => ctx.request_repaint(),
-				_ => (),
+				let mut log = log_thread.write().unwrap();
+				match (
+					stdio.read_to_string(&mut log),
+					stderr.read_to_string(&mut log),
+				) {
+					(Ok(_), Ok(_)) | (Ok(_), _) | (_, Ok(_)) => ctx.request_repaint(),
+					_ => (),
+				}
+
+				ctx.request_repaint();
 			}
-
-			ctx.request_repaint();
 		});
 
 		Self {
@@ -153,7 +193,7 @@ impl App {
 
 			match self.autorun.status() {
 				AutorunStatus::Disconnected => {
-					ui.colored_label(Color32::RED, "Disconnected");
+					ui.colored_label(Color32::from_rgb(255, 100, 100), "Disconnected");
 
 					if ui.button("Launch").clicked() {
 						if let Err(e) = self.autorun.start_attached() {
@@ -166,9 +206,14 @@ impl App {
 							eprintln!("Failed to connect: {}", e);
 						}
 					}
+
+					#[cfg(debug_assertions)]
+					if ui.button("Test ANSI Colors").clicked() {
+						self.demo_ansi_colors();
+					}
 				}
 				AutorunStatus::Connected => {
-					ui.colored_label(Color32::GREEN, "Connected");
+					ui.colored_label(Color32::from_rgb(100, 255, 100), "Connected");
 
 					if ui.button("Disconnect").clicked() {
 						if let Err(e) = self.autorun.detach() {
@@ -184,30 +229,65 @@ impl App {
 		ui.horizontal(|ui| {
 			// Left side
 			ui.vertical(|ui| {
-				egui::ScrollArea::vertical()
-					.min_scrolled_height(SIZE.1 * 0.7)
-					.auto_shrink([false, true])
-					.show(ui, |ui| {
-						match self.console_mode {
-							ConsoleMode::Terminal => {
-								let mut x = self.log.read().unwrap().clone();
-								TextEdit::multiline(&mut x)
+				match self.console_mode {
+					ConsoleMode::Terminal => {
+						let log_content = self.log.read().unwrap().clone();
+						self.render_ansi_text(ui, &log_content);
+					}
+					ConsoleMode::Executor => {
+						// Allocate fixed space for the code editor (same as terminal)
+						let editor_size = egui::Vec2::new(HALF.0, SIZE.1 * 0.7 - 4.0);
+						let (rect, _response) =
+							ui.allocate_exact_size(editor_size, egui::Sense::hover());
+
+						ui.allocate_ui_at_rect(rect, |ui| {
+							let mut layouter = |ui: &egui::Ui, string: &str, wrap_width: f32| {
+								let mut layout_job = egui_extras::syntax_highlighting::highlight(
+									ui.ctx(),
+									&CodeTheme::dark(),
+									string,
+									"lua",
+								);
+								layout_job.wrap.max_width = wrap_width;
+								ui.fonts(|f| f.layout_job(layout_job))
+							};
+
+							// Style the text editor background and hint text
+							ui.style_mut().visuals.extreme_bg_color = Color32::BLACK;
+							ui.style_mut().visuals.widgets.inactive.bg_fill = Color32::BLACK;
+							ui.style_mut().visuals.widgets.noninteractive.bg_fill = Color32::BLACK;
+							ui.style_mut().visuals.widgets.hovered.bg_fill = Color32::BLACK;
+							ui.style_mut().visuals.widgets.active.bg_fill = Color32::BLACK;
+							ui.style_mut().visuals.widgets.inactive.fg_stroke.color =
+								Color32::from_rgb(120, 120, 120);
+							ui.style_mut().visuals.widgets.inactive.bg_stroke =
+								egui::Stroke::new(1.0, Color32::from_rgb(80, 80, 80));
+							ui.style_mut().visuals.widgets.noninteractive.bg_stroke =
+								egui::Stroke::new(1.0, Color32::from_rgb(80, 80, 80));
+							ui.style_mut().visuals.widgets.hovered.bg_stroke =
+								egui::Stroke::new(1.0, Color32::from_rgb(100, 100, 100));
+							ui.style_mut().visuals.widgets.active.bg_stroke =
+								egui::Stroke::new(1.0, Color32::from_rgb(120, 120, 120));
+							ui.style_mut().visuals.widgets.inactive.rounding =
+								egui::Rounding::same(8.0);
+							ui.style_mut().visuals.widgets.noninteractive.rounding =
+								egui::Rounding::same(8.0);
+							ui.style_mut().visuals.widgets.hovered.rounding =
+								egui::Rounding::same(8.0);
+							ui.style_mut().visuals.widgets.active.rounding =
+								egui::Rounding::same(8.0);
+
+							ui.add_sized(
+								editor_size,
+								egui::TextEdit::multiline(&mut self.code)
+									.font(egui::TextStyle::Monospace)
 									.code_editor()
-									.interactive(false)
-									.desired_rows(22)
-									.desired_width(HALF.0)
-									.show(ui);
-							}
-							ConsoleMode::Executor => {
-								TextEdit::multiline(&mut self.code)
-									.code_editor()
-									.hint_text("print('Hello Autorun')")
-									.desired_rows(22)
-									.desired_width(HALF.0)
-									.show(ui);
-							}
-						};
-					});
+									.desired_width(f32::INFINITY)
+									.layouter(&mut layouter),
+							);
+						});
+					}
+				};
 
 				ui.horizontal(|ui| {
 					// 20% of width goes to dropdown.
@@ -277,6 +357,132 @@ impl App {
 			});
 		});
 	}
+
+	fn render_ansi_text(&self, ui: &mut Ui, text: &str) {
+		let segments = parse_ansi_text(text);
+
+		// Create a frame with terminal-like styling with fixed size
+		let frame = egui::Frame::default()
+			.fill(Color32::BLACK)
+			.stroke(egui::Stroke::new(1.0, Color32::from_rgb(80, 80, 80)))
+			.rounding(egui::Rounding::same(8.0))
+			.inner_margin(egui::Margin::same(8.0))
+			.shadow(egui::Shadow {
+				offset: egui::Vec2::new(2.0, 2.0),
+				blur: 4.0,
+				spread: 0.0,
+				color: Color32::from_black_alpha(80),
+			});
+
+		// Allocate fixed space for the terminal
+		let terminal_size = egui::Vec2::new(HALF.0, SIZE.1 * 0.7);
+		let (rect, _response) = ui.allocate_exact_size(terminal_size, egui::Sense::hover());
+
+		// Show the frame in the allocated space
+		ui.allocate_ui_at_rect(rect, |ui| {
+			frame.show(ui, |ui| {
+				egui::ScrollArea::vertical()
+					.min_scrolled_height(SIZE.1 * 0.7 - 20.0) // Account for frame margins
+					.max_height(SIZE.1 * 0.7 - 20.0)
+					.auto_shrink([false, false])
+					.stick_to_bottom(true)
+					.show(ui, |ui| {
+						ui.set_width(HALF.0 - 20.0); // Account for frame margins
+						ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
+
+						// Group segments by lines to render them inline
+						let mut current_job = LayoutJob::default();
+						let font_id = FontId::monospace(12.0);
+
+						for segment in segments {
+							if segment.text.is_empty() {
+								continue;
+							}
+
+							// Split by newlines and handle each line
+							let lines: Vec<&str> = segment.text.split('\n').collect();
+							for (line_idx, line) in lines.iter().enumerate() {
+								if line_idx > 0 {
+									// Finish current line and start a new one
+									if !current_job.text.is_empty() {
+										ui.label(current_job.clone());
+										current_job = LayoutJob::default();
+									}
+								}
+
+								if !line.is_empty() {
+									// Add this line segment to the current job
+									let color = segment.color.unwrap_or(Color32::WHITE);
+									let mut text_format = TextFormat {
+										font_id: font_id.clone(),
+										color,
+										..Default::default()
+									};
+
+									// Set background color if available
+									if let Some(bg_color) = segment.background {
+										text_format.background = bg_color;
+									}
+
+									current_job.append(line, 0.0, text_format);
+								}
+							}
+						}
+
+						// Render any remaining text
+						if !current_job.text.is_empty() {
+							ui.label(current_job);
+						}
+					});
+			});
+		});
+	}
+
+	#[cfg(debug_assertions)]
+	fn demo_ansi_colors(&self) {
+		let demo_text = format!(
+			"{}ANSI Color Demo:{}\n\
+			{}Red text{} - {}Green text{} - {}Blue text{}\n\
+			{}Yellow{} - {}Magenta{} - {}Cyan{}\n\
+			{}Bright Red{} - {}Bright Green{} - {}Bright Blue{}\n\
+			{}Red on Yellow{} - {}White on Blue{} - {}Black on Cyan{}\n\
+			{}Normal text again{}",
+			"\x1b[1m",
+			"\x1b[0m", // Bold title and reset
+			"\x1b[31m",
+			"\x1b[0m",
+			"\x1b[32m",
+			"\x1b[0m",
+			"\x1b[34m",
+			"\x1b[0m", // Red, Green, Blue
+			"\x1b[33m",
+			"\x1b[0m",
+			"\x1b[35m",
+			"\x1b[0m",
+			"\x1b[36m",
+			"\x1b[0m", // Yellow, Magenta, Cyan
+			"\x1b[91m",
+			"\x1b[0m",
+			"\x1b[92m",
+			"\x1b[0m",
+			"\x1b[94m",
+			"\x1b[0m", // Bright Red, Green, Blue
+			"\x1b[31;43m",
+			"\x1b[0m",
+			"\x1b[37;44m",
+			"\x1b[0m",
+			"\x1b[30;46m",
+			"\x1b[0m", // Foreground + background combinations
+			"\x1b[37m",
+			"\x1b[0m" // White and reset
+		);
+
+		// Add the demo text to the log
+		if let Ok(mut log) = self.log.write() {
+			log.push_str(&demo_text);
+			log.push('\n');
+		}
+	}
 }
 
 impl eframe::App for App {
@@ -292,5 +498,165 @@ impl eframe::App for App {
 		}
 
 		egui::CentralPanel::default().show(ctx, |ui| self.show(ui));
+	}
+}
+
+#[derive(Debug, Clone)]
+struct TextSegment {
+	text: String,
+	color: Option<Color32>,
+	background: Option<Color32>,
+}
+
+fn parse_ansi_text(text: &str) -> Vec<TextSegment> {
+	let mut segments = Vec::new();
+	let mut current_text = String::new();
+	let mut current_color = None;
+	let mut current_background = None;
+	let mut chars = text.chars().peekable();
+
+	while let Some(ch) = chars.next() {
+		if ch == '\x1b' && chars.peek() == Some(&'[') {
+			// Found ANSI escape sequence
+			if !current_text.is_empty() {
+				segments.push(TextSegment {
+					text: current_text.clone(),
+					color: current_color,
+					background: current_background,
+				});
+				current_text.clear();
+			}
+
+			chars.next(); // consume '['
+			let mut code = String::new();
+
+			// Read until 'm'
+			while let Some(ch) = chars.next() {
+				if ch == 'm' {
+					break;
+				}
+				code.push(ch);
+			}
+
+			// Parse the color code - handle multiple codes separated by semicolons
+			let codes: Vec<&str> = code.split(';').collect();
+			for single_code in codes {
+				if single_code.trim() == "0" {
+					current_color = None; // Reset
+					current_background = None;
+				} else if let Some(color) = parse_ansi_foreground_color(single_code) {
+					current_color = Some(color);
+				} else if let Some(bg_color) = parse_ansi_background_color(single_code) {
+					current_background = Some(bg_color);
+				}
+			}
+		} else {
+			current_text.push(ch);
+		}
+	}
+
+	// Add remaining text
+	if !current_text.is_empty() {
+		segments.push(TextSegment {
+			text: current_text,
+			color: current_color,
+			background: current_background,
+		});
+	}
+
+	segments
+}
+
+fn parse_ansi_foreground_color(code: &str) -> Option<Color32> {
+	match code.trim() {
+		"0" => None, // Reset
+		// Foreground colors
+		"30" => Some(Color32::BLACK),
+		"31" => Some(Color32::RED),
+		"32" => Some(Color32::GREEN),
+		"33" => Some(Color32::YELLOW),
+		"34" => Some(Color32::BLUE),
+		"35" => Some(Color32::from_rgb(255, 0, 255)), // Magenta
+		"36" => Some(Color32::from_rgb(0, 255, 255)), // Cyan
+		"37" => Some(Color32::WHITE),
+		// Bright foreground colors
+		"90" => Some(Color32::DARK_GRAY),
+		"91" => Some(Color32::from_rgb(255, 100, 100)), // Bright red
+		"92" => Some(Color32::from_rgb(100, 255, 100)), // Bright green
+		"93" => Some(Color32::from_rgb(255, 255, 100)), // Bright yellow
+		"94" => Some(Color32::from_rgb(100, 100, 255)), // Bright blue
+		"95" => Some(Color32::from_rgb(255, 100, 255)), // Bright magenta
+		"96" => Some(Color32::from_rgb(100, 255, 255)), // Bright cyan
+		"97" => Some(Color32::from_rgb(240, 240, 240)), // Bright white
+		_ => None,
+	}
+}
+
+fn parse_ansi_background_color(code: &str) -> Option<Color32> {
+	match code.trim() {
+		// Background colors
+		"40" => Some(Color32::BLACK),
+		"41" => Some(Color32::RED),
+		"42" => Some(Color32::GREEN),
+		"43" => Some(Color32::YELLOW),
+		"44" => Some(Color32::BLUE),
+		"45" => Some(Color32::from_rgb(255, 0, 255)), // Magenta
+		"46" => Some(Color32::from_rgb(0, 255, 255)), // Cyan
+		"47" => Some(Color32::WHITE),
+		// Bright background colors
+		"100" => Some(Color32::DARK_GRAY),
+		"101" => Some(Color32::from_rgb(255, 100, 100)), // Bright red
+		"102" => Some(Color32::from_rgb(100, 255, 100)), // Bright green
+		"103" => Some(Color32::from_rgb(255, 255, 100)), // Bright yellow
+		"104" => Some(Color32::from_rgb(100, 100, 255)), // Bright blue
+		"105" => Some(Color32::from_rgb(255, 100, 255)), // Bright magenta
+		"106" => Some(Color32::from_rgb(100, 255, 255)), // Bright cyan
+		"107" => Some(Color32::from_rgb(240, 240, 240)), // Bright white
+		_ => None,
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_ansi_color_parsing() {
+		let test_text = "\x1b[31mRed text\x1b[0m normal \x1b[32mGreen text\x1b[0m";
+		let segments = parse_ansi_text(test_text);
+
+		assert_eq!(segments.len(), 3);
+		assert_eq!(segments[0].text, "Red text");
+		assert_eq!(segments[0].color, Some(Color32::RED));
+		assert_eq!(segments[0].background, None);
+		assert_eq!(segments[1].text, " normal ");
+		assert_eq!(segments[1].color, None);
+		assert_eq!(segments[2].text, "Green text");
+		assert_eq!(segments[2].color, Some(Color32::GREEN));
+	}
+
+	#[test]
+	fn test_ansi_newlines() {
+		let test_text = "\x1b[31mLine 1\nLine 2\x1b[0m\nLine 3";
+		let segments = parse_ansi_text(test_text);
+
+		// Should have 2 segments: colored text with newlines, and normal text
+		assert_eq!(segments.len(), 2);
+		assert!(segments[0].text.contains("Line 1\nLine 2"));
+		assert_eq!(segments[0].color, Some(Color32::RED));
+		assert!(segments[1].text.contains("Line 3"));
+		assert_eq!(segments[1].color, None);
+	}
+
+	#[test]
+	fn test_ansi_multiple_colors() {
+		let test_text = "\x1b[31;42mRed on green\x1b[0m";
+		let segments = parse_ansi_text(test_text);
+
+		assert_eq!(segments.len(), 1);
+		assert_eq!(segments[0].text, "Red on green");
+		// Should have red foreground and green background
+		assert_eq!(segments[0].color, Some(Color32::RED));
+		assert_eq!(segments[0].background, Some(Color32::GREEN));
 	}
 }

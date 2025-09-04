@@ -15,12 +15,36 @@ pub fn handle_execute(
 	let menu_state = lua::get_menu_state()?.ok_or_else(|| anyhow!("Menu state isn't ready"))?;
 	let c_text = std::ffi::CString::new(code.clone())?;
 
-	if lua.load_string(menu_state, c_text.as_ptr()) == 0 {
-		if lua.pcall(menu_state, 0, 0, 0) != 0 {
-			eprintln!("Failed to execute Lua code");
-		}
+	if let Err(why) = lua.load_string(menu_state, c_text.as_ptr()) {
+		return Err(anyhow!("Failed to load Lua string: {}", why));
+	}
+
+	let existing_hook = lua.get_hook(menu_state);
+	let existing_hook_info = if existing_hook.is_null() {
+		None
 	} else {
-		eprintln!("Failed to load Lua string");
+		Some((
+			existing_hook,
+			lua.get_hook_mask(menu_state),
+			lua.get_hook_count(menu_state),
+		))
+	};
+
+	if existing_hook_info.is_some() {
+		lua.set_hook(menu_state, std::ptr::null(), 0, 0);
+	}
+
+	if let Err(why) = lua.pcall(menu_state, 0, 0, 0) {
+		return Err(anyhow!("Failed to execute Lua code: {why}"));
+	}
+
+	let did_user_set_hook = !lua.get_hook(menu_state).is_null();
+	if did_user_set_hook {
+		autorun_log::warn!("User set a hook in executed code. This is not recommended.");
+	}
+
+	if !did_user_set_hook && let Some((hook, mask, count)) = existing_hook_info {
+		lua.set_hook(menu_state, hook, mask, count);
 	}
 
 	Ok(())
