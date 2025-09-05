@@ -1,6 +1,6 @@
 # Autorun-next
 
-This is [Autorun](https://github.com/Vurv78/Autorun-rs) for the next era, with two main goals in mind:
+This is [Autorun](https://github.com/Vurv78/Autorun-rs) for the next generation, with two main goals in mind:
 
 - Being 100% undetectable, even by the smallest means.
     - The library now injects itself automatically, no file or configuration as a menu plugin which is easily discoverable.

@@ -1,3 +1,5 @@
+mod hooks;
+mod lua_queue;
 mod server;
 
 pub fn main() -> anyhow::Result<()> {
@@ -7,6 +9,9 @@ pub fn main() -> anyhow::Result<()> {
 			eprintln!("Failed to start IPC server: {}", e);
 		}
 	});
+
+	hooks::paint_traverse::init()?;
+	autorun_log::info!("I hooked it.. i think.");
 
 	Ok(())
 }
@@ -22,7 +27,10 @@ fn on_library_load() {
 			// Without this, iirc steam messes up
 			if exe.file_name() == Some(std::ffi::OsStr::new("gmod")) {
 				unsafe { std::env::remove_var("LD_PRELOAD") };
-				main();
+
+				if let Err(why) = main() {
+					autorun_log::error!("{why}");
+				}
 			}
 		}
 	}
