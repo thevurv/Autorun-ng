@@ -105,6 +105,7 @@ struct App {
 	last_update: std::time::Instant,
 	command_registry: CommandRegistry,
 	terminal_input_id: egui::Id,
+	user_disconnected: bool,
 }
 
 impl App {
@@ -180,6 +181,7 @@ impl App {
 			terminal_input: String::new(),
 			code: String::new(),
 			realm_state: Realm::Menu,
+			user_disconnected: false,
 		}
 	}
 
@@ -198,12 +200,14 @@ impl App {
 						match self.autorun.status() {
 							AutorunStatus::Disconnected => {
 								if ui.button("🔌 Connect").clicked() {
+									self.user_disconnected = false;
 									if let Err(e) = self.autorun.try_connect_to_game() {
 										eprintln!("Failed to connect: {}", e);
 									}
 								}
 
 								if ui.button("Launch").clicked() {
+									self.user_disconnected = false;
 									if let Err(e) = self.autorun.launch_game() {
 										eprintln!("Failed to start attached: {}", e);
 									}
@@ -213,6 +217,7 @@ impl App {
 							}
 							AutorunStatus::Connected => {
 								if ui.button("Disconnect").clicked() {
+									self.user_disconnected = true;
 									if let Err(e) = self.autorun.detach() {
 										eprintln!("Failed to detach: {}", e);
 									}
@@ -655,7 +660,9 @@ impl eframe::App for App {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 		// Only update autorun status periodically to avoid blocking UI
 		if self.last_update.elapsed() >= UPDATE_INTERVAL {
-			self.autorun.update();
+			if !self.user_disconnected {
+				self.autorun.update();
+			}
 			self.last_update = std::time::Instant::now();
 		}
 
