@@ -1,7 +1,8 @@
 [package]
-name = "locator"
+name = "autorun-steam"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 nom = "7.1.3"
+anyhow = { workspace = true }

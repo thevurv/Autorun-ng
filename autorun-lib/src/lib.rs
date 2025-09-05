@@ -11,10 +11,6 @@ pub fn main() -> anyhow::Result<()> {
 		}
 	});
 
-	autorun_log::error!("Hi there");
-	autorun_log::info!("Hello there");
-	autorun_log::warn!("Hey there");
-
 	Ok(())
 }
 

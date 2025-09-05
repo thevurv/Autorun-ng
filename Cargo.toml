@@ -6,7 +6,7 @@ members = [
     "autorun-log",
     "autorun-types",
     "autorun-core",
-    "locator",
+    "autorun-steam",
 ]
 resolver = "3"
 

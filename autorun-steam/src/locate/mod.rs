@@ -1,5 +1,4 @@
 mod raw;
-mod vdf;
 
 pub fn steam_install_dir() -> Option<std::path::PathBuf> {
 	if let Ok(steam_dir) = std::env::var("STEAM_DIR") {
@@ -58,9 +57,4 @@ pub fn gmod_dir() -> Option<std::path::PathBuf> {
 	}
 
 	None
-}
-
-#[test]
-fn test() {
-	println!("{:#?}", gmod_dir())
 }

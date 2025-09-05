@@ -20,16 +20,14 @@ libloading = "0.7.3"
 # Self explanatory
 # retour = { version = "0.3", default-features = false }
 
-locator = { path = "../locator" }
 interprocess = "2.2.3"
 nanoserde = { version = "0.2.1", features = ["binary"] }
 
 # For loading PNG icon
 image = "0.24"
 
-# IPC communication
 autorun-ipc = { path = "../autorun-ipc" }
-
+autorun-steam = { path = "../autorun-steam" }
 autorun-types = { path = "../autorun-types" }
 autorun-log = { path = "../autorun-log" }
 autorun-core = { path = "../autorun-core" }

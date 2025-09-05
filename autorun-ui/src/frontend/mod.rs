@@ -208,7 +208,7 @@ impl App {
 								}
 
 								if ui.button("Launch").clicked() {
-									if let Err(e) = self.autorun.start_attached() {
+									if let Err(e) = self.autorun.launch_game() {
 										eprintln!("Failed to start attached: {}", e);
 									}
 								}

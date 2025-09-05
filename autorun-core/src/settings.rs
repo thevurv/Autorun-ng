@@ -5,7 +5,7 @@ use crate::{Workspace, plugins};
 nestify::nest! {
 	#[derive(Debug, Deserialize, Serialize, PartialEq)]*
 	pub struct Settings {
-		pub autorun: struct AutorunSettings {
+		pub autorun: pub struct AutorunSettings {
 			pub check_version: bool
 		}
 	}
