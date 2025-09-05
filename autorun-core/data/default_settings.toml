@@ -1,0 +1,3 @@
+[autorun]
+# Whether to check if Autorun is outdated on startup
+check_version = true

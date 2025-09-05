@@ -160,9 +160,6 @@ impl CommandRegistry {
 						context.write_output(&format!("  Usage: {}", command.usage));
 						context.write_output("");
 					}
-
-					context.write_info("Type a command name to execute it.");
-					context.write_info("Unknown commands will show an error message.");
 				} else {
 					// Show help for specific command
 					let command_name = &args[0];
@@ -188,28 +185,6 @@ impl CommandRegistry {
 				if let Ok(mut log) = context.log.write() {
 					log.clear();
 				}
-				Ok(())
-			}),
-		});
-
-		// Status command
-		self.register_command(Command {
-			name: "status".to_string(),
-			description: "Show connection status and autorun information".to_string(),
-			usage: "status".to_string(),
-			execute: Box::new(|_args, context, _registry| {
-				use crate::backend::AutorunStatus;
-
-				context.write_info("=== Autorun Status ===");
-				match context.autorun.status() {
-					AutorunStatus::Connected => {
-						context.write_success("Status: Connected to game");
-					}
-					AutorunStatus::Disconnected => {
-						context.write_warning("Status: Disconnected from game");
-					}
-				}
-				context.write_output("");
 				Ok(())
 			}),
 		});

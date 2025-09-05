@@ -8,30 +8,31 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 #[non_exhaustive]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Default, Clone, Copy, PartialEq)]
 pub enum AutorunStatus {
+	#[default]
 	Disconnected,
 	Connected,
 }
 
-impl Default for AutorunStatus {
-	fn default() -> Self {
-		Self::Disconnected
-	}
-}
-
 /// The Autorun state.
-#[derive(Default)]
 pub struct Autorun {
 	status: AutorunStatus,
+	workspace: autorun_core::Workspace,
 	client: Option<Arc<Mutex<Client>>>,
 	last_connection_attempt: Option<Instant>,
 	last_ping_time: Option<Instant>,
 }
 
 impl Autorun {
-	pub fn new() -> Self {
-		Self::default()
+	pub fn new() -> anyhow::Result<Self> {
+		Ok(Self {
+			status: AutorunStatus::Disconnected,
+			workspace: autorun_core::Workspace::from_exe()?,
+			client: None,
+			last_connection_attempt: None,
+			last_ping_time: None,
+		})
 	}
 
 	pub fn status(&self) -> AutorunStatus {
@@ -131,6 +132,7 @@ impl Autorun {
 				let _ = client.send(Message::Shutdown);
 			}
 		}
+
 		self.client = None;
 		self.status = AutorunStatus::Disconnected;
 		Ok(())

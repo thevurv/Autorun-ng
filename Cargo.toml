@@ -5,6 +5,7 @@ members = [
     "autorun-ipc",
     "autorun-log",
     "autorun-types",
+    "autorun-core",
     "locator",
 ]
 resolver = "3"

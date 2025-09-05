@@ -31,3 +31,5 @@ image = "0.24"
 autorun-ipc = { path = "../autorun-ipc" }
 
 autorun-types = { path = "../autorun-types" }
+autorun-log = { path = "../autorun-log" }
+autorun-core = { path = "../autorun-core" }

@@ -107,23 +107,6 @@ struct App {
 	terminal_input_id: egui::Id,
 }
 
-impl Default for App {
-	fn default() -> Self {
-		Self {
-			autorun: Autorun::default(),
-			active_tab: ActiveTab::default(),
-			panel_split_ratio: 0.5,
-			terminal_input: String::default(),
-			log: Arc::new(RwLock::new(String::new())),
-			code: String::default(),
-			realm_state: Realm::Menu,
-			last_update: std::time::Instant::now(),
-			command_registry: CommandRegistry::new(),
-			terminal_input_id: egui::Id::new("terminal_input"),
-		}
-	}
-}
-
 impl App {
 	pub fn new(cc: &CreationContext, autorun: Autorun) -> Self {
 		cc.egui_ctx.request_repaint_after(REPAINT_TIME);
@@ -196,7 +179,11 @@ impl App {
 			command_registry,
 			last_update: std::time::Instant::now(),
 			terminal_input_id: egui::Id::new("terminal_input"),
-			..Default::default()
+			active_tab: ActiveTab::default(),
+			panel_split_ratio: 0.5,
+			terminal_input: String::new(),
+			code: String::new(),
+			realm_state: Realm::Menu,
 		}
 	}
 
@@ -638,7 +625,7 @@ impl App {
 		}
 
 		if let Err(e) = self.autorun.run_code(self.realm_state, &self.code) {
-			eprintln!("Failed to execute code: {}", e);
+			autorun_log::error!("Failed to execute code: {e}");
 		}
 	}
 

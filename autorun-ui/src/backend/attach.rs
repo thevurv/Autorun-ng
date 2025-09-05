@@ -5,6 +5,8 @@ use std::{path::Path, process::Child};
 
 #[cfg(unix)]
 fn launch_gmod(steam_dir: &Path, gmod_dir: &Path) -> anyhow::Result<Child> {
+	use crate::util;
+
 	let steam_launch_wrapper = steam_dir.join("ubuntu12_32").join("steam-launch-wrapper");
 	if !steam_launch_wrapper.exists() {
 		return Err(anyhow!(
@@ -49,7 +51,7 @@ fn launch_gmod(steam_dir: &Path, gmod_dir: &Path) -> anyhow::Result<Child> {
 		return Err(anyhow!("hl2.sh not found at {:?}", hl2_sh));
 	}
 
-	let payload = std::env::current_dir()?.join("payload.so");
+	let payload = util::get_payload_path()?;
 
 	let ret = std::process::Command::new(steam_launch_wrapper)
 		.env("GMOD_ENABLE_LD_PRELOAD", "1")
