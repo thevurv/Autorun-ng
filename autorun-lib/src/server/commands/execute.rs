@@ -8,41 +8,13 @@ pub fn handle_execute(_messenger: &mut autorun_ipc::Messenger, message: Message)
 		return Err(anyhow::anyhow!("Expected Print message"));
 	};
 
-	// let lua = autorun_lua::get_api()?;
 	if autorun_interfaces::lua::get_state(realm)?.is_none() {
-		return Err(anyhow!("State for realm {realm} is not ready"));
+		autorun_log::error!("Lua state for realm {realm:?} is not ready");
+		return Ok(());
 	}
 
 	let c_text = std::ffi::CString::new(code.clone())?;
 	LUA_QUEUE.lock().unwrap().push((realm, c_text));
-
-	// if let Err(why) = lua.load_string(state, c_text.as_ptr()) {
-	// 	return Err(anyhow!("Failed to load Lua string: {}", why));
-	// }
-
-	// let existing_hook = lua.get_hook(state);
-	// let existing_hook_info = if existing_hook.is_null() {
-	// 	None
-	// } else {
-	// 	Some((existing_hook, lua.get_hook_mask(state), lua.get_hook_count(state)))
-	// };
-
-	// if existing_hook_info.is_some() {
-	// 	lua.set_hook(state, std::ptr::null(), 0, 0);
-	// }
-
-	// if let Err(why) = lua.pcall(state, 0, 0, 0) {
-	// 	return Err(anyhow!("Failed to execute Lua code: {why}"));
-	// }
-
-	// let did_user_set_hook = !lua.get_hook(state).is_null();
-	// if did_user_set_hook {
-	// 	autorun_log::warn!("User set a hook in executed code. This is not recommended.");
-	// }
-
-	// if !did_user_set_hook && let Some((hook, mask, count)) = existing_hook_info {
-	// 	lua.set_hook(state, hook, mask, count);
-	// }
 
 	Ok(())
 }
