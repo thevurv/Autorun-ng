@@ -1,6 +1,4 @@
-use interprocess::local_socket::{
-	prelude::*, GenericNamespaced, Listener, ListenerOptions, ToNsName,
-};
+use interprocess::local_socket::{prelude::*, GenericNamespaced, Listener, ListenerOptions, ToNsName};
 
 use crate::{messenger::Messenger, SOCKET_NAME};
 

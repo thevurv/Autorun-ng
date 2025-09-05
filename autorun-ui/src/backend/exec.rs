@@ -2,11 +2,7 @@ use super::Autorun;
 use autorun_ipc::Message;
 
 impl Autorun {
-	pub fn run_code(
-		&mut self,
-		realm: autorun_types::Realm,
-		code: impl Into<String>,
-	) -> anyhow::Result<()> {
+	pub fn run_code(&mut self, realm: autorun_types::Realm, code: impl Into<String>) -> anyhow::Result<()> {
 		let code = code.into();
 
 		if self.client.is_none() {

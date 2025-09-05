@@ -6,10 +6,11 @@ pub struct Tier0Api {
 }
 
 impl Tier0Api {
-	fn new(tier0: &libloading::Library) -> anyhow::Result<Tier0Api> {
+	fn new(tier0: &libloading::Library) -> Result<Tier0Api, libloading::Error> {
 		let api = Tier0Api {
 			msg: *unsafe { tier0.get(b"Msg\0")? },
 		};
+
 		Ok(api)
 	}
 
@@ -20,7 +21,7 @@ impl Tier0Api {
 
 static TIER0_API: std::sync::OnceLock<Tier0Api> = std::sync::OnceLock::new();
 
-pub fn get_api() -> anyhow::Result<&'static Tier0Api> {
+pub fn get_api() -> Result<&'static Tier0Api, libloading::Error> {
 	if let Some(api) = TIER0_API.get() {
 		return Ok(api);
 	}
@@ -30,9 +31,7 @@ pub fn get_api() -> anyhow::Result<&'static Tier0Api> {
 
 	std::mem::forget(tier0);
 
-	TIER0_API
-		.set(api)
-		.expect("Should never already be initialized");
+	TIER0_API.set(api).expect("Should never already be initialized");
 
 	Ok(TIER0_API.get().expect("Should be initialized"))
 }

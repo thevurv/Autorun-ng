@@ -1,7 +1,4 @@
-mod lua;
 mod server;
-mod tier0;
-mod util;
 
 pub fn main() -> anyhow::Result<()> {
 	// Start IPC server in background thread

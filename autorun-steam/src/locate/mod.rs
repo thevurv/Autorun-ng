@@ -21,9 +21,7 @@ pub fn gmod_dir() -> Option<std::path::PathBuf> {
 		return Some(std::path::PathBuf::from(env));
 	}
 
-	let library_folders = steam_install_dir()?
-		.join("steamapps")
-		.join("libraryfolders.vdf");
+	let library_folders = steam_install_dir()?.join("steamapps").join("libraryfolders.vdf");
 
 	let content = std::fs::read_to_string(&library_folders).ok()?;
 
@@ -33,9 +31,7 @@ pub fn gmod_dir() -> Option<std::path::PathBuf> {
 		let mut iter = folders.into_iter();
 		while let Some((_index, crate::vdf::Value::Object(folder))) = iter.next() {
 			if let Some((_, crate::vdf::Value::Str(path))) = folder.iter().find(|x| x.0 == "path") {
-				if let Some((_, crate::vdf::Value::Object(apps))) =
-					folder.iter().find(|x| x.0 == "apps")
-				{
+				if let Some((_, crate::vdf::Value::Object(apps))) = folder.iter().find(|x| x.0 == "apps") {
 					if apps.iter().find(|x| x.0 == "4000").is_some() {
 						// This is the folder that contains gmod
 						let gmod_dir = std::path::PathBuf::from(path)

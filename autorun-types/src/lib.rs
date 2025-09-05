@@ -1,5 +1,7 @@
 use nanoserde::{DeBin, SerBin};
 
+pub type LuaState = std::ffi::c_void;
+
 #[derive(Debug, Clone, Copy, DeBin, SerBin, PartialEq)]
 pub enum Realm {
 	Menu,

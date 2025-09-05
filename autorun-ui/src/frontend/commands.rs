@@ -10,11 +10,7 @@ pub struct Command {
 	pub name: String,
 	pub description: String,
 	pub usage: String,
-	pub execute: Box<
-		dyn Fn(&[String], &mut CommandContext<'_>, &CommandRegistry) -> Result<(), String>
-			+ Send
-			+ Sync,
-	>,
+	pub execute: Box<dyn Fn(&[String], &mut CommandContext<'_>, &CommandRegistry) -> Result<(), String> + Send + Sync>,
 }
 
 /// Context passed to command execution functions
@@ -101,11 +97,7 @@ impl CommandRegistry {
 	}
 
 	/// Execute a command with the given input
-	pub fn execute_command(
-		&self,
-		input: &str,
-		context: &mut CommandContext<'_>,
-	) -> Result<bool, String> {
+	pub fn execute_command(&self, input: &str, context: &mut CommandContext<'_>) -> Result<bool, String> {
 		let parts: Vec<String> = input.split_whitespace().map(|s| s.to_string()).collect();
 
 		if parts.is_empty() {
@@ -153,10 +145,7 @@ impl CommandRegistry {
 
 					// Display each command with its description
 					for command in commands {
-						context.write_output(&format!(
-							"\x1b[1m{}\x1b[0m - {}",
-							command.name, command.description
-						));
+						context.write_output(&format!("\x1b[1m{}\x1b[0m - {}", command.name, command.description));
 						context.write_output(&format!("  Usage: {}", command.usage));
 						context.write_output("");
 					}
@@ -184,65 +173,6 @@ impl CommandRegistry {
 			execute: Box::new(|_args, context, _registry| {
 				if let Ok(mut log) = context.log.write() {
 					log.clear();
-				}
-				Ok(())
-			}),
-		});
-	}
-
-	/// Example utility function for registering custom commands
-	/// This demonstrates how to easily add new commands to the registry
-	pub fn register_custom_commands(&mut self) {
-		// Console command to send input to game
-		self.register_command(Command {
-			name: "console".to_string(),
-			description: "Send a command to the game console".to_string(),
-			usage: "console <command>".to_string(),
-			execute: Box::new(|args, context, _registry| {
-				if args.is_empty() {
-					context.write_warning("Usage: console <command>");
-				} else {
-					let command = args.join(" ");
-					if let Err(e) = context.autorun.print_to_game(&command) {
-						context.write_error(&format!("Failed to send to game: {}", e));
-					} else {
-						context.write_success(&format!("Sent to game: {}", command));
-					}
-				}
-				Ok(())
-			}),
-		});
-		// Example: Echo command that repeats the input
-		self.register_command(Command {
-			name: "echo".to_string(),
-			description: "Echo the provided text back to the terminal".to_string(),
-			usage: "echo <text>".to_string(),
-			execute: Box::new(|args, context, _registry| {
-				if args.is_empty() {
-					context.write_warning("Usage: echo <text>");
-				} else {
-					let message = args.join(" ");
-					context.write_output(&format!("Echo: {}", message));
-				}
-				Ok(())
-			}),
-		});
-
-		// Example: Time command that shows current time
-		self.register_command(Command {
-			name: "time".to_string(),
-			description: "Display the current time".to_string(),
-			usage: "time".to_string(),
-			execute: Box::new(|_args, context, _registry| {
-				use std::time::SystemTime;
-				match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-					Ok(duration) => {
-						let timestamp = duration.as_secs();
-						context.write_info(&format!("Current Unix timestamp: {}", timestamp));
-					}
-					Err(_) => {
-						context.write_error("Failed to get current time");
-					}
 				}
 				Ok(())
 			}),

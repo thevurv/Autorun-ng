@@ -12,7 +12,7 @@ ctor = "0.5.0"
 interprocess = "2.2.3"
 
 # Getting dll exports
-libloading = "0.8.8"
+libloading = { workspace = true }
 nanoserde = { version = "0.2.1", features = ["binary"] }
 
 # Detours
@@ -22,3 +22,5 @@ retour = { git = "https://github.com/jon-zu/retour-rs" }
 autorun-ipc = { path = "../autorun-ipc" }
 autorun-types = { path = "../autorun-types" }
 autorun-log = { path = "../autorun-log" }
+autorun-lua = { path = "../autorun-lua" }
+autorun-interfaces = { path = "../autorun-interfaces" }

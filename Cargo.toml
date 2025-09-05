@@ -7,6 +7,8 @@ members = [
     "autorun-types",
     "autorun-core",
     "autorun-steam",
+    "autorun-lua",
+    "autorun-interfaces",
 ]
 resolver = "3"
 
@@ -22,3 +24,5 @@ description = "..."
 
 [workspace.dependencies]
 anyhow = "1.0.99"
+libloading = "0.8.8"
+thiserror = "2.0.16"

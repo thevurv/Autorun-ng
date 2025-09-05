@@ -5,15 +5,9 @@ use winreg::{
 	RegKey,
 };
 
-const STEAM_PATHS: &[&str] = &[
-	"SOFTWARE\\WOW6432Node\\Valve\\Steam",
-	"SOFTWARE\\Valve\\Steam",
-];
+const STEAM_PATHS: &[&str] = &["SOFTWARE\\WOW6432Node\\Valve\\Steam", "SOFTWARE\\Valve\\Steam"];
 
-const HKEYS: &[RegKey] = &[
-	RegKey::predef(HKEY_LOCAL_MACHINE),
-	RegKey::predef(HKEY_CURRENT_USER),
-];
+const HKEYS: &[RegKey] = &[RegKey::predef(HKEY_LOCAL_MACHINE), RegKey::predef(HKEY_CURRENT_USER)];
 
 pub fn steam_install_dir() -> Option<PathBuf> {
 	STEAM_PATHS

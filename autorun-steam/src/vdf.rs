@@ -50,9 +50,7 @@ fn test_string() {
 	);
 }
 
-fn keyvalue<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-	i: &'a str,
-) -> IResult<&'a str, (String, Value), E> {
+fn keyvalue<'a, E: ParseError<&'a str> + ContextError<&'a str>>(i: &'a str) -> IResult<&'a str, (String, Value), E> {
 	preceded(multispace0, separated_pair(string, multispace1, value))(i)
 }
 
@@ -72,9 +70,7 @@ fn test_keyvalue() {
 	);
 }
 
-fn keyvalues<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-	i: &'a str,
-) -> IResult<&'a str, Vec<(String, Value)>, E> {
+fn keyvalues<'a, E: ParseError<&'a str> + ContextError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<(String, Value)>, E> {
 	separated_list0(multispace1, keyvalue)(i)
 }
 
@@ -92,9 +88,7 @@ fn test_keyvalues() {
 	);
 }
 
-fn object<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-	i: &'a str,
-) -> IResult<&'a str, Vec<(String, Value)>, E> {
+fn object<'a, E: ParseError<&'a str> + ContextError<&'a str>>(i: &'a str) -> IResult<&'a str, Vec<(String, Value)>, E> {
 	delimited(
 		terminated(char('{'), multispace0),
 		keyvalues,
@@ -117,13 +111,8 @@ fn test_object() {
 }
 
 /// here, we apply the space parser before trying to parse a value
-fn value<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-	i: &'a str,
-) -> IResult<&'a str, Value, E> {
-	preceded(
-		multispace0,
-		alt((map(object, Value::Object), map(string, Value::Str))),
-	)(i)
+fn value<'a, E: ParseError<&'a str> + ContextError<&'a str>>(i: &'a str) -> IResult<&'a str, Value, E> {
+	preceded(multispace0, alt((map(object, Value::Object), map(string, Value::Str))))(i)
 }
 
 pub fn parse<'a>(i: &'a str) -> IResult<&'a str, (String, Value), nom::error::Error<&'a str>> {

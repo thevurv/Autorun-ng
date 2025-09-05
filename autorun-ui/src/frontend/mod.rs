@@ -9,8 +9,8 @@ use commands::{CommandContext, CommandRegistry};
 use eframe::{
 	CreationContext,
 	egui::{
-		self, Button, Color32, ComboBox, FontId, Frame, IconData, Margin, Rounding, Shadow, Stroke,
-		TextEdit, TextFormat, Ui, Vec2, ViewportBuilder, text::LayoutJob,
+		self, Button, Color32, ComboBox, FontId, Frame, IconData, Margin, Rounding, Shadow, Stroke, TextEdit, TextFormat, Ui,
+		Vec2, ViewportBuilder, text::LayoutJob,
 	},
 	epaint::FontFamily,
 };
@@ -130,8 +130,7 @@ impl App {
 		style.visuals.widgets.hovered.fg_stroke.color = Color32::WHITE;
 		style.visuals.widgets.active.fg_stroke.color = Color32::WHITE;
 		style.visuals.window_stroke = Stroke::new(1.0, Color32::from_rgb(60, 60, 60));
-		style.visuals.widgets.noninteractive.bg_stroke =
-			Stroke::new(1.0, Color32::from_rgb(45, 45, 45));
+		style.visuals.widgets.noninteractive.bg_stroke = Stroke::new(1.0, Color32::from_rgb(45, 45, 45));
 		style.visuals.widgets.inactive.bg_stroke = Stroke::new(1.0, Color32::from_rgb(55, 55, 55));
 		style.visuals.widgets.hovered.bg_stroke = Stroke::new(1.0, Color32::from_rgb(80, 80, 80));
 		style.visuals.widgets.active.bg_stroke = Stroke::new(1.0, Color32::from_rgb(100, 100, 100));
@@ -159,10 +158,7 @@ impl App {
 				std::thread::sleep(WAIT_TIME);
 
 				let mut log = log_thread.write().unwrap();
-				match (
-					stdio.read_to_string(&mut log),
-					stderr.read_to_string(&mut log),
-				) {
+				match (stdio.read_to_string(&mut log), stderr.read_to_string(&mut log)) {
 					(Ok(_), Ok(_)) | (Ok(_), _) | (_, Ok(_)) => ctx.request_repaint(),
 					_ => (),
 				}
@@ -213,10 +209,7 @@ impl App {
 									}
 								}
 
-								ui.colored_label(
-									Color32::from_rgb(255, 120, 120),
-									"⛔ Disconnected",
-								);
+								ui.colored_label(Color32::from_rgb(255, 120, 120), "⛔ Disconnected");
 							}
 							AutorunStatus::Connected => {
 								if ui.button("Disconnect").clicked() {
@@ -297,10 +290,7 @@ impl App {
 			});
 
 			// Resizable splitter
-			let splitter_response = ui.allocate_response(
-				egui::Vec2::new(12.0, content_height),
-				egui::Sense::click_and_drag(),
-			);
+			let splitter_response = ui.allocate_response(egui::Vec2::new(12.0, content_height), egui::Sense::click_and_drag());
 
 			if splitter_response.dragged() {
 				let delta = splitter_response.drag_delta().x;
@@ -365,10 +355,8 @@ impl App {
 					let terminal_height = ui.available_height() - 60.0; // Reserve space for input
 					let log_content = self.log.read().unwrap().clone();
 
-					let (rect, _response) = ui.allocate_exact_size(
-						Vec2::new(ui.available_width(), terminal_height),
-						egui::Sense::hover(),
-					);
+					let (rect, _response) =
+						ui.allocate_exact_size(Vec2::new(ui.available_width(), terminal_height), egui::Sense::hover());
 
 					ui.allocate_ui_at_rect(rect, |ui| {
 						Frame::default()
@@ -399,14 +387,11 @@ impl App {
 							.show(ui);
 
 						// Handle Enter key
-						let enter_pressed = input_response
-							.response
-							.ctx
-							.input(|i| i.key_pressed(egui::Key::Enter))
+						let enter_pressed = input_response.response.ctx.input(|i| i.key_pressed(egui::Key::Enter))
 							&& !self.terminal_input.is_empty();
 
-						let should_submit = (input_response.response.lost_focus() && enter_pressed)
-							|| ui.button("Run").clicked();
+						let should_submit =
+							(input_response.response.lost_focus() && enter_pressed) || ui.button("Run").clicked();
 
 						if should_submit {
 							self.execute_terminal_command();
@@ -449,7 +434,7 @@ impl App {
 
 							// Color-coded realm selector
 							let (realm_color, realm_text) = match self.realm_state {
-								Realm::Menu => (Color32::from_rgb(100, 200, 100), "Menu"), // Green
+								Realm::Menu => (Color32::from_rgb(100, 200, 100), "Menu"),   // Green
 								Realm::Client => (Color32::from_rgb(255, 165, 0), "Client"), // Orange
 							};
 
@@ -461,21 +446,12 @@ impl App {
 									.show_ui(ui, |ui| {
 										for realm in [Realm::Menu, Realm::Client] {
 											let (color, text) = match realm {
-												Realm::Menu => {
-													(Color32::from_rgb(100, 200, 100), "Menu")
-												}
-												Realm::Client => {
-													(Color32::from_rgb(255, 165, 0), "Client")
-												}
+												Realm::Menu => (Color32::from_rgb(100, 200, 100), "Menu"),
+												Realm::Client => (Color32::from_rgb(255, 165, 0), "Client"),
 											};
 											ui.scope(|ui| {
-												ui.style_mut().visuals.override_text_color =
-													Some(color);
-												ui.selectable_value(
-													&mut self.realm_state,
-													realm,
-													text,
-												);
+												ui.style_mut().visuals.override_text_color = Some(color);
+												ui.selectable_value(&mut self.realm_state, realm, text);
 											});
 										}
 									});
@@ -488,19 +464,13 @@ impl App {
 					// Code editor
 					let editor_height = ui.available_height() - 40.0;
 
-					let (rect, _response) = ui.allocate_exact_size(
-						Vec2::new(ui.available_width(), editor_height),
-						egui::Sense::hover(),
-					);
+					let (rect, _response) =
+						ui.allocate_exact_size(Vec2::new(ui.available_width(), editor_height), egui::Sense::hover());
 
 					ui.allocate_ui_at_rect(rect, |ui| {
 						let mut layouter = |ui: &egui::Ui, string: &str, wrap_width: f32| {
-							let mut layout_job = egui_extras::syntax_highlighting::highlight(
-								ui.ctx(),
-								&CodeTheme::dark(),
-								string,
-								"lua",
-							);
+							let mut layout_job =
+								egui_extras::syntax_highlighting::highlight(ui.ctx(), &CodeTheme::dark(), string, "lua");
 							layout_job.wrap.max_width = wrap_width;
 							ui.fonts(|f| f.layout_job(layout_job))
 						};
@@ -600,10 +570,7 @@ impl App {
 
 		let mut context = CommandContext::new(Arc::clone(&self.log), &self.autorun);
 
-		match self
-			.command_registry
-			.execute_command(&self.terminal_input, &mut context)
-		{
+		match self.command_registry.execute_command(&self.terminal_input, &mut context) {
 			Ok(true) => {
 				// Command was handled
 			}
@@ -786,9 +753,7 @@ fn parse_ansi_text(text: &str) -> Vec<TextSegment> {
 fn open_url(url: &str) {
 	#[cfg(target_os = "windows")]
 	{
-		let _ = std::process::Command::new("cmd")
-			.args(["/C", "start", url])
-			.spawn();
+		let _ = std::process::Command::new("cmd").args(["/C", "start", url]).spawn();
 	}
 
 	#[cfg(target_os = "macos")]

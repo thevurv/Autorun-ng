@@ -48,10 +48,7 @@ impl Plugin {
 
 		let config_path = self.dir.join(Self::PLUGIN_CONFIG);
 		if !config_path.exists() {
-			return Err(anyhow::anyhow!(
-				"Plugin config not found at {:?}",
-				config_path
-			));
+			return Err(anyhow::anyhow!("Plugin config not found at {:?}", config_path));
 		}
 
 		let config_data = std::fs::read_to_string(&config_path)?;

@@ -45,9 +45,7 @@ impl Workspace {
 	pub fn from_exe() -> std::io::Result<Self> {
 		let cwd = std::env::current_exe()?
 			.parent()
-			.ok_or_else(|| {
-				std::io::Error::new(std::io::ErrorKind::NotFound, "Failed to get exe parent")
-			})?
+			.ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Failed to get exe parent"))?
 			.to_path_buf();
 
 		Self::from_dir(cwd.join("autorun"))

@@ -1,18 +1,13 @@
 use anyhow::anyhow;
 use autorun_ipc::Message;
 
-use crate::lua;
-
-pub fn handle_execute(
-	messenger: &mut autorun_ipc::Messenger,
-	message: Message,
-) -> anyhow::Result<()> {
+pub fn handle_execute(_messenger: &mut autorun_ipc::Messenger, message: Message) -> anyhow::Result<()> {
 	let Message::RunCode(realm, code) = message else {
 		return Err(anyhow::anyhow!("Expected Print message"));
 	};
 
-	let lua = lua::get_api()?;
-	let state = lua::get_state(realm)?.ok_or_else(|| anyhow!("State isn't ready"))?;
+	let lua = autorun_lua::get_api()?;
+	let state = autorun_interfaces::lua::get_state(realm)?.ok_or_else(|| anyhow!("State isn't ready"))?;
 	let c_text = std::ffi::CString::new(code.clone())?;
 
 	if let Err(why) = lua.load_string(state, c_text.as_ptr()) {
@@ -23,11 +18,7 @@ pub fn handle_execute(
 	let existing_hook_info = if existing_hook.is_null() {
 		None
 	} else {
-		Some((
-			existing_hook,
-			lua.get_hook_mask(state),
-			lua.get_hook_count(state),
-		))
+		Some((existing_hook, lua.get_hook_mask(state), lua.get_hook_count(state)))
 	};
 
 	if existing_hook_info.is_some() {

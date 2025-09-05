@@ -1,17 +1,13 @@
 use anyhow::anyhow;
 
 pub fn launch(lib_path: impl AsRef<std::path::Path>) -> anyhow::Result<std::process::Child> {
-	let steam_dir = crate::locate::steam_install_dir()
-		.ok_or_else(|| anyhow!("Failed to locate steam install dir"))?;
+	let steam_dir = crate::locate::steam_install_dir().ok_or_else(|| anyhow!("Failed to locate steam install dir"))?;
 
 	let gmod_dir = crate::locate::gmod_dir().ok_or_else(|| anyhow!("Failed to locate gmod dir"))?;
 
 	let steam_launch_wrapper = steam_dir.join("ubuntu12_32").join("steam-launch-wrapper");
 	if !steam_launch_wrapper.exists() {
-		return Err(anyhow!(
-			"steam-launch-wrapper not found at {:?}",
-			steam_launch_wrapper
-		));
+		return Err(anyhow!("steam-launch-wrapper not found at {:?}", steam_launch_wrapper));
 	}
 
 	let reaper = steam_dir.join("ubuntu12_32").join("reaper");
