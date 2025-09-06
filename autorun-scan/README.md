@@ -1,13 +1,11 @@
 # autorun-scan
 
 Scanning module for Autorun, although you can use this on its own.
-Simplest form of scanning using `/proc/self/maps` and `/proc/self/mem`.
-
 Implements a macro to make scanning easier.
 
 ## Support
 
-- [x] Linux
+- [x] Linux (Simple `/proc/self/maps` and `/proc/self/mem`)
 - [ ] Windows
 
 ## Example
