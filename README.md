@@ -17,16 +17,16 @@ This does not intend to be backwards compatible with the original Autorun, but i
 
 _This is just the planned file structure. Nothing is implemented yet._
 
-```json
+```lua
 ./
 ├── your_binary
 └── autorun/
     ├── plugins/
     │   └── foo-plugin/
     │       ├── src/
-    │       │   ├── init.lua // Runs for each time you join a server
-    │       │   ├── hook.lua // Runs for each file that is run in a server
-    │       │   └── menu.lua // Runs one time upon game launch in the menu
+    │       │   ├── init.lua -- Runs for each time you join a server
+    │       │   ├── hook.lua -- Runs for each file that is run in a server
+    │       │   └── menu.lua -- Runs one time upon game launch in the menu
     │       └── plugin.toml
     └── settings.toml
 ```
