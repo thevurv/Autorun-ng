@@ -16,13 +16,6 @@ pub struct PanelVTable {
 	pub paint_traverse: extern "C" fn(this: *const c_void, panel: u32, force_repaint: bool, allow_force: bool),
 }
 
-#[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
-pub enum GetRawApiError {
-	#[error("Failed to get interface: {0}")]
-	GetInterface(#[from] crate::util::GetInterfaceError),
-}
-
 #[derive(Debug)]
 pub struct VGUIApi {
 	pub vgui: *mut Panel,
@@ -40,7 +33,7 @@ unsafe impl Sync for VGUIApi {}
 
 static VGUI2_API: std::sync::OnceLock<VGUIApi> = std::sync::OnceLock::new();
 
-pub fn get_api() -> Result<&'static VGUIApi, GetRawApiError> {
+pub fn get_api() -> Result<&'static VGUIApi, crate::util::GetInterfaceError> {
 	if let Some(api) = VGUI2_API.get() {
 		return Ok(api);
 	}

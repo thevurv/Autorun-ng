@@ -1,3 +1,5 @@
+use autorun_interfaces::net::INetChannelInfoVTable;
+
 mod hooks;
 mod lua_queue;
 mod server;
@@ -11,7 +13,22 @@ pub fn main() -> anyhow::Result<()> {
 	});
 
 	hooks::paint_traverse::init()?;
-	autorun_log::info!("I hooked it.. i think.");
+	hooks::load_buffer::init()?;
+
+	let engine = autorun_interfaces::engine_client::get_api().unwrap();
+
+	let net_chan = engine.get_net_channel_info().unwrap() as *mut INetChannelInfoVTable;
+	let net_chan = unsafe { net_chan.as_ref().unwrap() };
+
+	// let vtable = net_chan.vtable;
+	// let vtable = unsafe { vtable.as_ref().unwrap() };
+
+	// println!("{:p}", vtable.get_address);
+	// let name = (vtable.get_address)(std::ptr::null());
+	// let name = (net_chan.get_name)(net_chan as *const _ as _);
+	// autorun_log::warn!("good!");
+	// let name = unsafe { std::ffi::CStr::from_ptr(name) };
+	// let name = name.to_string_lossy();
 
 	Ok(())
 }

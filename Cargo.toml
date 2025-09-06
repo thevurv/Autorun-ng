@@ -9,6 +9,7 @@ members = [
     "autorun-steam",
     "autorun-lua",
     "autorun-interfaces",
+    "autorun-scan",
 ]
 resolver = "3"
 

@@ -21,7 +21,7 @@ macro_rules! define_lua_api {
         #[derive(Debug)]
         pub struct LuaApi {
             $(
-                $fn_name: extern "C" fn($($param_name: $param_type),*) $(-> $return_type)?,
+                pub $fn_name: extern "C" fn($($param_name: $param_type),*) $(-> $return_type)?,
             )*
         }
 
@@ -76,6 +76,14 @@ define_lua_api! {
 	#[name = "lua_insert"]
 	pub fn insert(state: *mut LuaState, index: c_int);
 
+	#[name = "luaL_loadbufferx"]
+	pub fn load_buffer_x(
+		state: *mut LuaState,
+		buff: *const c_char,
+		size: usize,
+		name: *const c_char,
+		mode: *const c_char,
+	) -> c_int;
 	#[name = "luaL_loadstring"]
 	pub fn _load_string(state: *mut LuaState, str: *const c_char) -> c_int;
 	#[name = "luaL_checknumber"]
