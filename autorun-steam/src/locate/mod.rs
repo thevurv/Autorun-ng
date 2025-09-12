@@ -25,16 +25,17 @@ pub fn gmod_dir() -> Option<std::path::PathBuf> {
 
 	let content = std::fs::read_to_string(&library_folders).ok()?;
 
-	let ast = crate::vdf::parse(&content).ok()?;
+	let tokens = crate::vdf::tokenize(content.as_bytes()).unwrap();
+	let ast = crate::vdf::parse(&tokens).unwrap();
 
-	if let (_, crate::vdf::Value::Object(folders)) = ast.1 {
+	if let (_, crate::vdf::Value::Object(folders)) = ast {
 		let mut iter = folders.into_iter();
 		while let Some((_index, crate::vdf::Value::Object(folder))) = iter.next() {
-			if let Some((_, crate::vdf::Value::Str(path))) = folder.iter().find(|x| x.0 == "path") {
-				if let Some((_, crate::vdf::Value::Object(apps))) = folder.iter().find(|x| x.0 == "apps") {
-					if apps.iter().find(|x| x.0 == "4000").is_some() {
+			if let Some((_, crate::vdf::Value::String(path))) = folder.iter().find(|x| x.0 == b"path") {
+				if let Some((_, crate::vdf::Value::Object(apps))) = folder.iter().find(|x| x.0 == b"apps") {
+					if apps.iter().find(|x| x.0 == b"4000").is_some() {
 						// This is the folder that contains gmod
-						let gmod_dir = std::path::PathBuf::from(path)
+						let gmod_dir = std::path::PathBuf::from(String::from_utf8_lossy(path).to_string())
 							.join("steamapps")
 							.join("common")
 							.join("GarrysMod");

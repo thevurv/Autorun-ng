@@ -1,5 +1,77 @@
 use anyhow::anyhow;
 
+fn steam_linux_soldier_dir() -> Option<std::path::PathBuf> {
+	let steam_dir = crate::locate::steam_install_dir()?;
+	let library_folders = steam_dir.join("steamapps").join("libraryfolders.vdf");
+
+	let content = std::fs::read_to_string(&library_folders).ok()?;
+
+	let tokens = crate::vdf::tokenize(content.as_bytes()).ok()?;
+	let ast = crate::vdf::parse(&tokens).ok()?;
+
+	if let (_, crate::vdf::Value::Object(folders)) = ast {
+		let mut iter = folders.into_iter();
+		while let Some((_index, crate::vdf::Value::Object(folder))) = iter.next() {
+			if let Some((_, crate::vdf::Value::String(path))) = folder.iter().find(|x| x.0 == b"path") {
+				if let Some((_, crate::vdf::Value::Object(apps))) = folder.iter().find(|x| x.0 == b"apps") {
+					if apps.iter().find(|x| x.0 == b"1391110").is_some() {
+						let steam_linux_soldier_dir = std::path::PathBuf::from(String::from_utf8_lossy(path).to_string())
+							.join("steamapps")
+							.join("common")
+							.join("SteamLinuxRuntime_soldier");
+
+						return Some(steam_linux_soldier_dir);
+					}
+				} else {
+					todo!()
+				}
+			} else {
+				todo!()
+			}
+		}
+
+		todo!();
+	}
+
+	None
+}
+
+pub fn steam_linux_scout_dir() -> Option<std::path::PathBuf> {
+	let steam_dir = crate::locate::steam_install_dir()?;
+	let library_folders = steam_dir.join("steamapps").join("libraryfolders.vdf");
+
+	let content = std::fs::read_to_string(&library_folders).ok()?;
+
+	let tokens = crate::vdf::tokenize(content.as_bytes()).ok()?;
+	let ast = crate::vdf::parse(&tokens).ok()?;
+
+	if let (_, crate::vdf::Value::Object(folders)) = ast {
+		let mut iter = folders.into_iter();
+		while let Some((_index, crate::vdf::Value::Object(folder))) = iter.next() {
+			if let Some((_, crate::vdf::Value::String(path))) = folder.iter().find(|x| x.0 == b"path") {
+				if let Some((_, crate::vdf::Value::Object(apps))) = folder.iter().find(|x| x.0 == b"apps") {
+					if apps.iter().find(|x| x.0 == b"1070560").is_some() {
+						let steam_linux_scout_dir = std::path::PathBuf::from(String::from_utf8_lossy(path).to_string())
+							.join("steamapps")
+							.join("common")
+							.join("SteamLinuxRuntime");
+
+						return Some(steam_linux_scout_dir);
+					}
+				} else {
+					todo!()
+				}
+			} else {
+				todo!()
+			}
+		}
+
+		todo!();
+	}
+
+	None
+}
+
 pub fn launch(lib_path: impl AsRef<std::path::Path>) -> anyhow::Result<std::process::Child> {
 	let steam_dir = crate::locate::steam_install_dir().ok_or_else(|| anyhow!("Failed to locate steam install dir"))?;
 
@@ -15,10 +87,8 @@ pub fn launch(lib_path: impl AsRef<std::path::Path>) -> anyhow::Result<std::proc
 		return Err(anyhow!("reaper not found at {:?}", reaper));
 	}
 
-	let soldier_entrypoint = steam_dir
-		.join("steamapps")
-		.join("common")
-		.join("SteamLinuxRuntime_soldier")
+	let soldier_entrypoint = steam_linux_soldier_dir()
+		.ok_or_else(|| anyhow!("Failed to locate SteamLinuxRuntime_soldier"))?
 		.join("_v2-entry-point");
 
 	if !soldier_entrypoint.exists() {
@@ -28,10 +98,8 @@ pub fn launch(lib_path: impl AsRef<std::path::Path>) -> anyhow::Result<std::proc
 		));
 	}
 
-	let scout_on_soldier_entrypoint = steam_dir
-		.join("steamapps")
-		.join("common")
-		.join("SteamLinuxRuntime")
+	let scout_on_soldier_entrypoint = steam_linux_scout_dir()
+		.ok_or_else(|| anyhow!("Failed to locate SteamLinuxRuntime_scout"))?
 		.join("scout-on-soldier-entry-point-v2");
 
 	if !scout_on_soldier_entrypoint.exists() {
