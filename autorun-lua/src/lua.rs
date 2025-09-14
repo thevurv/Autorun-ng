@@ -51,6 +51,8 @@ define_lua_api! {
 	pub fn push_nil(state: *mut LuaState);
 	#[name = "lua_pushstring"]
 	pub fn push_string(state: *mut LuaState, string: *const c_char);
+	#[name = "lua_pushlstring"]
+	pub fn push_lstring(state: *mut LuaState, string: *const c_char, len: usize);
 	#[name = "lua_pushthread"]
 	pub fn push_thread(state: *mut LuaState) -> c_int;
 	#[name = "lua_pushvalue"]

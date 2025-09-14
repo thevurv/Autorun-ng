@@ -1,5 +1,6 @@
-use autorun_interfaces::net::INetChannelInfoVTable;
+use autorun_interfaces::net::{INetChannelInfo, INetChannelInfoVTable};
 
+mod events;
 mod hooks;
 mod lua_queue;
 mod server;
@@ -17,15 +18,20 @@ pub fn main() -> anyhow::Result<()> {
 
 	let engine = autorun_interfaces::engine_client::get_api().unwrap();
 
-	let net_chan = engine.get_net_channel_info().unwrap() as *mut INetChannelInfoVTable;
-	let net_chan = unsafe { net_chan.as_ref().unwrap() };
+	// let net_chan = engine.get_net_channel_info().unwrap() as *mut INetChannelInfo;
+	// let msg = unsafe { *net_chan.add(0x2460 / 8) };
+	// let msg = unsafe { std::ffi::CStr::from_ptr(msg) };
+	// println!("Message: {}", msg.to_string_lossy());
+	// let net_chan = unsafe { net_chan.as_ref().unwrap() };
 
 	// let vtable = net_chan.vtable;
 	// let vtable = unsafe { vtable.as_ref().unwrap() };
 
-	// println!("{:p}", vtable.get_address);
+	// let mut data = [0u8; 0x3000];
+	// println!("{:p}", (vtable.get_name)(data.as_ptr() as _));
+
 	// let name = (vtable.get_address)(std::ptr::null());
-	// let name = (net_chan.get_name)(net_chan as *const _ as _);
+	// let name = (vtable.get_name)(net_chan as *const _ as _);
 	// autorun_log::warn!("good!");
 	// let name = unsafe { std::ffi::CStr::from_ptr(name) };
 	// let name = name.to_string_lossy();

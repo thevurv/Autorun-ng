@@ -1,5 +1,5 @@
-mod plugins;
-mod settings;
+pub mod plugins;
+pub mod settings;
 
 pub struct Workspace {
 	plugins_path: std::path::PathBuf,

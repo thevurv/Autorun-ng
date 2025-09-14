@@ -13,7 +13,11 @@ pub struct IEngineClientVTable {
 	rtti: *const c_void,
 	_padding: [*const c_void; 4],
 	get_screen_size: extern "C" fn(this: *const c_void, width: *mut c_int, height: *mut c_int),
-	_padding2: [*const c_void; 68],
+	_padding2: [*const c_void; 20],
+	is_in_game: extern "C" fn(this: *const c_void) -> bool,
+	is_connected: extern "C" fn(this: *const c_void) -> bool,
+	is_drawing_loading_image: extern "C" fn(this: *const c_void) -> bool,
+	_padding3: [*const c_void; 45],
 	get_net_channel_info: extern "C" fn(this: *const c_void) -> *mut INetChannelInfo,
 }
 
@@ -56,6 +60,27 @@ impl EngineClientApi {
 		(vtable.get_screen_size)(iengineclient as *const _ as _, &mut width, &mut height);
 
 		(width as usize, height as usize)
+	}
+
+	pub fn is_in_game(&self) -> bool {
+		let iengineclient = unsafe { self.client.as_mut().expect("Engine client pointer is null") };
+		let vtable = unsafe { iengineclient.vtable.as_ref().expect("VTable pointer is null") };
+
+		(vtable.is_in_game)(iengineclient as *const _ as _)
+	}
+
+	pub fn is_connected(&self) -> bool {
+		let iengineclient = unsafe { self.client.as_mut().expect("Engine client pointer is null") };
+		let vtable = unsafe { iengineclient.vtable.as_ref().expect("VTable pointer is null") };
+
+		(vtable.is_connected)(iengineclient as *const _ as _)
+	}
+
+	pub fn is_drawing_loading_image(&self) -> bool {
+		let iengineclient = unsafe { self.client.as_mut().expect("Engine client pointer is null") };
+		let vtable = unsafe { iengineclient.vtable.as_ref().expect("VTable pointer is null") };
+
+		(vtable.is_drawing_loading_image)(iengineclient as *const _ as _)
 	}
 }
 
