@@ -3,9 +3,13 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
 
+	let (plugins, _errors) = workspace.get_plugins()?;
+	if plugins.is_empty() {
+		return Ok(());
+	}
+
 	setup_env(state, lua, buffer, name)?;
 
-	let (plugins, _errors) = workspace.get_plugins()?;
 	for plugin in plugins {
 		run_hook_entrypoint(state, lua, &plugin)?;
 	}

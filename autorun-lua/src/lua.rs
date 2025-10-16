@@ -161,6 +161,11 @@ define_lua_api! {
 	pub fn set_local(state: *mut LuaState, ar: *mut c_void, n: c_int) -> *const c_char;
 	#[name = "lua_setupvalue"]
 	pub fn set_upvalue(state: *mut LuaState, funcindex: c_int, n: c_int) -> *const c_char;
+
+	#[name = "lua_getfenv"]
+	pub fn get_fenv(state: *mut LuaState, index: c_int);
+	#[name = "lua_setfenv"]
+	pub fn set_fenv(state: *mut LuaState, index: c_int) -> c_int;
 }
 
 impl LuaApi {

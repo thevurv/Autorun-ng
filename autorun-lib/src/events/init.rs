@@ -4,11 +4,13 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let lua = autorun_lua::get_api()?;
 
 	// Set up the hook environment once before running all plugins
-	setup_env(state, lua)?;
-
 	let (plugins, _errors) = workspace.get_plugins()?;
+	if plugins.is_empty() {
+		return Ok(());
+	}
+
+	setup_env(state, lua)?;
 	for plugin in &plugins {
-		autorun_log::info!("Running init for plugin: {}", plugin.get_config()?.plugin.name);
 		run_entrypoint(state, lua, &plugin)?;
 	}
 
@@ -61,7 +63,7 @@ fn run_entrypoint(
 				return Err(anyhow::anyhow!("Failed to load Lua hook: {init_name}"));
 			}
 
-			// Execute the loaded chunk
+			lua.set_fenv(state, -2);
 			if let Err(why) = lua.pcall(state, 0, 0, 0) {
 				return Err(anyhow::anyhow!("Failed to execute Lua hook: {why}"));
 			}

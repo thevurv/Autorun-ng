@@ -24,18 +24,17 @@ extern "C" fn load_buffer_h(
 	if is_drawing_loading_image && !previously_was_drawing_loading_image {
 		let name = unsafe { std::ffi::CStr::from_ptr(name) };
 
-		autorun_log::info!("Running init");
 		crate::events::init::run(state).unwrap_or_else(|e| {
 			autorun_log::error!("Failed to run init for {}: {e}", name.to_string_lossy());
 		});
 	} else if engine.is_in_game() {
-		// let name = unsafe { std::ffi::CStr::from_ptr(name) };
-		// let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
-		// let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
+		let name = unsafe { std::ffi::CStr::from_ptr(name) };
+		let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
+		let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
 
-		// crate::events::hook::run(state, buff, name.to_bytes(), mode).unwrap_or_else(|e| {
-		// 	autorun_log::error!("Failed to run hook for {}: {e}", name.to_string_lossy());
-		// });
+		crate::events::hook::run(state, buff, name.to_bytes(), mode).unwrap_or_else(|e| {
+			autorun_log::error!("Failed to run hook for {}: {e}", name.to_string_lossy());
+		});
 	}
 
 	*WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap() = is_drawing_loading_image;
