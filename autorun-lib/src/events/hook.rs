@@ -9,9 +9,9 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 		return Ok(());
 	}
 
-	env.set_name(lua, state, name);
-	env.set_code(lua, state, buffer);
-	env.set_mode(lua, state, b"hook");
+	// env.set_name(lua, state, name);
+	// env.set_code(lua, state, buffer);
+	// env.set_mode(lua, state, b"hook");
 
 	for plugin in plugins {
 		run_entrypoint(state, lua, &plugin, env)?;
@@ -37,14 +37,13 @@ fn run_entrypoint(
 			// Read the hook file content
 			let hook_content = std::fs::read(&hook_file)?;
 			let hook_name = hook_file.to_string_lossy();
-			let hook_name_cstr = std::ffi::CString::new(hook_name.as_ref())?;
 
 			// Execute the Lua code via the original load_buffer function through the detour
 			let result = crate::hooks::load_buffer::call_original(
 				state,
 				hook_content.as_ptr() as *const i8,
 				hook_content.len(),
-				hook_name_cstr.as_ptr(),
+				c"hook.lua".as_ptr(),
 				std::ptr::null(),
 			);
 

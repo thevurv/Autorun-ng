@@ -115,6 +115,8 @@ define_lua_api! {
 	pub fn set_top(state: *mut LuaState, index: c_int);
 	#[name = "lua_gettop"]
 	pub fn get_top(state: *mut LuaState) -> c_int;
+	#[name = "lua_remove"]
+	pub fn remove(state: *mut LuaState, index: c_int);
 	#[name = "lua_status"]
 	pub fn status(state: *mut LuaState) -> c_int;
 
