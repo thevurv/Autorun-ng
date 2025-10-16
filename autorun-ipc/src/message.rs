@@ -7,4 +7,5 @@ pub enum Message {
 	Print(String),
 	RunCode(autorun_types::Realm, String),
 	Shutdown,
+	SetWorkspacePath(String),
 }

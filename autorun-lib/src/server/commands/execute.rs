@@ -1,9 +1,8 @@
-use anyhow::anyhow;
 use autorun_ipc::Message;
 
 use crate::lua_queue::LUA_QUEUE;
 
-pub fn handle_execute(_messenger: &mut autorun_ipc::Messenger, message: Message) -> anyhow::Result<()> {
+pub fn handle(_messenger: &mut autorun_ipc::Messenger, message: Message) -> anyhow::Result<()> {
 	let Message::RunCode(realm, code) = message else {
 		return Err(anyhow::anyhow!("Expected Print message"));
 	};

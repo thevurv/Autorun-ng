@@ -111,11 +111,13 @@ struct App {
 impl App {
 	fn validate_plugins(autorun: &Autorun) -> anyhow::Result<()> {
 		let (plugins, errors) = autorun.workspace().get_plugins()?;
+
+		autorun_log::info!("Loaded {} plugins successfully.", plugins.len());
+
 		for error in &errors {
 			autorun_log::error!("Failed to load plugin: {error}");
 		}
 
-		autorun_log::info!("#{} plugins, #{} errors", plugins.len(), errors.len());
 		Ok(())
 	}
 

@@ -108,6 +108,11 @@ impl Autorun {
 					});
 				}
 
+				// Send initial workspace path
+				self.send_message(Message::SetWorkspacePath(
+					self.workspace().path().to_string_lossy().to_string(),
+				))?;
+
 				Ok(())
 			}
 			Err(e) => {

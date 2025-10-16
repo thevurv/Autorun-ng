@@ -1,6 +1,6 @@
 use autorun_ipc::Message;
 
-pub fn handle_print_command(_messenger: &mut autorun_ipc::Messenger, message: Message) -> anyhow::Result<()> {
+pub fn handle(_messenger: &mut autorun_ipc::Messenger, message: Message) -> anyhow::Result<()> {
 	let Message::Print(text) = message else {
 		return Err(anyhow::anyhow!("Expected Print message"));
 	};

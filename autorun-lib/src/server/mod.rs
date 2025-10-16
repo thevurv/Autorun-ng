@@ -33,11 +33,15 @@ fn handle_message(messenger: &mut autorun_ipc::Messenger, message: Message) -> a
 		}
 
 		Message::Print(..) => {
-			commands::print::handle_print_command(messenger, message)?;
+			commands::print::handle(messenger, message)?;
 		}
 
 		Message::RunCode(..) => {
-			commands::execute::handle_execute(messenger, message)?;
+			commands::execute::handle(messenger, message)?;
+		}
+
+		Message::SetWorkspacePath(..) => {
+			commands::set_workspace_path::handle(messenger, message)?;
 		}
 
 		_ => (),

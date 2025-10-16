@@ -5,6 +5,7 @@ pub struct Workspace {
 	plugins_path: std::path::PathBuf,
 	logs_path: std::path::PathBuf,
 	settings_path: std::path::PathBuf,
+	path: std::path::PathBuf,
 	settings: std::sync::OnceLock<settings::Settings>,
 }
 
@@ -21,6 +22,10 @@ impl Workspace {
 	const LOGS_DIR: &str = "logs";
 	const SETTINGS_FILE: &str = "settings.toml";
 
+	pub fn path(&self) -> &std::path::Path {
+		&self.path
+	}
+
 	/// Creates a workspace from a specific directory.
 	/// You should probably use `from_cwd` instead which uses the standard ./autorun directory.
 	pub fn from_dir(p: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
@@ -35,6 +40,7 @@ impl Workspace {
 		}
 
 		Ok(Self {
+			path: p.to_path_buf(),
 			plugins_path: plugins,
 			logs_path: logs,
 			settings_path: settings,
