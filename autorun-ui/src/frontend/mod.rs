@@ -109,6 +109,16 @@ struct App {
 }
 
 impl App {
+	fn validate_plugins(autorun: &Autorun) -> anyhow::Result<()> {
+		let (plugins, errors) = autorun.workspace().get_plugins()?;
+		for error in &errors {
+			autorun_log::error!("Failed to load plugin: {error}");
+		}
+
+		autorun_log::info!("#{} plugins, #{} errors", plugins.len(), errors.len());
+		Ok(())
+	}
+
 	pub fn new(cc: &CreationContext, autorun: Autorun) -> Self {
 		cc.egui_ctx.request_repaint_after(REPAINT_TIME);
 
@@ -167,6 +177,10 @@ impl App {
 				ctx.request_repaint();
 			}
 		});
+
+		if let Err(why) = Self::validate_plugins(&autorun) {
+			autorun_log::error!("Failed to validate plugins: {why}");
+		}
 
 		let command_registry = CommandRegistry::new();
 

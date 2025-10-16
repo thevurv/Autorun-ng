@@ -17,7 +17,30 @@ impl Plugin {
 	pub fn from_dir(p: impl AsRef<std::path::Path>) -> anyhow::Result<Self> {
 		let p = p.as_ref();
 		if !p.is_dir() {
-			return Err(anyhow::anyhow!("Plugin path is not a directory"));
+			return Err(anyhow::anyhow!("Plugin path is not a directory").context(format!("Path: {:?}", p)));
+		}
+
+		if !p.join(Self::PLUGIN_CONFIG).exists() {
+			return Err(
+				anyhow::anyhow!("Plugin config not found").context(format!("Expected at: {:?}", p.join(Self::PLUGIN_CONFIG)))
+			);
+		}
+
+		if !p.join(Self::PLUGIN_SRC).is_dir() {
+			return Err(anyhow::anyhow!("Plugin src directory not found")
+				.context(format!("Expected at: {:?}", p.join(Self::PLUGIN_SRC))));
+		}
+
+		if !p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_MENU_FILE).exists()
+			&& !p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_INIT_FILE).exists()
+			&& !p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_HOOK_FILE).exists()
+		{
+			return Err(anyhow::anyhow!("No plugin entrypoint files found").context(format!(
+				"Expected at least one of: {:?}, {:?}, {:?}",
+				p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_MENU_FILE),
+				p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_INIT_FILE),
+				p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_HOOK_FILE),
+			)));
 		}
 
 		Ok(Self {

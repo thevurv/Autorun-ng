@@ -19,7 +19,8 @@ pub fn init() -> anyhow::Result<()> {
 		0x55, 0x48, 0x89, 0xe5, 0x41, 0x55, 0x41, 0x54, 0x49, 0x89, 0xfc, 0x53, 0x48, 0x83, 0xec, ?, 0x48, 0x8b, 0x77, ?
 	])?;
 	if let Some(addr) = scan_result {
-		let fn_start_addr = addr - 33;
+		let fn_start_addr = addr - 0;
+		// let fn_start_addr = addr - 33;
 		// let fn_start_addr = addr - 0;
 
 		// Verify function prelude

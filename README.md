@@ -1,4 +1,4 @@
-# Autorun-next
+# Autorun-ng
 
 This is [Autorun](https://github.com/Vurv78/Autorun-rs) for the next generation, with two main goals in mind:
 

@@ -35,6 +35,10 @@ impl Autorun {
 		})
 	}
 
+	pub fn workspace(&self) -> &autorun_core::Workspace {
+		&self.workspace
+	}
+
 	pub fn status(&self) -> AutorunStatus {
 		self.status
 	}

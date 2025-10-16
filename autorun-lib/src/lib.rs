@@ -13,28 +13,11 @@ pub fn main() -> anyhow::Result<()> {
 		}
 	});
 
-	hooks::paint_traverse::init()?;
+	// hooks::paint_traverse::init()?;
 	hooks::load_buffer::init()?;
+	// hooks::the_fn::init()?;
 
-	let engine = autorun_interfaces::engine_client::get_api().unwrap();
-
-	// let net_chan = engine.get_net_channel_info().unwrap() as *mut INetChannelInfo;
-	// let msg = unsafe { *net_chan.add(0x2460 / 8) };
-	// let msg = unsafe { std::ffi::CStr::from_ptr(msg) };
-	// println!("Message: {}", msg.to_string_lossy());
-	// let net_chan = unsafe { net_chan.as_ref().unwrap() };
-
-	// let vtable = net_chan.vtable;
-	// let vtable = unsafe { vtable.as_ref().unwrap() };
-
-	// let mut data = [0u8; 0x3000];
-	// println!("{:p}", (vtable.get_name)(data.as_ptr() as _));
-
-	// let name = (vtable.get_address)(std::ptr::null());
-	// let name = (vtable.get_name)(net_chan as *const _ as _);
-	// autorun_log::warn!("good!");
-	// let name = unsafe { std::ffi::CStr::from_ptr(name) };
-	// let name = name.to_string_lossy();
+	// let engine = autorun_interfaces::engine_client::get_api().unwrap();
 
 	Ok(())
 }

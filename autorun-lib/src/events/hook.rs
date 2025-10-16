@@ -1,25 +1,21 @@
 /// Function that triggers all plugins hook (each file) scripts.
-pub fn hook(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode: &[u8]) -> anyhow::Result<()> {
+pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode: &[u8]) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
 
-	// Set up the hook environment once before running all plugins
-	setup_hook_env(state, lua, buffer, name)?;
+	setup_env(state, lua, buffer, name)?;
 
 	let (plugins, _errors) = workspace.get_plugins()?;
-
 	for plugin in plugins {
 		run_hook_entrypoint(state, lua, &plugin)?;
 	}
 
+	lua.pop(state, 1); // Pop the environment
+
 	Ok(())
 }
-fn setup_hook_env(
-	state: *mut autorun_types::LuaState,
-	lua: &autorun_lua::LuaApi,
-	buffer: &[u8],
-	name: &[u8],
-) -> anyhow::Result<()> {
+
+fn setup_env(state: *mut autorun_types::LuaState, lua: &autorun_lua::LuaApi, buffer: &[u8], name: &[u8]) -> anyhow::Result<()> {
 	lua.create_table(state, 0, 0);
 
 	lua.create_table(state, 0, 2);
@@ -73,13 +69,13 @@ fn run_hook_entrypoint(
 			}
 
 			// Execute the loaded chunk
-			let pcall_result = lua.pcall(state, 0, 0, 0);
-			if pcall_result != 0 {
-				return Err(anyhow::anyhow!("Failed to execute Lua hook: {}", hook_name));
+			if let Err(why) = lua.pcall(state, 0, 0, 0) {
+				return Err(anyhow::anyhow!("Failed to execute Lua hook: {why}"));
 			}
 
 			Ok(())
 		}
+
 		_ => Err(anyhow::anyhow!("Unsupported language: {:?}", config.plugin.language)),
 	}
 }

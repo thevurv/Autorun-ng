@@ -14,5 +14,5 @@ pub fn get_workspace() -> anyhow::Result<&'static autorun_core::Workspace> {
 	Ok(AUTORUN_WORKSPACE.get().unwrap())
 }
 
-mod hook;
-mod init;
+pub mod hook;
+pub mod init;
