@@ -44,7 +44,7 @@ pub fn run(autorun: Autorun) {
 	let icon = load_icon();
 
 	let _ = eframe::run_native(
-		"Autorun-next",
+		"Autorun-ng",
 		eframe::NativeOptions {
 			viewport: if let Some(icon) = icon {
 				ViewportBuilder::default()
@@ -209,7 +209,7 @@ impl App {
 			.inner_margin(Margin::symmetric(12.0, 8.0))
 			.show(ui, |ui| {
 				ui.horizontal(|ui| {
-					ui.heading("Autorun-next");
+					ui.heading("Autorun-ng");
 
 					ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
 						// Connection controls
@@ -534,7 +534,7 @@ impl App {
 	fn show_about_tab(&mut self, ui: &mut Ui) {
 		ui.vertical_centered(|ui| {
 			ui.add_space(50.0);
-			ui.heading("About Autorun-next");
+			ui.heading("About Autorun-ng");
 			ui.add_space(20.0);
 
 			Frame::default()
@@ -550,7 +550,7 @@ impl App {
 					ui.add_space(15.0);
 
 					if ui.link("GitHub Repository").clicked() {
-						open_url("https://github.com/thevurv/Autorun-next");
+						open_url("https://github.com/thevurv/Autorun-ng");
 					}
 
 					if ui.link("📚 Documentation").clicked() {
@@ -577,7 +577,7 @@ impl App {
 						ui.separator();
 
 						if ui.link("GitHub").clicked() {
-							open_url("https://github.com/thevurv/Autorun-next");
+							open_url("https://github.com/thevurv/Autorun-ng");
 						}
 					});
 				});

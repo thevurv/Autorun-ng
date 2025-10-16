@@ -13,7 +13,7 @@ This does not intend to be backwards compatible with the original Autorun, but i
 
 ## File Structure
 
-**⚠️ Since Autorun-next is based around a main program instead of the injected library, files are stored relative to the executable.**
+**⚠️ Since Autorun-ng is based around a main program instead of the injected library, files are stored relative to the executable.**
 
 _This is just the planned file structure. Nothing is implemented yet._
 
