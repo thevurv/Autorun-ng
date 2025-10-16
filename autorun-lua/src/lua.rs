@@ -49,6 +49,8 @@ macro_rules! define_lua_api {
 define_lua_api! {
 	#[name = "lua_pushnumber"]
 	pub fn push_number(state: *mut LuaState, number: c_double);
+	#[name = "lua_pushinteger"]
+	pub fn push_integer(state: *mut LuaState, integer: c_int);
 	#[name = "lua_pushnil"]
 	pub fn push_nil(state: *mut LuaState);
 	#[name = "lua_pushstring"]
@@ -175,11 +177,20 @@ define_lua_api! {
 	fn _reference(state: *mut LuaState, t: c_int) -> c_int;
 	#[name = "luaL_unref"]
 	fn _dereference(state: *mut LuaState, t: c_int, r: c_int);
+
+	#[name = "lua_getmetatable"]
+	pub fn get_metatable(state: *mut LuaState, index: c_int) -> c_int;
+	#[name = "lua_setmetatable"]
+	pub fn set_metatable(state: *mut LuaState, index: c_int) -> c_int;
 }
 
 impl LuaApi {
 	pub fn get_global(&self, state: *mut LuaState, name: *const c_char) {
 		self.get_field(state, GLOBALS_INDEX, name);
+	}
+
+	pub fn push_globals(&self, state: *mut LuaState) {
+		self.push_value(state, GLOBALS_INDEX);
 	}
 
 	pub fn reference(&self, state: *mut LuaState) -> c_int {

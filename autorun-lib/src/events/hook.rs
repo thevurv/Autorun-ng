@@ -9,11 +9,13 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 		return Ok(());
 	}
 
+	env.set_name(lua, state, name);
+	env.set_code(lua, state, buffer);
+	env.set_mode(lua, state, b"hook");
+
 	for plugin in plugins {
 		run_entrypoint(state, lua, &plugin, env)?;
 	}
-
-	// lua.pop(state, 1); // Pop the environment
 
 	Ok(())
 }

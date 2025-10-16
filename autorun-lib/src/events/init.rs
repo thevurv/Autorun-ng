@@ -10,6 +10,10 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 		return Ok(());
 	}
 
+	env.set_name(lua, state, b"__INIT__");
+	env.set_code(lua, state, b"");
+	env.set_mode(lua, state, b"init");
+
 	for plugin in &plugins {
 		run_entrypoint(state, lua, &plugin, env)?;
 	}

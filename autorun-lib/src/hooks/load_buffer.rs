@@ -14,27 +14,25 @@ extern "C" fn load_buffer_h(
 	name: *const c_char,
 	mode: *const c_char,
 ) -> c_int {
-	let r = LOAD_BUFFER_H.get().unwrap().call(state, buff, size, name, mode);
+	let r = call_original(state, buff, size, name, mode);
 
 	let engine = autorun_interfaces::engine_client::get_api().unwrap();
-
 	let is_drawing_loading_image = engine.is_drawing_loading_image();
 	let previously_was_drawing_loading_image = *WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap();
 
 	if is_drawing_loading_image && !previously_was_drawing_loading_image {
-		let name = unsafe { std::ffi::CStr::from_ptr(name) };
-
-		crate::events::init::run(state).unwrap_or_else(|e| {
-			autorun_log::error!("Failed to run init for {}: {e}", name.to_string_lossy());
-		});
+		if let Err(why) = crate::events::init::run(state) {
+			let name = unsafe { std::ffi::CStr::from_ptr(name) };
+			autorun_log::error!("Failed to run init for {}: {why}", name.to_string_lossy());
+		}
 	} else if engine.is_in_game() {
-		let name = unsafe { std::ffi::CStr::from_ptr(name) };
-		let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
-		let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
+		// let name = unsafe { std::ffi::CStr::from_ptr(name) };
+		// let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
+		// let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
 
-		crate::events::hook::run(state, buff, name.to_bytes(), mode).unwrap_or_else(|e| {
-			autorun_log::error!("Failed to run hook for {}: {e}", name.to_string_lossy());
-		});
+		// if let Err(why) = crate::events::hook::run(state, buff, name.to_bytes(), mode) {
+		// 	autorun_log::error!("Failed to run hook for {}: {why}", name.to_string_lossy());
+		// }
 	}
 
 	*WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap() = is_drawing_loading_image;
@@ -57,6 +55,7 @@ pub fn init() -> anyhow::Result<()> {
 	Ok(())
 }
 
+#[inline]
 pub fn call_original(
 	state: *mut LuaState,
 	buff: *const c_char,
