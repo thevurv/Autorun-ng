@@ -73,9 +73,6 @@ impl EnvHandle {
 		// Store env_table in registry and get reference
 		let registry_env_idx = lua.reference(state);
 
-		// Pop env_table (we're done with it on the stack)
-		lua.pop(state, 1);
-
 		EnvHandle(registry_env_idx)
 	}
 

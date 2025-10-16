@@ -1,6 +1,6 @@
 use std::ffi::{c_char, c_int};
 
-use autorun_types::LuaState;
+use autorun_types::{LuaState, Realm};
 
 type LoadBufferFn = extern "C" fn(*mut LuaState, *const c_char, usize, *const c_char, *const c_char) -> c_int;
 
@@ -25,14 +25,14 @@ extern "C" fn load_buffer_h(
 			let name = unsafe { std::ffi::CStr::from_ptr(name) };
 			autorun_log::error!("Failed to run init for {}: {why}", name.to_string_lossy());
 		}
-	} else if engine.is_in_game() {
-		// let name = unsafe { std::ffi::CStr::from_ptr(name) };
-		// let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
-		// let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
+	} else if Some(state) == autorun_interfaces::lua::get_state(Realm::Client).unwrap() {
+		let name = unsafe { std::ffi::CStr::from_ptr(name) };
+		let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
+		let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
 
-		// if let Err(why) = crate::events::hook::run(state, buff, name.to_bytes(), mode) {
-		// 	autorun_log::error!("Failed to run hook for {}: {why}", name.to_string_lossy());
-		// }
+		if let Err(why) = crate::events::hook::run(state, buff, name.to_bytes(), mode) {
+			autorun_log::error!("Failed to run hook for {}: {why}", name.to_string_lossy());
+		}
 	}
 
 	*WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap() = is_drawing_loading_image;
