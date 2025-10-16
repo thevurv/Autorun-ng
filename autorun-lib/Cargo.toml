@@ -26,3 +26,4 @@ autorun-lua = { path = "../autorun-lua" }
 autorun-interfaces = { path = "../autorun-interfaces" }
 autorun-scan = { path = "../autorun-scan" }
 autorun-core = { path = "../autorun-core" }
+autorun-env = { path = "../autorun-env" }

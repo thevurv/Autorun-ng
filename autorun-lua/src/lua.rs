@@ -1,7 +1,9 @@
 use std::ffi::{c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
 pub type LuaState = c_void;
 
-const LUA_GLOBALSINDEX: c_int = -10002;
+pub const GLOBALS_INDEX: c_int = -10002;
+pub const ENVIRON_INDEX: c_int = -10001;
+pub const REGISTRY_INDEX: c_int = -10000;
 
 const LUA_OK: c_int = 0;
 const LUA_YIELD: c_int = 1;
@@ -57,6 +59,8 @@ define_lua_api! {
 	pub fn push_thread(state: *mut LuaState) -> c_int;
 	#[name = "lua_pushvalue"]
 	pub fn push_value(state: *mut LuaState, index: c_int);
+	#[name = "lua_pushcclosure"]
+	pub fn push_closure(state: *mut LuaState, func: extern "C-unwind" fn(*mut LuaState) -> c_int, nups: c_int);
 
 	#[name = "lua_rawequal"]
 	pub fn is_raw_equal(state: *mut LuaState, index1: c_int, index2: c_int) -> c_int;
@@ -166,11 +170,51 @@ define_lua_api! {
 	pub fn get_fenv(state: *mut LuaState, index: c_int);
 	#[name = "lua_setfenv"]
 	pub fn set_fenv(state: *mut LuaState, index: c_int) -> c_int;
+
+	#[name = "luaL_ref"]
+	fn _reference(state: *mut LuaState, t: c_int) -> c_int;
+	#[name = "luaL_unref"]
+	fn _dereference(state: *mut LuaState, t: c_int, r: c_int);
 }
 
 impl LuaApi {
 	pub fn get_global(&self, state: *mut LuaState, name: *const c_char) {
-		self.get_field(state, LUA_GLOBALSINDEX, name);
+		self.get_field(state, GLOBALS_INDEX, name);
+	}
+
+	pub fn reference(&self, state: *mut LuaState) -> c_int {
+		self._reference(state, REGISTRY_INDEX)
+	}
+
+	pub fn dereference(&self, state: *mut LuaState, reference: c_int) {
+		self._dereference(state, REGISTRY_INDEX, reference);
+	}
+
+	pub fn get_registry(&self, state: *mut LuaState, reference: c_int) {
+		self.rawgeti(state, REGISTRY_INDEX, reference);
+	}
+
+	pub fn set_registry(&self, state: *mut LuaState, reference: c_int) {
+		self.rawseti(state, REGISTRY_INDEX, reference);
+	}
+
+	pub fn push_function(&self, state: *mut LuaState, func: extern "C-unwind" fn(*mut LuaState) -> c_int) {
+		self.push_closure(state, func, 0);
+	}
+
+	pub fn to_string(&self, state: *mut LuaState, index: c_int) -> Option<std::borrow::Cow<'static, str>> {
+		let mut len: c_uint = 0;
+		let c_str = self.to_lstring(state, index, &mut len as *mut c_uint);
+		if c_str.is_null() {
+			None
+		} else {
+			Some(unsafe { std::ffi::CStr::from_ptr(c_str) }.to_string_lossy())
+		}
+	}
+
+	pub fn check_string(&self, state: *mut LuaState, index: c_int) -> std::borrow::Cow<'static, str> {
+		let c_str = self.check_lstring(state, index, std::ptr::null_mut());
+		unsafe { std::ffi::CStr::from_ptr(c_str) }.to_string_lossy()
 	}
 
 	pub fn load_string(&self, state: *mut LuaState, s: *const c_char) -> Result<(), std::borrow::Cow<'static, str>> {
@@ -219,4 +263,22 @@ impl LuaApi {
 	pub fn pop(&self, state: *mut LuaState, n: c_int) {
 		self.set_top(state, -n - 1);
 	}
+}
+
+#[macro_export]
+macro_rules! as_lua_function {
+	($func:expr) => {{
+		extern "C-unwind" fn lua_wrapper(state: *mut autorun_types::LuaState) -> i32 {
+			let lua = autorun_lua::get_api().expect("Failed to get Lua API");
+			match $func(lua, state) {
+				Ok(()) => 0,
+				Err(e) => {
+					lua.push_string(state, std::ffi::CString::new(e.to_string()).unwrap().as_ptr());
+					lua.error(state);
+				}
+			}
+		}
+
+		lua_wrapper
+	}};
 }

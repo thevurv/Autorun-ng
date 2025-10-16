@@ -2,49 +2,27 @@
 pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode: &[u8]) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
+	let env = super::get_env(&lua, state);
 
 	let (plugins, _errors) = workspace.get_plugins()?;
 	if plugins.is_empty() {
 		return Ok(());
 	}
 
-	setup_env(state, lua, buffer, name)?;
-
 	for plugin in plugins {
-		run_hook_entrypoint(state, lua, &plugin)?;
+		run_entrypoint(state, lua, &plugin, env)?;
 	}
 
-	lua.pop(state, 1); // Pop the environment
+	// lua.pop(state, 1); // Pop the environment
 
 	Ok(())
 }
 
-fn setup_env(state: *mut autorun_types::LuaState, lua: &autorun_lua::LuaApi, buffer: &[u8], name: &[u8]) -> anyhow::Result<()> {
-	lua.create_table(state, 0, 0);
-
-	lua.create_table(state, 0, 2);
-
-	lua.push_string(state, c"SRC".as_ptr());
-	lua.push_lstring(state, buffer.as_ptr() as *const i8, buffer.len());
-	lua.set_table(state, -3);
-
-	lua.push_string(state, c"NAME".as_ptr());
-	lua.push_lstring(state, name.as_ptr() as *const i8, name.len());
-	lua.set_table(state, -3);
-
-	lua.push_string(state, c"Autorun".as_ptr());
-	lua.push_value(state, -2);
-	lua.set_table(state, -4);
-
-	lua.pop(state, 1);
-
-	Ok(())
-}
-
-fn run_hook_entrypoint(
+fn run_entrypoint(
 	state: *mut autorun_types::LuaState,
 	lua: &autorun_lua::LuaApi,
 	plugin: &autorun_core::plugins::Plugin,
+	env: &autorun_env::EnvHandle,
 ) -> anyhow::Result<()> {
 	let config = plugin.get_config()?;
 
@@ -72,7 +50,9 @@ fn run_hook_entrypoint(
 				return Err(anyhow::anyhow!("Failed to load Lua hook: {}", hook_name));
 			}
 
-			// Execute the loaded chunk
+			env.push(lua, state);
+			lua.set_fenv(state, -2);
+
 			if let Err(why) = lua.pcall(state, 0, 0, 0) {
 				return Err(anyhow::anyhow!("Failed to execute Lua hook: {why}"));
 			}

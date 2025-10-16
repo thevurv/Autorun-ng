@@ -1,5 +1,3 @@
-use autorun_interfaces::net::{INetChannelInfo, INetChannelInfoVTable};
-
 mod events;
 mod hooks;
 mod lua_queue;
@@ -16,8 +14,6 @@ pub fn main() -> anyhow::Result<()> {
 	// hooks::paint_traverse::init()?;
 	hooks::load_buffer::init()?;
 	// hooks::the_fn::init()?;
-
-	// let engine = autorun_interfaces::engine_client::get_api().unwrap();
 
 	Ok(())
 }

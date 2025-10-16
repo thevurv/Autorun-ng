@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 thiserror = { workspace = true }
 libloading = { workspace = true }
+anyhow = { workspace = true }
 
 autorun-types = { path = "../autorun-types" }
 autorun-lua = { path = "../autorun-lua" }
