@@ -26,6 +26,10 @@ impl Environment {
 		lua.push(state, c"print");
 		lua.push(state, autorun_lua::as_lua_function!(crate::functions::print));
 		lua.set_table(state, -3);
+
+		lua.push(state, c"require");
+		lua.push(state, autorun_lua::as_lua_function!(crate::functions::require));
+		lua.set_table(state, -3);
 	}
 
 	pub fn create(lua: &LuaApi, state: *mut LuaState) -> Self {
