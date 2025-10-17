@@ -1,5 +1,5 @@
 use std::ffi::{c_char, c_int, c_void};
-type CreateInterfaceFn = extern "C" fn(name: *const c_char, return_code: *mut c_int) -> *mut c_void;
+type CreateInterfaceFn = extern "C-unwind" fn(name: *const c_char, return_code: *mut c_int) -> *mut c_void;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetInterfaceError {

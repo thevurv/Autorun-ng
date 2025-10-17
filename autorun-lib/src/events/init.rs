@@ -18,9 +18,6 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 		run_entrypoint(state, lua, &plugin, env)?;
 	}
 
-	autorun_log::info!("Ran init, top is now {}", lua.get_top(state));
-	autorun_log::info!("{:#?}", lua.type_name(state, 1));
-
 	Ok(())
 }
 

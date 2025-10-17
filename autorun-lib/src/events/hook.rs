@@ -11,13 +11,18 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 		return Ok(());
 	}
 
-	env.set_name(lua, state, name);
-	env.set_code(lua, state, buffer);
-	env.set_mode(lua, state, b"hook");
+	println!("Setting stuff");
+	// env.set_name(lua, state, name);
+	// env.set_code(lua, state, buffer);
+	// env.set_mode(lua, state, b"hook");
+	println!("Set stuff");
 
 	for plugin in plugins {
-		run_entrypoint(state, lua, &plugin, env)?;
+		println!("Running plugin {}", plugin.get_config().unwrap().plugin.name);
+		run_entrypoint(state, lua, &plugin, env);
 	}
+
+	// println!("Ran hook: {r:#?}");
 
 	println!("Ran hook, top is now {}", lua.get_top(state));
 
@@ -57,8 +62,6 @@ fn run_entrypoint(
 			}
 
 			env.push(lua, state);
-			let s = lua.to_string(state, -1);
-			autorun_log::info!("Pushed env for hook: {s:#?}");
 			lua.set_fenv(state, -2);
 
 			if let Err(why) = lua.pcall(state, 0, 0, 0) {

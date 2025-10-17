@@ -2,19 +2,19 @@ use std::ffi::{c_char, c_int};
 
 use autorun_types::{LuaState, Realm};
 
-type LoadBufferFn = extern "C" fn(*mut LuaState, *const c_char, usize, *const c_char, *const c_char) -> c_int;
+type LoadBufferFn = extern "C-unwind" fn(*mut LuaState, *const c_char, usize, *const c_char, *const c_char) -> c_int;
 
 static LOAD_BUFFER_H: std::sync::OnceLock<retour::GenericDetour<LoadBufferFn>> = std::sync::OnceLock::new();
 static WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
 
-extern "C" fn load_buffer_h(
+extern "C-unwind" fn load_buffer_h(
 	state: *mut LuaState,
 	buff: *const c_char,
 	size: usize,
 	name: *const c_char,
 	mode: *const c_char,
 ) -> c_int {
-	let r = call_original(state, buff, size, name, mode);
+	let lua = autorun_lua::get_api().unwrap();
 
 	let engine = autorun_interfaces::engine_client::get_api().unwrap();
 	let is_drawing_loading_image = engine.is_drawing_loading_image();
@@ -37,7 +37,7 @@ extern "C" fn load_buffer_h(
 
 	*WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap() = is_drawing_loading_image;
 
-	return r;
+	call_original(state, buff, size, name, mode)
 }
 
 pub fn init() -> anyhow::Result<()> {

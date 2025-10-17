@@ -24,7 +24,7 @@ macro_rules! define_lua_api {
         #[derive(Debug)]
         pub struct LuaApi {
             $(
-                pub $fn_name: extern "C" fn($($param_name: $param_type),*) $(-> $return_type)?,
+                pub $fn_name: extern "C-unwind" fn($($param_name: $param_type),*) $(-> $return_type)?,
             )*
         }
 

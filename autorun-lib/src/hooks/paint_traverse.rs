@@ -1,10 +1,10 @@
 use crate::lua_queue::LUA_QUEUE;
 
-type PaintTraverseFn = extern "C" fn(this: *mut std::ffi::c_void, panel: i32, force_repaint: bool, allow_force: bool);
+type PaintTraverseFn = extern "C-unwind" fn(this: *mut std::ffi::c_void, panel: i32, force_repaint: bool, allow_force: bool);
 
 static PAINT_TRAVERSE_H: std::sync::OnceLock<retour::GenericDetour<PaintTraverseFn>> = std::sync::OnceLock::new();
 
-extern "C" fn paint_traverse_h(this: *mut std::ffi::c_void, panel_id: i32, force_repaint: bool, force_allow: bool) {
+extern "C-unwind" fn paint_traverse_h(this: *mut std::ffi::c_void, panel_id: i32, force_repaint: bool, force_allow: bool) {
 	PAINT_TRAVERSE_H
 		.get()
 		.unwrap()

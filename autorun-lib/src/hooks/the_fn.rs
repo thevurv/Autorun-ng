@@ -1,9 +1,9 @@
-type TheTargetFn = extern "C" fn(arg1: i64, arg2: i64, arg3: u64);
+type TheTargetFn = extern "C-unwind" fn(arg1: i64, arg2: i64, arg3: u64);
 // type TheTargetFn = extern "C" fn() -> u8;
 
 static THE_TARGET_FN_H: std::sync::OnceLock<retour::GenericDetour<TheTargetFn>> = std::sync::OnceLock::new();
 
-extern "C" fn the_target_fn_h(a: i64, b: i64, c: u64) {
+extern "C-unwind" fn the_target_fn_h(a: i64, b: i64, c: u64) {
 	// extern "C" fn the_target_fn_h() -> u8 {
 	THE_TARGET_FN_H.get().unwrap().call(a, b, c);
 	autorun_log::info!("Called with {a:x} {b:x} {c:x}");
