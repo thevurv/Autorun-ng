@@ -200,7 +200,7 @@ define_lua_api! {
 	#[name = "lua_getfenv"]
 	pub fn get_fenv(state: *mut LuaState, index: c_int);
 	#[name = "lua_setfenv"]
-	pub fn set_fenv(state: *mut LuaState, index: c_int) -> c_int;
+	fn _set_fenv(state: *mut LuaState, index: c_int) -> c_int;
 
 	#[name = "luaL_ref"]
 	fn _reference(state: *mut LuaState, t: c_int) -> c_int;
@@ -233,12 +233,15 @@ impl LuaApi {
 		self._dereference(state, REGISTRY_INDEX, reference);
 	}
 
-	pub fn get_registry(&self, state: *mut LuaState, reference: c_int) {
-		self.rawgeti(state, REGISTRY_INDEX, reference);
+	pub fn get_registry(&self, state: *mut LuaState, key: impl IntoLua) {
+		key.into_lua(self, state);
+		self.rawget(state, REGISTRY_INDEX);
 	}
 
-	pub fn set_registry(&self, state: *mut LuaState, reference: c_int) {
-		self.rawseti(state, REGISTRY_INDEX, reference);
+	pub fn set_registry(&self, state: *mut LuaState, key: impl IntoLua) {
+		key.into_lua(self, state);
+		self.push_value(state, -2);
+		self.rawset(state, REGISTRY_INDEX);
 	}
 
 	pub fn push_function(&self, state: *mut LuaState, func: extern "C-unwind" fn(*mut LuaState) -> c_int) {
@@ -293,6 +296,10 @@ impl LuaApi {
 				Err(err_str)
 			}
 		}
+	}
+
+	pub fn set_fenv(&self, state: *mut LuaState, index: c_int) -> Result<(), ()> {
+		if self._set_fenv(state, index) != 0 { Ok(()) } else { Err(()) }
 	}
 
 	pub fn pcall(

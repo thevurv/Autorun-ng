@@ -14,7 +14,10 @@ extern "C-unwind" fn load_buffer_h(
 	name: *const c_char,
 	mode: *const c_char,
 ) -> c_int {
-	let lua = autorun_lua::get_api().unwrap();
+	let is_client_state = Some(state) == autorun_interfaces::lua::get_state(Realm::Client).unwrap();
+	if !is_client_state {
+		return call_original(state, buff, size, name, mode);
+	}
 
 	let engine = autorun_interfaces::engine_client::get_api().unwrap();
 	let is_drawing_loading_image = engine.is_drawing_loading_image();

@@ -54,7 +54,9 @@ fn run_entrypoint(
 			}
 
 			env.push(lua, state);
-			lua.set_fenv(state, -2);
+			if lua.set_fenv(state, -2).is_err() {
+				return Err(anyhow::anyhow!("Failed to set fenv for Lua init"));
+			}
 
 			if let Err(why) = lua.pcall(state, 0, 0, 0) {
 				return Err(anyhow::anyhow!("Failed to execute Lua hook: {why}"));
