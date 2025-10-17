@@ -1,10 +1,3 @@
-# autorun-lua
-
-This implements Autorun's lua abstractions and being able to access the lua api from `lua_shared` provided by the game.
-
-## Example
-
-```rust
 /// A basic example of creating a binary module using `autorun-lua`
 /// Dependencies:
 /// libloading
@@ -33,4 +26,3 @@ pub extern "C-unwind" fn gmod13_open(state: *mut LuaState) -> c_int {
 
 	0
 }
-```
