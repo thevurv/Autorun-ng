@@ -3,9 +3,9 @@
 ---@field MODE "init" | "menu" | "hook" # Mode in which script is running
 ---@field CODE string # Source code of script
 ---@field CODE_LEN integer # Length of source code
----@field PATH string # Path to the currently running script, local to /autorun/. Shouldn't really be used (and definitely not modified.)
-Autorun = {}
+---@field DIR userdata # Path to directory containing script. Don't delete this or you'll brick your plugin
+Autorun = Autorun
 
 --- Prints to the Autorun console in the format of [Lua]: ...
----@param ... any # Values to print
+--- @param ... any # Values to print
 function Autorun.print(...) end

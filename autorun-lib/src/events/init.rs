@@ -1,5 +1,3 @@
-use std::io::Read;
-
 /// Function that triggers all plugins init (server start) scripts.
 pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
@@ -17,15 +15,16 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	env.set_mode(lua, state, b"init");
 
 	for plugin in &plugins {
-		run_entrypoint(state, lua, &plugin, env)?;
+		env.set_dir(lua, state, plugin.dir());
+		run_entrypoint(lua, state, &plugin, env)?;
 	}
 
 	Ok(())
 }
 
 fn run_entrypoint(
-	state: *mut autorun_types::LuaState,
 	lua: &autorun_lua::LuaApi,
+	state: *mut autorun_types::LuaState,
 	plugin: &autorun_core::plugins::Plugin,
 	env: &autorun_env::Environment,
 ) -> anyhow::Result<()> {
@@ -37,31 +36,7 @@ fn run_entrypoint(
 				return Ok(());
 			};
 
-			env.set_path(lua, state, "/src/init.lua");
-
-			// Execute the Lua code via the original load_buffer function through the detour
-			let result = crate::hooks::load_buffer::call_original(
-				state,
-				init_content.as_ptr() as *const i8,
-				init_content.len(),
-				c"init.lua".as_ptr(),
-				std::ptr::null(),
-			);
-
-			if result != 0 {
-				return Err(anyhow::anyhow!("Failed to load Lua hook"));
-			}
-
-			env.push(lua, state);
-			if lua.set_fenv(state, -2).is_err() {
-				return Err(anyhow::anyhow!("Failed to set fenv for Lua init"));
-			}
-
-			if let Err(why) = lua.pcall(state, 0, 0, 0) {
-				return Err(anyhow::anyhow!("Failed to execute Lua hook: {why}"));
-			}
-
-			Ok(())
+			env.execute(lua, state, &init_content)
 		}
 
 		_ => Err(anyhow::anyhow!("Unsupported language: {:?}", config.plugin.language)),

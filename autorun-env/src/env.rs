@@ -27,12 +27,29 @@ impl Environment {
 		lua.push(state, autorun_lua::as_lua_function!(crate::functions::print));
 		lua.set_table(state, -3);
 
-		lua.push(state, c"require");
-		lua.push(state, autorun_lua::as_lua_function!(crate::functions::require));
+		lua.push(state, c"read");
+		lua.push(state, autorun_lua::as_lua_function!(crate::functions::read));
 		lua.set_table(state, -3);
 	}
 
-	pub fn create(lua: &LuaApi, state: *mut LuaState) -> Self {
+	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, src: &[u8]) -> anyhow::Result<()> {
+		if let Err(why) = lua.load_buffer_x(state, src.as_ptr() as _, src.len(), c"@stdlib".as_ptr(), std::ptr::null()) {
+			return Err(anyhow::anyhow!("Failed to load stdlib: {why}"));
+		}
+
+		self.push(lua, state);
+		if lua.set_fenv(state, -2).is_err() {
+			return Err(anyhow::anyhow!("Failed to set stdlib environment"));
+		}
+
+		if let Err(why) = lua.pcall(state, 0, 0, 0) {
+			return Err(anyhow::anyhow!("Failed to execute stdlib: {}", why));
+		}
+
+		Ok(())
+	}
+
+	pub fn create(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<Self> {
 		// Create autorun environment
 		lua.create_table(state, 0, 1);
 
@@ -52,7 +69,11 @@ impl Environment {
 		// Can unwrap since we are sure there is something on the stack
 		let handle = RawHandle::from_stack(lua, state).unwrap();
 
-		Self { handle }
+		// Create lua standard library
+		let this = Self { handle };
+		this.execute(lua, state, crate::lua::INCLUDE_LIB)?;
+
+		Ok(this)
 	}
 
 	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
@@ -95,11 +116,11 @@ impl Environment {
 		lua.pop(state, 1);
 	}
 
-	pub fn set_path(&self, lua: &LuaApi, state: *mut LuaState, path: impl IntoLua) {
+	pub fn set_dir(&self, lua: &LuaApi, state: *mut LuaState, dir: &cap_std::fs::Dir) {
 		self.push_autorun_table(lua, state);
 
-		lua.push(state, c"PATH");
-		lua.push(state, path);
+		lua.push(state, c"DIR");
+		lua.push_lightuserdata(state, &raw const *dir as _);
 		lua.set_table(state, -3);
 
 		lua.pop(state, 1);

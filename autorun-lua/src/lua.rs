@@ -121,7 +121,7 @@ define_lua_api! {
 	pub fn insert(state: *mut LuaState, index: c_int);
 
 	#[name = "luaL_loadbufferx"]
-	pub fn load_buffer_x(
+	pub fn _load_buffer_x(
 		state: *mut LuaState,
 		buff: *const c_char,
 		size: usize,
@@ -337,6 +337,32 @@ impl LuaApi {
 		self._equal(state, index1, index2) != 0
 	}
 
+	pub fn load_buffer_x(
+		&self,
+		state: *mut LuaState,
+		buff: *const c_char,
+		size: usize,
+		name: *const c_char,
+		mode: *const c_char,
+	) -> Result<(), std::borrow::Cow<'static, str>> {
+		match self._load_buffer_x(state, buff, size, name, mode) {
+			LUA_OK | LUA_YIELD => Ok(()),
+
+			_ => {
+				let err_msg = self.to_lstring(state, -1, std::ptr::null_mut());
+				self.pop(state, 1);
+
+				let err_str = if !err_msg.is_null() {
+					unsafe { std::ffi::CStr::from_ptr(err_msg) }.to_string_lossy()
+				} else {
+					std::borrow::Cow::Borrowed("Unknown error")
+				};
+
+				Err(err_str)
+			}
+		}
+	}
+
 	pub fn pcall(
 		&self,
 		state: *mut LuaState,
@@ -375,20 +401,35 @@ impl LuaApi {
 	}
 }
 
+pub trait LuaReturn {
+	fn into_lua_return(self) -> i32;
+}
+
+impl LuaReturn for () {
+	fn into_lua_return(self) -> i32 {
+		0
+	}
+}
+
+impl LuaReturn for i32 {
+	fn into_lua_return(self) -> i32 {
+		self
+	}
+}
+
 #[macro_export]
 macro_rules! as_lua_function {
 	($func:expr) => {{
 		extern "C-unwind" fn lua_wrapper(state: *mut autorun_types::LuaState) -> i32 {
 			let lua = autorun_lua::get_api().expect("Failed to get Lua API");
 			match $func(lua, state) {
-				Ok(()) => 0,
+				Ok(ret) => $crate::LuaReturn::into_lua_return(ret),
 				Err(e) => {
 					lua.push(state, e.to_string());
 					lua.error(state);
 				}
 			}
 		}
-
 		lua_wrapper as $crate::LuaFunction
 	}};
 }

@@ -28,12 +28,17 @@ impl IntoLua for &CStr {
 	}
 }
 
-impl<'a> FromLua for &'a CStr {
-	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		let str = lua.to_lstring(state, stack_idx, std::ptr::null_mut());
-		unsafe { CStr::from_ptr(str) }
-	}
-}
+// Commented because Strings aren't guaranteed to be nul terminated
+// impl<'a> FromLua for &'a CStr {
+// 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
+// 		let str = lua.to_lstring(state, stack_idx, std::ptr::null_mut());
+// 		if str.is_null() {
+// 			c"nil"
+// 		} else {
+// 			unsafe { CStr::from_ptr(str) }
+// 		}
+// 	}
+// }
 
 impl IntoLua for bool {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
@@ -71,16 +76,21 @@ impl FromLua for i32 {
 	}
 }
 
-impl IntoLua for CString {
+impl IntoLua for &[u8] {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push(state, self.as_c_str())
+		lua.push_lstring(state, self.as_ptr() as *const i8, self.len());
 	}
 }
 
-impl FromLua for CString {
+impl FromLua for &[u8] {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		let str = lua.to::<&CStr>(state, stack_idx);
-		str.to_owned()
+		let mut len = 0;
+		let str = lua.to_lstring(state, stack_idx, &mut len);
+		if str.is_null() {
+			&[]
+		} else {
+			unsafe { std::slice::from_raw_parts(str as *const u8, len as _) }
+		}
 	}
 }
 
@@ -92,8 +102,8 @@ impl IntoLua for String {
 
 impl FromLua for String {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		let str = lua.to::<&CStr>(state, stack_idx);
-		str.to_string_lossy().into_owned()
+		let bytes = lua.to::<&[u8]>(state, stack_idx);
+		String::from_utf8_lossy(bytes).to_string()
 	}
 }
 
@@ -115,16 +125,16 @@ impl IntoLua for &std::borrow::Cow<'_, str> {
 	}
 }
 
-impl IntoLua for &std::path::PathBuf {
-	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push(state, &self.to_string_lossy());
+impl FromLua for std::borrow::Cow<'_, str> {
+	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
+		let bytes = lua.to::<&[u8]>(state, stack_idx);
+		String::from_utf8_lossy(bytes)
 	}
 }
 
-impl FromLua for std::path::PathBuf {
-	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		let s = lua.to::<&CStr>(state, stack_idx);
-		std::path::PathBuf::from(s.to_string_lossy().into_owned())
+impl IntoLua for &std::path::PathBuf {
+	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
+		lua.push(state, &self.to_string_lossy());
 	}
 }
 

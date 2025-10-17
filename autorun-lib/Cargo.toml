@@ -8,14 +8,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = { workspace = true }
+libloading = { workspace = true }
 ctor = "0.5.0"
 interprocess = "2.2.3"
-
-# Getting dll exports
-libloading = { workspace = true }
 nanoserde = { version = "0.2.1", features = ["binary"] }
-
-# Detours
 retour = { git = "https://github.com/thevurv/retour-rs" }
 
 # IPC communication

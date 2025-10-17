@@ -28,3 +28,5 @@ description = "..."
 anyhow = "1.0.99"
 libloading = "0.8.8"
 thiserror = "2.0.16"
+cap-std = "3.4.4"
+serde = { version = "1.0.219", features = ["derive"] }

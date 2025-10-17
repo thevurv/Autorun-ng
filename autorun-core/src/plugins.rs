@@ -15,6 +15,10 @@ impl Plugin {
 	const PLUGIN_INIT_FILE: &str = "init.lua";
 	const PLUGIN_HOOK_FILE: &str = "hook.lua";
 
+	pub fn dir(&self) -> &Dir {
+		&self.dir
+	}
+
 	pub fn src(&self) -> std::io::Result<Dir> {
 		self.dir.open_dir(Self::PLUGIN_SRC)
 	}

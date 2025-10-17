@@ -24,18 +24,22 @@ extern "C-unwind" fn load_buffer_h(
 	let previously_was_drawing_loading_image = *WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap();
 
 	if is_drawing_loading_image && !previously_was_drawing_loading_image {
+		unsafe { LOAD_BUFFER_H.get().unwrap().disable().unwrap() }
 		if let Err(why) = crate::events::init::run(state) {
 			let name = unsafe { std::ffi::CStr::from_ptr(name) };
 			autorun_log::error!("Failed to run init for {}: {why}", name.to_string_lossy());
 		}
+		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
 	} else if Some(state) == autorun_interfaces::lua::get_state(Realm::Client).unwrap() {
 		let name = unsafe { std::ffi::CStr::from_ptr(name) };
 		let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
 		let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
 
+		unsafe { LOAD_BUFFER_H.get().unwrap().disable().unwrap() }
 		if let Err(why) = crate::events::hook::run(state, buff, name.to_bytes(), mode) {
 			autorun_log::error!("Failed to run hook for {}: {why}", name.to_string_lossy());
 		}
+		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
 	}
 
 	*WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap() = is_drawing_loading_image;
@@ -45,7 +49,7 @@ extern "C-unwind" fn load_buffer_h(
 
 pub fn init() -> anyhow::Result<()> {
 	let lua = autorun_lua::get_api()?;
-	let target_fn = lua.load_buffer_x;
+	let target_fn = lua._load_buffer_x;
 
 	let detour = unsafe {
 		let detour = retour::GenericDetour::new(target_fn, load_buffer_h)?;
