@@ -13,8 +13,8 @@ nestify::nest! {
 
 impl Workspace {
 	fn read_settings(&self) -> anyhow::Result<Settings> {
-		let content = std::fs::read_to_string(&self.settings_path)?;
-		let settings = toml::from_str::<Settings>(&content)?;
+		let content = self.path.read("settings.toml")?;
+		let settings = toml::from_slice::<Settings>(&content)?;
 		Ok(settings)
 	}
 
@@ -35,10 +35,10 @@ impl Workspace {
 		let mut plugins = Vec::new();
 		let mut errors = Vec::new();
 
-		for entry in std::fs::read_dir(&self.plugins_path)? {
+		for entry in self.plugins()?.read_dir(".")? {
 			let entry = entry?;
 			if entry.file_type()?.is_dir() {
-				match plugins::Plugin::from_dir(entry.path()) {
+				match plugins::Plugin::from_dir(entry.open_dir()?) {
 					Ok(plugin) => plugins.push(plugin),
 					Err(e) => errors.push(e),
 				}

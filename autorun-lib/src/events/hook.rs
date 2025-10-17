@@ -30,14 +30,11 @@ fn run_entrypoint(
 
 	match config.plugin.language {
 		autorun_core::plugins::ConfigPluginLanguage::Lua => {
-			let Some(hook_file) = plugin.get_hook_file() else {
+			let Ok(hook_content) = plugin.read_hook_lua() else {
 				return Ok(());
 			};
 
-			// Read the hook file content
-			let hook_content = std::fs::read(&hook_file)?;
-			let hook_name = hook_file.to_string_lossy();
-			env.set_path(lua, state, &hook_file);
+			env.set_path(lua, state, "/src/hook.lua");
 
 			// Execute the Lua code via the original load_buffer function through the detour
 			let result = crate::hooks::load_buffer::call_original(
@@ -49,12 +46,12 @@ fn run_entrypoint(
 			);
 
 			if result != 0 {
-				return Err(anyhow::anyhow!("Failed to load Lua hook: {hook_name}"));
+				return Err(anyhow::anyhow!("Failed to load Lua hook"));
 			}
 
 			env.push(lua, state);
 			if lua.set_fenv(state, -2).is_err() {
-				return Err(anyhow::anyhow!("Failed to set fenv for Lua hook: {hook_name}"));
+				return Err(anyhow::anyhow!("Failed to set fenv for Lua hook"));
 			}
 
 			if let Err(why) = lua.pcall(state, 0, 0, 0) {

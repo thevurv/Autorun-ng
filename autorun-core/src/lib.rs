@@ -2,10 +2,8 @@ pub mod plugins;
 pub mod settings;
 
 pub struct Workspace {
-	plugins_path: std::path::PathBuf,
-	logs_path: std::path::PathBuf,
-	settings_path: std::path::PathBuf,
-	path: std::path::PathBuf,
+	pub unsafe_raw_path: std::path::PathBuf,
+	path: cap_std::fs::Dir,
 	settings: std::sync::OnceLock<settings::Settings>,
 }
 
@@ -22,28 +20,30 @@ impl Workspace {
 	const LOGS_DIR: &str = "logs";
 	const SETTINGS_FILE: &str = "settings.toml";
 
-	pub fn path(&self) -> &std::path::Path {
-		&self.path
+	fn plugins(&self) -> std::io::Result<cap_std::fs::Dir> {
+		self.path.open_dir(Self::PLUGINS_DIR)
+	}
+
+	fn logs(&self) -> std::io::Result<cap_std::fs::Dir> {
+		self.path.open_dir(Self::LOGS_DIR)
 	}
 
 	/// Creates a workspace from a specific directory.
 	/// You should probably use `from_cwd` instead which uses the standard ./autorun directory.
-	pub fn from_dir(p: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
-		let p = p.as_ref();
+	pub fn from_dir(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
+		let path = path.as_ref();
 
-		let plugins = create_if_dne(p.join(Self::PLUGINS_DIR))?;
-		let logs = create_if_dne(p.join(Self::LOGS_DIR))?;
+		create_if_dne(path.join(Self::PLUGINS_DIR))?;
+		create_if_dne(path.join(Self::LOGS_DIR))?;
 
-		let settings = p.join(Self::SETTINGS_FILE);
+		let settings = path.join(Self::SETTINGS_FILE);
 		if !settings.exists() {
 			std::fs::write(&settings, include_str!("../data/default_settings.toml"))?;
 		}
 
 		Ok(Self {
-			path: p.to_path_buf(),
-			plugins_path: plugins,
-			logs_path: logs,
-			settings_path: settings,
+			unsafe_raw_path: path.to_path_buf(),
+			path: cap_std::fs::Dir::open_ambient_dir(path, cap_std::ambient_authority())?,
 			settings: std::sync::OnceLock::new(),
 		})
 	}

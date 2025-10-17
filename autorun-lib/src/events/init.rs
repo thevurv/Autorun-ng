@@ -1,3 +1,5 @@
+use std::io::Read;
+
 /// Function that triggers all plugins init (server start) scripts.
 pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
@@ -31,14 +33,11 @@ fn run_entrypoint(
 
 	match config.plugin.language {
 		autorun_core::plugins::ConfigPluginLanguage::Lua => {
-			let Some(init_file) = plugin.get_init_file() else {
+			let Ok(init_content) = plugin.read_init_lua() else {
 				return Ok(());
 			};
 
-			// Read the hook file content
-			let init_content = std::fs::read(&init_file)?;
-			let init_name = init_file.to_string_lossy();
-			env.set_path(lua, state, &init_file);
+			env.set_path(lua, state, "/src/init.lua");
 
 			// Execute the Lua code via the original load_buffer function through the detour
 			let result = crate::hooks::load_buffer::call_original(
@@ -50,7 +49,7 @@ fn run_entrypoint(
 			);
 
 			if result != 0 {
-				return Err(anyhow::anyhow!("Failed to load Lua hook: {init_name}"));
+				return Err(anyhow::anyhow!("Failed to load Lua hook"));
 			}
 
 			env.push(lua, state);

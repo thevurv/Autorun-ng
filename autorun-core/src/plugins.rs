@@ -1,7 +1,8 @@
+use cap_std::fs::{Dir, File};
 use serde::{Deserialize, Serialize};
 
 pub struct Plugin {
-	dir: std::path::PathBuf,
+	dir: Dir,
 	config: std::sync::OnceLock<Config>,
 }
 
@@ -14,54 +15,39 @@ impl Plugin {
 	const PLUGIN_INIT_FILE: &str = "init.lua";
 	const PLUGIN_HOOK_FILE: &str = "hook.lua";
 
-	pub fn from_dir(p: impl AsRef<std::path::Path>) -> anyhow::Result<Self> {
-		let p = p.as_ref();
-		if !p.is_dir() {
-			return Err(anyhow::anyhow!("Plugin path is not a directory").context(format!("Path: {:?}", p)));
+	pub fn src(&self) -> std::io::Result<Dir> {
+		self.dir.open_dir(Self::PLUGIN_SRC)
+	}
+
+	pub fn read_init_lua(&self) -> std::io::Result<Vec<u8>> {
+		self.src()?.read(Self::PLUGIN_INIT_FILE)
+	}
+
+	pub fn read_hook_lua(&self) -> std::io::Result<Vec<u8>> {
+		self.src()?.read(Self::PLUGIN_HOOK_FILE)
+	}
+
+	pub fn read_menu_lua(&self) -> std::io::Result<Vec<u8>> {
+		self.src()?.read(Self::PLUGIN_MENU_FILE)
+	}
+
+	pub fn from_dir(dir: Dir) -> anyhow::Result<Self> {
+		if !dir.exists(Self::PLUGIN_CONFIG) {
+			return Err(anyhow::anyhow!("Plugin config not found"));
 		}
 
-		if !p.join(Self::PLUGIN_CONFIG).exists() {
-			return Err(
-				anyhow::anyhow!("Plugin config not found").context(format!("Expected at: {:?}", p.join(Self::PLUGIN_CONFIG)))
-			);
-		}
+		let Ok(src) = dir.open_dir(Self::PLUGIN_SRC) else {
+			return Err(anyhow::anyhow!("Plugin src directory not found"));
+		};
 
-		if !p.join(Self::PLUGIN_SRC).is_dir() {
-			return Err(anyhow::anyhow!("Plugin src directory not found")
-				.context(format!("Expected at: {:?}", p.join(Self::PLUGIN_SRC))));
-		}
-
-		if !p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_MENU_FILE).exists()
-			&& !p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_INIT_FILE).exists()
-			&& !p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_HOOK_FILE).exists()
-		{
-			return Err(anyhow::anyhow!("No plugin entrypoint files found").context(format!(
-				"Expected at least one of: {:?}, {:?}, {:?}",
-				p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_MENU_FILE),
-				p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_INIT_FILE),
-				p.join(Self::PLUGIN_SRC).join(Self::PLUGIN_HOOK_FILE),
-			)));
+		if !src.exists(Self::PLUGIN_MENU_FILE) && !src.exists(Self::PLUGIN_INIT_FILE) && !src.exists(Self::PLUGIN_HOOK_FILE) {
+			return Err(anyhow::anyhow!("No plugin entrypoint files found"));
 		}
 
 		Ok(Self {
-			dir: p.to_path_buf(),
+			dir,
 			config: std::sync::OnceLock::new(),
 		})
-	}
-
-	pub fn get_menu_file(&self) -> Option<std::path::PathBuf> {
-		let file = self.dir.join(Self::PLUGIN_SRC).join(Self::PLUGIN_MENU_FILE);
-		if file.exists() { Some(file) } else { None }
-	}
-
-	pub fn get_init_file(&self) -> Option<std::path::PathBuf> {
-		let file = self.dir.join(Self::PLUGIN_SRC).join(Self::PLUGIN_INIT_FILE);
-		if file.exists() { Some(file) } else { None }
-	}
-
-	pub fn get_hook_file(&self) -> Option<std::path::PathBuf> {
-		let file = self.dir.join(Self::PLUGIN_SRC).join(Self::PLUGIN_HOOK_FILE);
-		if file.exists() { Some(file) } else { None }
 	}
 
 	pub fn get_config(&self) -> anyhow::Result<&Config> {
@@ -69,12 +55,7 @@ impl Plugin {
 			return Ok(cfg);
 		}
 
-		let config_path = self.dir.join(Self::PLUGIN_CONFIG);
-		if !config_path.exists() {
-			return Err(anyhow::anyhow!("Plugin config not found at {:?}", config_path));
-		}
-
-		let config_data = std::fs::read_to_string(&config_path)?;
+		let config_data = self.dir.read_to_string(Self::PLUGIN_CONFIG)?;
 		let config: Config = toml::from_str(&config_data)?;
 		self.config.set(config).expect("Shouldn't be set");
 

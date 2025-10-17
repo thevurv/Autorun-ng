@@ -127,3 +127,9 @@ impl FromLua for std::path::PathBuf {
 		std::path::PathBuf::from(s.to_string_lossy().into_owned())
 	}
 }
+
+impl IntoLua for &str {
+	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
+		lua.push_lstring(state, self.as_ptr() as _, self.len());
+	}
+}

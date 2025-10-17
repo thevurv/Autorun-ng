@@ -110,7 +110,7 @@ impl Autorun {
 
 				// Send initial workspace path
 				self.send_message(Message::SetWorkspacePath(
-					self.workspace().path().to_string_lossy().to_string(),
+					self.workspace().unsafe_raw_path.to_string_lossy().to_string(),
 				))?;
 
 				Ok(())
