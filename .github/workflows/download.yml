@@ -1,0 +1,51 @@
+name: Download
+
+on:
+    push:
+        branches: [master]
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Rust
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+
+            - name: Cache cargo registry
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cargo/registry
+                  key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+            - name: Cache cargo index
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cargo/git
+                  key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+            - name: Cache target directory
+              uses: actions/cache@v3
+              with:
+                  path: target
+                  key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+
+            - name: Build autorun-lib
+              run: cargo build -p autorun-lib --release
+
+            - name: Build autorun-ui
+              run: cargo build -p autorun-ui --release
+
+            - name: Upload autorun-ui binary
+              uses: actions/upload-artifact@v4
+              with:
+                  name: autorun-ui-${{ runner.os }}
+                  path: target/release/autorun-ui
+                  if-no-files-found: error
