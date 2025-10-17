@@ -10,13 +10,16 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 		return Ok(());
 	}
 
-	// env.set_name(lua, state, b"__INIT__");
-	// env.set_code(lua, state, b"");
-	// env.set_mode(lua, state, b"init");
+	env.set_name(lua, state, b"__INIT__");
+	env.set_code(lua, state, b"");
+	env.set_mode(lua, state, b"init");
 
 	for plugin in &plugins {
 		run_entrypoint(state, lua, &plugin, env)?;
 	}
+
+	autorun_log::info!("Ran init, top is now {}", lua.get_top(state));
+	autorun_log::info!("{:#?}", lua.type_name(state, 1));
 
 	Ok(())
 }
@@ -25,7 +28,7 @@ fn run_entrypoint(
 	state: *mut autorun_types::LuaState,
 	lua: &autorun_lua::LuaApi,
 	plugin: &autorun_core::plugins::Plugin,
-	env: &autorun_env::EnvHandle,
+	env: &autorun_env::Environment,
 ) -> anyhow::Result<()> {
 	let config = plugin.get_config()?;
 
@@ -38,6 +41,7 @@ fn run_entrypoint(
 			// Read the hook file content
 			let init_content = std::fs::read(&init_file)?;
 			let init_name = init_file.to_string_lossy();
+			env.set_path(lua, state, &init_file);
 
 			// Execute the Lua code via the original load_buffer function through the detour
 			let result = crate::hooks::load_buffer::call_original(

@@ -10,3 +10,4 @@ anyhow = { workspace = true }
 
 autorun-types = { path = "../autorun-types" }
 autorun-lua = { path = "../autorun-lua" }
+autorun-log = { path = "../autorun-log" }

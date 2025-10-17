@@ -6,8 +6,8 @@ pub fn print(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<()> {
 
 	let mut args = Vec::with_capacity(nargs as usize);
 	for i in 1..=nargs {
-		let arg = lua.to_string(state, i);
-		args.push(arg.unwrap_or("nil".into()));
+		let arg = lua.to::<&core::ffi::CStr>(state, i);
+		args.push(arg.to_string_lossy());
 	}
 
 	let msg = args.join("\t");

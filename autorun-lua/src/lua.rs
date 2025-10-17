@@ -1,5 +1,6 @@
 use std::ffi::{c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
-pub type LuaState = c_void;
+
+use crate::{FromLua, IntoLua, LuaFunction, types::LuaState};
 
 pub const GLOBALS_INDEX: c_int = -10002;
 pub const ENVIRON_INDEX: c_int = -10001;
@@ -62,7 +63,11 @@ define_lua_api! {
 	#[name = "lua_pushvalue"]
 	pub fn push_value(state: *mut LuaState, index: c_int);
 	#[name = "lua_pushcclosure"]
-	pub fn push_closure(state: *mut LuaState, func: extern "C-unwind" fn(*mut LuaState) -> c_int, nups: c_int);
+	pub fn push_closure(state: *mut LuaState, func: LuaFunction, nups: c_int);
+	#[name = "lua_pushlightuserdata"]
+	pub fn push_lightuserdata(state: *mut LuaState, p: *mut c_void);
+	#[name = "lua_pushboolean"]
+	fn _push_boolean(state: *mut LuaState, b: c_int);
 
 	#[name = "lua_rawequal"]
 	pub fn is_raw_equal(state: *mut LuaState, index1: c_int, index2: c_int) -> c_int;
@@ -119,9 +124,13 @@ define_lua_api! {
 	pub fn remove(state: *mut LuaState, index: c_int);
 	#[name = "lua_status"]
 	pub fn status(state: *mut LuaState) -> c_int;
+	#[name = "lua_type"]
+	pub fn type_id(state: *mut LuaState, index: c_int) -> c_int;
+	#[name = "lua_typename"]
+	fn _type_name(state: *mut LuaState, type_: c_int) -> *const c_char;
 
 	#[name = "lua_toboolean"]
-	pub fn to_boolean(state: *mut LuaState, index: c_int) -> c_uchar;
+	fn _to_boolean(state: *mut LuaState, index: c_int) -> c_int;
 	#[name = "lua_tonumber"]
 	pub fn to_number(state: *mut LuaState, index: c_int) -> c_double;
 	#[name = "lua_topointer"]
@@ -132,6 +141,10 @@ define_lua_api! {
 	pub fn to_thread(state: *mut LuaState, index: c_int) -> *mut LuaState;
 	#[name = "lua_touserdata"]
 	pub fn to_userdata(state: *mut LuaState, index: c_int) -> *mut c_void;
+	#[name = "lua_tointeger"]
+	pub fn to_integer(state: *mut LuaState, index: c_int) -> c_int;
+	#[name = "lua_tocfunction"]
+	pub fn to_function(state: *mut LuaState, index: c_int) -> LuaFunction;
 
 	#[name = "lua_type"]
 	pub fn get_type(state: *mut LuaState, index: c_int) -> c_int;
@@ -215,6 +228,23 @@ impl LuaApi {
 		self.push_closure(state, func, 0);
 	}
 
+	pub fn push_bool(&self, state: *mut LuaState, b: bool) {
+		self._push_boolean(state, b as _);
+	}
+
+	pub fn to_bool(&self, state: *mut LuaState, index: c_int) -> bool {
+		self._to_boolean(state, index) != 0
+	}
+
+	pub fn type_name(&self, state: *mut LuaState, type_: c_int) -> Option<&std::ffi::CStr> {
+		let c_str = self._type_name(state, type_);
+		if c_str.is_null() {
+			None
+		} else {
+			Some(unsafe { std::ffi::CStr::from_ptr(c_str) })
+		}
+	}
+
 	pub fn to_string(&self, state: *mut LuaState, index: c_int) -> Option<std::borrow::Cow<'static, str>> {
 		let mut len: c_uint = 0;
 		let c_str = self.to_lstring(state, index, &mut len as *mut c_uint);
@@ -276,6 +306,14 @@ impl LuaApi {
 	pub fn pop(&self, state: *mut LuaState, n: c_int) {
 		self.set_top(state, -n - 1);
 	}
+
+	pub fn push<T: IntoLua>(&self, state: *mut LuaState, value: T) {
+		T::into_lua(value, self, state);
+	}
+
+	pub fn to<T: FromLua>(&self, state: *mut LuaState, stack_idx: c_int) -> T {
+		T::from_lua(self, state, stack_idx)
+	}
 }
 
 #[macro_export]
@@ -286,12 +324,12 @@ macro_rules! as_lua_function {
 			match $func(lua, state) {
 				Ok(()) => 0,
 				Err(e) => {
-					lua.push_string(state, std::ffi::CString::new(e.to_string()).unwrap().as_ptr());
+					lua.push(state, e.to_string());
 					lua.error(state);
 				}
 			}
 		}
 
-		lua_wrapper
+		lua_wrapper as $crate::LuaFunction
 	}};
 }

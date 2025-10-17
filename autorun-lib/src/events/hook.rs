@@ -4,18 +4,22 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	let lua = autorun_lua::get_api()?;
 	let env = super::get_env(&lua, state);
 
+	println!("Running hook, top is now {}", lua.get_top(state));
+
 	let (plugins, _errors) = workspace.get_plugins()?;
 	if plugins.is_empty() {
 		return Ok(());
 	}
 
-	// env.set_name(lua, state, name);
-	// env.set_code(lua, state, buffer);
-	// env.set_mode(lua, state, b"hook");
+	env.set_name(lua, state, name);
+	env.set_code(lua, state, buffer);
+	env.set_mode(lua, state, b"hook");
 
 	for plugin in plugins {
 		run_entrypoint(state, lua, &plugin, env)?;
 	}
+
+	println!("Ran hook, top is now {}", lua.get_top(state));
 
 	Ok(())
 }
@@ -24,7 +28,7 @@ fn run_entrypoint(
 	state: *mut autorun_types::LuaState,
 	lua: &autorun_lua::LuaApi,
 	plugin: &autorun_core::plugins::Plugin,
-	env: &autorun_env::EnvHandle,
+	env: &autorun_env::Environment,
 ) -> anyhow::Result<()> {
 	let config = plugin.get_config()?;
 
@@ -37,6 +41,7 @@ fn run_entrypoint(
 			// Read the hook file content
 			let hook_content = std::fs::read(&hook_file)?;
 			let hook_name = hook_file.to_string_lossy();
+			env.set_path(lua, state, &hook_file);
 
 			// Execute the Lua code via the original load_buffer function through the detour
 			let result = crate::hooks::load_buffer::call_original(
@@ -48,10 +53,12 @@ fn run_entrypoint(
 			);
 
 			if result != 0 {
-				return Err(anyhow::anyhow!("Failed to load Lua hook: {}", hook_name));
+				return Err(anyhow::anyhow!("Failed to load Lua hook: {hook_name}"));
 			}
 
 			env.push(lua, state);
+			let s = lua.to_string(state, -1);
+			autorun_log::info!("Pushed env for hook: {s:#?}");
 			lua.set_fenv(state, -2);
 
 			if let Err(why) = lua.pcall(state, 0, 0, 0) {
