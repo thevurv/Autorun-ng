@@ -39,6 +39,10 @@ _This is just the planned file structure. Nothing is implemented yet._
 - No more /lua_dumps
     - This is going to be handled via a plugin rather than be an explicit part of Autorun for simplicity and modularity.
 
+## Requirements
+
+On Linux, you're gonna need [GModPatchTool](https://github.com/solsticegamestudios/GModPatchTool) to even run the game.
+
 ## Building
 
 Use `just build` to build the project.
