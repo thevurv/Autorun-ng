@@ -2,7 +2,7 @@
 pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
-	let env = super::get_env(&lua, state);
+	let env = autorun_env::global::get_env(&lua, state);
 
 	// Set up the hook environment once before running all plugins
 	let (plugins, _errors) = workspace.get_plugins()?;

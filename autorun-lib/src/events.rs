@@ -17,11 +17,5 @@ pub fn set_workspace_path(path: &str) -> anyhow::Result<()> {
 	Ok(())
 }
 
-static AUTORUN_ENV: std::sync::OnceLock<Environment> = std::sync::OnceLock::new();
-
-pub fn get_env(api: &autorun_lua::LuaApi, state: *mut autorun_types::LuaState) -> &'static autorun_env::Environment {
-	AUTORUN_ENV.get_or_init(|| Environment::create(api, state))
-}
-
 pub mod hook;
 pub mod init;

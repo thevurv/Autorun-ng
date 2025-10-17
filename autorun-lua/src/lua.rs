@@ -1,6 +1,23 @@
-use std::ffi::{c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
+use std::ffi::{CStr, c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
 
 use crate::{FromLua, IntoLua, LuaFunction, types::LuaState};
+
+const LUA_IDSIZE: usize = 60;
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct DebugInfo {
+	pub event: c_int,
+	pub name: *const c_char,             // n
+	pub namewhat: *const c_char,         // n
+	pub what: *const c_char,             // S
+	pub source: *const c_char,           // S
+	pub currentline: c_int,              // l
+	pub nups: c_uchar,                   // u
+	pub linedefined: c_int,              // S
+	pub lastlinedefined: c_int,          // S
+	pub short_src: [c_char; LUA_IDSIZE], // S
+}
 
 pub const GLOBALS_INDEX: c_int = -10002;
 pub const ENVIRON_INDEX: c_int = -10001;
@@ -84,7 +101,7 @@ define_lua_api! {
 	fn _push_boolean(state: *mut LuaState, b: c_int);
 
 	#[name = "lua_rawequal"]
-	pub fn is_raw_equal(state: *mut LuaState, index1: c_int, index2: c_int) -> c_int;
+	fn _rawequal(state: *mut LuaState, index1: c_int, index2: c_int) -> c_int;
 	#[name = "lua_rawget"]
 	pub fn rawget(state: *mut LuaState, index: c_int);
 	#[name = "lua_rawgeti"]
@@ -125,7 +142,7 @@ define_lua_api! {
 	#[name = "lua_createtable"]
 	pub fn create_table(state: *mut LuaState, narr: c_int, nrec: c_int);
 	#[name = "lua_equal"]
-	pub fn is_equal(state: *mut LuaState, index1: c_int, index2: c_int) -> c_int;
+	fn _equal(state: *mut LuaState, index1: c_int, index2: c_int) -> c_int;
 	#[name = "lua_error"]
 	pub fn error(state: *mut LuaState) -> !;
 	#[name = "lua_gc"]
@@ -160,10 +177,6 @@ define_lua_api! {
 	#[name = "lua_tocfunction"]
 	pub fn to_function(state: *mut LuaState, index: c_int) -> LuaFunction;
 
-	#[name = "lua_type"]
-	pub fn get_type(state: *mut LuaState, index: c_int) -> c_int;
-	#[name = "lua_typename"]
-	pub fn get_type_name(state: *mut LuaState, type_: c_int) -> *const c_char;
 	#[name = "lua_xmove"]
 	pub fn xmove(from: *mut LuaState, to: *mut LuaState, n: c_int);
 	#[name = "lua_iscfunction"]
@@ -183,7 +196,7 @@ define_lua_api! {
 	#[name = "lua_gethookmask"]
 	pub fn get_hook_mask(state: *mut LuaState) -> c_int;
 	#[name = "lua_getinfo"]
-	pub fn get_info(state: *mut LuaState, what: *const c_char, ar: *mut c_void) -> c_int;
+	fn _get_info(state: *mut LuaState, what: *const c_char, ar: *mut c_void) -> c_int;
 	#[name = "lua_getlocal"]
 	pub fn get_local(state: *mut LuaState, ar: *mut c_void, n: c_int) -> *const c_char;
 	#[name = "lua_getstack"]
@@ -256,6 +269,20 @@ impl LuaApi {
 		self._to_boolean(state, index) != 0
 	}
 
+	pub fn get_info(&self, state: *mut LuaState, level: c_int, what: &CStr) -> Option<DebugInfo> {
+		let mut debug_info = unsafe { std::mem::zeroed::<DebugInfo>() };
+
+		if self.get_stack(state, level, &raw mut debug_info as _) == 0 {
+			return None;
+		}
+
+		if self._get_info(state, what.as_ptr(), &raw mut debug_info as _) == 0 {
+			return None;
+		}
+
+		Some(debug_info)
+	}
+
 	pub fn type_name(&self, state: *mut LuaState, type_: c_int) -> Option<&std::ffi::CStr> {
 		let c_str = self._type_name(state, type_);
 		if c_str.is_null() {
@@ -300,6 +327,14 @@ impl LuaApi {
 
 	pub fn set_fenv(&self, state: *mut LuaState, index: c_int) -> Result<(), ()> {
 		if self._set_fenv(state, index) != 0 { Ok(()) } else { Err(()) }
+	}
+
+	pub fn is_raw_equal(&self, state: *mut LuaState, index1: c_int, index2: c_int) -> bool {
+		self._rawequal(state, index1, index2) != 0
+	}
+
+	pub fn is_equal(&self, state: *mut LuaState, index1: c_int, index2: c_int) -> bool {
+		self._equal(state, index1, index2) != 0
 	}
 
 	pub fn pcall(

@@ -1,3 +1,5 @@
+pub mod global;
+
 use autorun_lua::{IntoLua, LuaApi, RawHandle};
 use autorun_types::LuaState;
 
