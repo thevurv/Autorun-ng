@@ -45,6 +45,7 @@ impl Environment {
 
 		// Can unwrap since we are sure there is something on the stack
 		let handle = RawHandle::from_stack(lua, state).unwrap();
+
 		Self { handle }
 	}
 

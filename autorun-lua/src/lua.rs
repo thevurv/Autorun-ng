@@ -14,6 +14,20 @@ const LUA_ERRMEM: c_int = 4;
 const LUA_ERRGCMM: c_int = 5;
 const LUA_ERRERR: c_int = 6;
 
+const LUA_REFNIL: c_int = -1;
+const LUA_NOREF: c_int = -2;
+
+pub(crate) const LUA_TNONE: c_int = -1;
+pub(crate) const LUA_TNIL: c_int = 0;
+pub(crate) const LUA_TBOOLEAN: c_int = 1;
+pub(crate) const LUA_TLIGHTUSERDATA: c_int = 2;
+pub(crate) const LUA_TNUMBER: c_int = 3;
+pub(crate) const LUA_TSTRING: c_int = 4;
+pub(crate) const LUA_TTABLE: c_int = 5;
+pub(crate) const LUA_TFUNCTION: c_int = 6;
+pub(crate) const LUA_TUSERDATA: c_int = 7;
+pub(crate) const LUA_TTHREAD: c_int = 8;
+
 macro_rules! define_lua_api {
     (
         $(
@@ -208,8 +222,11 @@ impl LuaApi {
 		self.push_value(state, GLOBALS_INDEX);
 	}
 
-	pub fn reference(&self, state: *mut LuaState) -> c_int {
-		self._reference(state, REGISTRY_INDEX)
+	pub fn reference(&self, state: *mut LuaState) -> Option<c_int> {
+		match self._reference(state, REGISTRY_INDEX) {
+			LUA_REFNIL | LUA_NOREF => None,
+			ref_id => Some(ref_id),
+		}
 	}
 
 	pub fn dereference(&self, state: *mut LuaState, reference: c_int) {
