@@ -2,18 +2,15 @@ local tostring = tostring
 local CompileString = CompileString
 local error = error
 
---- Reads and executes a Lua file from the given path.
---- @param target_path string
---- @return any
-function Autorun.include(target_path)
-    local content = Autorun.read(target_path)
+function Autorun.include(path)
+    local content = Autorun.read(path)
     if not content then
-        error("Failed to read file for include '" .. target_path .. "'")
+        error("Failed to read file for include '" .. path .. "'")
     end
 
     local ok, err = CompileString(content)
     if not ok then
-        error("Failed to compile file " .. target_path .. ": " .. tostring(err))
+        error("Failed to compile file " .. path .. ": " .. tostring(err))
     end
 
     return ok()

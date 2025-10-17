@@ -14,6 +14,7 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	env.set_mode(lua, state, b"hook");
 
 	for plugin in plugins {
+		env.set_plugin(lua, state, &plugin);
 		run_entrypoint(lua, state, &plugin, env)?;
 	}
 

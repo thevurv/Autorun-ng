@@ -1,3 +1,4 @@
+use autorun_core::plugins::Plugin;
 use autorun_lua::{LuaApi, LuaState};
 
 use super::Environment;
@@ -8,13 +9,13 @@ pub fn get_env(lua: &LuaApi, state: *mut LuaState) -> &'static Environment {
 	AUTORUN_ENV.get_or_init(|| Environment::create(lua, state).expect("Failed to create environment"))
 }
 
-pub fn get_current_path(lua: &LuaApi, state: *mut LuaState) -> Option<&cap_std::fs::Dir> {
+pub fn get_running_plugin(lua: &LuaApi, state: *mut LuaState) -> Option<&Plugin> {
 	let env = get_env(lua, state);
 	env.push(lua, state);
 	lua.get_field(state, -1, c"Autorun".as_ptr());
-	lua.get_field(state, -1, c"DIR".as_ptr());
+	lua.get_field(state, -1, c"PLUGIN".as_ptr());
 
-	let dir = lua.to_userdata(state, -1) as *mut cap_std::fs::Dir;
+	let dir = lua.to_userdata(state, -1) as *mut Plugin;
 	if dir.is_null() {
 		lua.pop(state, 3);
 		return None;

@@ -1,8 +1,13 @@
-use cap_std::fs::{Dir, File};
+use cap_std::fs::Dir;
 use serde::{Deserialize, Serialize};
 
 pub struct Plugin {
+	/// Top level directory. Read-only.
 	dir: Dir,
+
+	/// Directory for mutable data.
+	data_dir: Dir,
+
 	config: std::sync::OnceLock<Config>,
 }
 
@@ -10,6 +15,7 @@ impl Plugin {
 	const PLUGIN_CONFIG: &str = "plugin.toml";
 
 	const PLUGIN_SRC: &str = "src";
+	const PLUGIN_DATA: &str = "data";
 
 	const PLUGIN_MENU_FILE: &str = "menu.lua";
 	const PLUGIN_INIT_FILE: &str = "init.lua";
@@ -17,6 +23,10 @@ impl Plugin {
 
 	pub fn dir(&self) -> &Dir {
 		&self.dir
+	}
+
+	pub fn data_dir(&self) -> &Dir {
+		&self.data_dir
 	}
 
 	pub fn src(&self) -> std::io::Result<Dir> {
@@ -44,12 +54,21 @@ impl Plugin {
 			return Err(anyhow::anyhow!("Plugin src directory not found"));
 		};
 
+		let data_dir = match dir.exists(Self::PLUGIN_DATA) {
+			true => dir.open_dir(Self::PLUGIN_DATA)?,
+			false => {
+				dir.create_dir(Self::PLUGIN_DATA)?;
+				dir.open_dir(Self::PLUGIN_DATA)?
+			}
+		};
+
 		if !src.exists(Self::PLUGIN_MENU_FILE) && !src.exists(Self::PLUGIN_INIT_FILE) && !src.exists(Self::PLUGIN_HOOK_FILE) {
 			return Err(anyhow::anyhow!("No plugin entrypoint files found"));
 		}
 
 		Ok(Self {
 			dir,
+			data_dir,
 			config: std::sync::OnceLock::new(),
 		})
 	}

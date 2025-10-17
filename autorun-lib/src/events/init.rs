@@ -15,8 +15,8 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	env.set_mode(lua, state, b"init");
 
 	for plugin in &plugins {
-		env.set_dir(lua, state, plugin.dir());
-		run_entrypoint(lua, state, &plugin, env)?;
+		env.set_plugin(lua, state, plugin);
+		run_entrypoint(lua, state, plugin, env)?;
 	}
 
 	Ok(())

@@ -1,5 +1,6 @@
 pub mod global;
 
+use autorun_core::plugins::Plugin;
 use autorun_lua::{IntoLua, LuaApi, RawHandle};
 use autorun_types::LuaState;
 
@@ -30,6 +31,18 @@ impl Environment {
 		lua.push(state, c"read");
 		lua.push(state, autorun_lua::as_lua_function!(crate::functions::read));
 		lua.set_table(state, -3);
+
+		lua.push(state, c"write");
+		lua.push(state, autorun_lua::as_lua_function!(crate::functions::write));
+		lua.set_table(state, -3);
+
+		lua.push(state, c"writeAsync");
+		lua.push(state, autorun_lua::as_lua_function!(crate::functions::write_async));
+		lua.set_table(state, -3);
+
+		lua.push(state, c"mkdir");
+		lua.push(state, autorun_lua::as_lua_function!(crate::functions::mkdir));
+		lua.set_table(state, -3);
 	}
 
 	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, src: &[u8]) -> anyhow::Result<()> {
@@ -39,11 +52,11 @@ impl Environment {
 
 		self.push(lua, state);
 		if lua.set_fenv(state, -2).is_err() {
-			return Err(anyhow::anyhow!("Failed to set stdlib environment"));
+			return Err(anyhow::anyhow!("Failed to set environment"));
 		}
 
 		if let Err(why) = lua.pcall(state, 0, 0, 0) {
-			return Err(anyhow::anyhow!("Failed to execute stdlib: {}", why));
+			return Err(anyhow::anyhow!("Failed to execute: {}", why));
 		}
 
 		Ok(())
@@ -71,7 +84,9 @@ impl Environment {
 
 		// Create lua standard library
 		let this = Self { handle };
-		this.execute(lua, state, crate::lua::INCLUDE_LIB)?;
+		this.execute(lua, state, include_bytes!("./lua/builtins.lua"))?;
+		this.execute(lua, state, include_bytes!("./lua/include.lua"))?;
+		this.execute(lua, state, include_bytes!("./lua/require.lua"))?;
 
 		Ok(this)
 	}
@@ -116,11 +131,11 @@ impl Environment {
 		lua.pop(state, 1);
 	}
 
-	pub fn set_dir(&self, lua: &LuaApi, state: *mut LuaState, dir: &cap_std::fs::Dir) {
+	pub fn set_plugin(&self, lua: &LuaApi, state: *mut LuaState, plugin: &Plugin) {
 		self.push_autorun_table(lua, state);
 
-		lua.push(state, c"DIR");
-		lua.push_lightuserdata(state, &raw const *dir as _);
+		lua.push(state, c"PLUGIN");
+		lua.push_lightuserdata(state, &raw const *plugin as _);
 		lua.set_table(state, -3);
 
 		lua.pop(state, 1);
