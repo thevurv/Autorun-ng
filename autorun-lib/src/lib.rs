@@ -24,6 +24,15 @@ pub fn main() -> anyhow::Result<()> {
 #[cfg(target_os = "windows")]
 #[unsafe(no_mangle)]
 extern "C" fn autorun_entrypoint() {
+	// Redirect stdout to stderr.
+	// This is a hack because for some reason stdout isn't intercepted on windows?
+	// Might be gmod's fault. I don't care.
+	unsafe {
+		use windows::Win32::System::Console::*;
+		let stderr_handle = GetStdHandle(STD_ERROR_HANDLE).unwrap();
+		SetStdHandle(STD_OUTPUT_HANDLE, stderr_handle).ok();
+	}
+
 	if let Err(why) = main() {
 		autorun_log::error!("{why}");
 	}
