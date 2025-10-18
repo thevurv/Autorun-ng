@@ -1,12 +1,9 @@
 /// A basic example of creating a binary module using `autorun-lua`
-/// Dependencies:
-/// libloading
-/// anyhow
+/// Add this to your deps
 /// { git = "https://github.com/thevurv/Autorun-ng", package = "autorun-lua" }
 use autorun_lua::*;
-use std::ffi::c_int;
 
-fn lua_adder(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<f64> {
+fn lua_adder(lua: &LuaApi, state: *mut LuaState) -> Result<f64, Box<dyn std::error::Error>> {
 	let x = lua.check_number(state, 1);
 	let y = lua.check_number(state, 2);
 
@@ -17,7 +14,7 @@ fn lua_adder(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<f64> {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C-unwind" fn gmod13_open(state: *mut LuaState) -> c_int {
+pub extern "C-unwind" fn gmod13_open(state: *mut LuaState) -> std::ffi::c_int {
 	let lua = autorun_lua::get_api().expect("Failed to get lua api");
 
 	lua.push_globals(state); // Push _G
