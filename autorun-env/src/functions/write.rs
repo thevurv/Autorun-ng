@@ -17,7 +17,6 @@ pub fn write(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<()> {
 
 	if !data_dir.exists(&target_path) {
 		data_dir.create(&target_path)?;
-		return Ok(());
 	}
 
 	data_dir.write(target_path.to_string(), content.to_string())?;
