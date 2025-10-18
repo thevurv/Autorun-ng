@@ -7,12 +7,12 @@ mod commands;
 use commands::{CommandContext, CommandRegistry};
 
 use eframe::{
-	CreationContext,
 	egui::{
-		self, Button, Color32, ComboBox, FontId, Frame, IconData, Margin, Rounding, Shadow, Stroke, TextEdit, TextFormat, Ui,
-		Vec2, ViewportBuilder, text::LayoutJob,
+		self, text::LayoutJob, Button, Color32, ComboBox, FontId, Frame, IconData, Margin, Rounding, Shadow, Stroke, TextEdit,
+		TextFormat, Ui, Vec2, ViewportBuilder,
 	},
 	epaint::FontFamily,
+	CreationContext,
 };
 use egui_extras::syntax_highlighting::CodeTheme;
 
@@ -24,7 +24,7 @@ const REPAINT_TIME: Duration = Duration::from_secs(2);
 const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
 
 fn load_icon() -> Option<std::sync::Arc<IconData>> {
-	let icon_bytes = include_bytes!("../../../assets/run.png");
+	let icon_bytes = include_bytes!("../../../../assets/run.png");
 
 	match image::load_from_memory(icon_bytes) {
 		Ok(img) => {
@@ -164,20 +164,18 @@ impl App {
 
 		// Background thread to read stdout/stderr to console
 		let ctx = cc.egui_ctx.clone();
-		std::thread::spawn(move || {
-			loop {
-				use std::io::Read;
+		std::thread::spawn(move || loop {
+			use std::io::Read;
 
-				std::thread::sleep(WAIT_TIME);
+			std::thread::sleep(WAIT_TIME);
 
-				let mut log = log_thread.write().unwrap();
-				match (stdio.read_to_string(&mut log), stderr.read_to_string(&mut log)) {
-					(Ok(_), Ok(_)) | (Ok(_), _) | (_, Ok(_)) => ctx.request_repaint(),
-					_ => (),
-				}
-
-				ctx.request_repaint();
+			let mut log = log_thread.write().unwrap();
+			match (stdio.read_to_string(&mut log), stderr.read_to_string(&mut log)) {
+				(Ok(_), Ok(_)) | (Ok(_), _) | (_, Ok(_)) => ctx.request_repaint(),
+				_ => (),
 			}
+
+			ctx.request_repaint();
 		});
 
 		if let Err(why) = Self::validate_plugins(&autorun) {
