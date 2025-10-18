@@ -33,12 +33,18 @@ unsafe impl Sync for VGUIApi {}
 
 static VGUI2_API: std::sync::OnceLock<VGUIApi> = std::sync::OnceLock::new();
 
+#[cfg(target_os = "linux")]
+const VGUI2_API_NAME: &str = "vgui2_client.so";
+
+#[cfg(target_os = "windows")]
+const VGUI2_API_NAME: &str = "vgui2.dll";
+
 pub fn get_api() -> Result<&'static VGUIApi, crate::util::GetInterfaceError> {
 	if let Some(api) = VGUI2_API.get() {
 		return Ok(api);
 	}
 
-	let vgui = crate::util::get_interface("vgui2_client.so", c"VGUI_Panel009")? as *mut Panel;
+	let vgui = crate::util::get_interface(VGUI2_API_NAME, c"VGUI_Panel009")? as *mut Panel;
 	let vgui = VGUIApi::new(vgui);
 
 	VGUI2_API.set(vgui).expect("Should never already be initialized");

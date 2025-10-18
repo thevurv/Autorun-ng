@@ -3,6 +3,7 @@ use autorun_types::Realm;
 mod events;
 mod hooks;
 mod lua_queue;
+mod menu;
 mod server;
 
 pub fn main() -> anyhow::Result<()> {
@@ -10,21 +11,6 @@ pub fn main() -> anyhow::Result<()> {
 	std::thread::spawn(|| {
 		if let Err(e) = server::start() {
 			eprintln!("Failed to start IPC server: {}", e);
-		}
-	});
-
-	// Wait for menu to be ready, then run event
-	std::thread::spawn(|| {
-		loop {
-			std::thread::sleep(std::time::Duration::from_millis(500));
-
-			if let Some(menu) = autorun_interfaces::lua::get_state(Realm::Menu).unwrap() {
-				if let Err(why) = events::menu::run(menu) {
-					autorun_log::error!("Failed to run menu event: {why}");
-				}
-
-				break;
-			}
 		}
 	});
 
@@ -37,26 +23,12 @@ pub fn main() -> anyhow::Result<()> {
 
 #[cfg(target_os = "windows")]
 #[unsafe(no_mangle)]
-#[allow(non_snake_case)]
-pub extern "system" fn DllMain(
-    _instance: *mut std::ffi::c_void,
-    reason: u32,
-    _reserved: *mut std::ffi::c_void,
-) -> i32 {
-    match reason {
-        1 => {
-            // attached
-            std::thread::spawn(|| {
-                // hack to let the loader finish
-                std::thread::sleep(std::time::Duration::from_millis(50));
-                main().unwrap();
-            });
-        }
-        _ => {}
-    }
-
-    1
+extern "C" fn autorun_entrypoint() {
+	if let Err(why) = main() {
+		autorun_log::error!("{why}");
+	}
 }
+
 #[ctor::ctor]
 fn on_library_load() {
 	match std::env::current_exe() {
