@@ -52,18 +52,6 @@ impl FromLua for bool {
 	}
 }
 
-impl IntoLua for () {
-	fn into_lua(self, _lua: &LuaApi, _state: *mut LuaState) {
-		// No value to push for unit type
-	}
-}
-
-impl FromLua for () {
-	fn from_lua(_lua: &LuaApi, _state: *mut LuaState, _stack_idx: i32) -> Self {
-		()
-	}
-}
-
 impl IntoLua for i32 {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
 		lua.push_integer(state, self);
@@ -73,6 +61,12 @@ impl IntoLua for i32 {
 impl FromLua for i32 {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
 		lua.to_integer(state, stack_idx)
+	}
+}
+
+impl IntoLua for Vec<u8> {
+	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
+		lua.push_lstring(state, self.as_ptr() as *const i8, self.len());
 	}
 }
 
@@ -141,5 +135,14 @@ impl IntoLua for &std::path::PathBuf {
 impl IntoLua for &str {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
 		lua.push_lstring(state, self.as_ptr() as _, self.len());
+	}
+}
+
+impl<T: IntoLua> IntoLua for Option<T> {
+	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
+		match self {
+			Some(val) => val.into_lua(lua, state),
+			None => lua.push_nil(state),
+		}
 	}
 }
