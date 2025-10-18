@@ -18,8 +18,6 @@ This is [Autorun](https://github.com/Vurv78/Autorun-rs) for the next generation.
 
 **⚠️ Since Autorun-ng is based around a main program instead of the injected library, files are stored relative to the executable.**
 
-_This is just the planned file structure. Nothing is implemented yet._
-
 ```lua
 ./
 ├── autorun

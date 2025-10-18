@@ -7,10 +7,14 @@ pub fn launch(lib_path: impl AsRef<std::path::Path>) -> anyhow::Result<std::proc
 		return raw::linux::launch(lib_path);
 	}
 
-	#[cfg(not(target_os = "linux"))]
+	#[cfg(target_os = "windows")]
 	{
-		// Should be pretty easy to do with dll_syringe on windows.
-		// MacOS sucks.
-		todo!("Not implemented on !linux")
+		return raw::windows::launch(lib_path);
+	}
+
+	#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+	{
+		// macos sucks
+		todo!("Not implemented on this platform")
 	}
 }

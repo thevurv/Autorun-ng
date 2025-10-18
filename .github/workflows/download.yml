@@ -7,7 +7,10 @@ on:
 
 jobs:
     build:
-        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+        runs-on: ${{ matrix.os }}
 
         steps:
             - name: Checkout code
@@ -43,10 +46,17 @@ jobs:
             - name: Build with just
               run: just build-release
 
-            - name: Create zip archive
+            - name: Create zip archive (Linux)
+              if: runner.os == 'Linux'
               run: |
                   cd release
                   zip -r ../autorun-${{ runner.os }}.zip .
+
+            - name: Create zip archive (Windows)
+              if: runner.os == 'Windows'
+              run: |
+                  cd release
+                  Compress-Archive -Path * -DestinationPath ../autorun-${{ runner.os }}.zip
 
             - name: Upload release archive
               uses: actions/upload-artifact@v4

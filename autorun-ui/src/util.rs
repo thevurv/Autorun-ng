@@ -9,5 +9,12 @@ fn get_payload_dir() -> anyhow::Result<std::path::PathBuf> {
 
 pub fn get_payload_path() -> anyhow::Result<std::path::PathBuf> {
 	let payload_dir = get_payload_dir()?;
-	Ok(payload_dir.join("payload.so"))
+
+	#[cfg(target_os = "linux")]
+	let payload = payload_dir.join("payload.so");
+
+	#[cfg(target_os = "windows")]
+	let payload = payload_dir.join("payload.dll");
+
+	Ok(payload)
 }

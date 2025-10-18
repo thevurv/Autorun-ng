@@ -3,6 +3,9 @@ mod raw;
 #[cfg(target_os = "linux")]
 pub use raw::linux::*;
 
+#[cfg(target_os = "windows")]
+pub use raw::windows::*;
+
 #[macro_export]
 macro_rules! sig {
     ($($elem:tt),* $(,)?) => {

@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 thiserror = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+dll-syringe = "0.17.0"
+winreg = "0.55.0"
