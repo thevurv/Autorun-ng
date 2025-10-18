@@ -1,6 +1,6 @@
 [plugin]
-name = "example"
+name = "lua-dumper"
 author = "vurv"
 version = "0.1.0"
-description = "An example plugin for Autorun-ng"
+description = "Automatic Lua script dumper"
 language = "lua"

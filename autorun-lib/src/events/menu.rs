@@ -1,4 +1,3 @@
-/// Function that triggers all plugins init (server start) scripts.
 pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
@@ -11,7 +10,7 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 
 	env.set_name(lua, state, b"");
 	env.set_code(lua, state, b"");
-	env.set_mode(lua, state, b"init");
+	env.set_mode(lua, state, b"menu");
 
 	for plugin in &plugins {
 		env.set_plugin(lua, state, plugin);
@@ -31,11 +30,11 @@ fn run_entrypoint(
 
 	match config.plugin.language {
 		autorun_core::plugins::ConfigPluginLanguage::Lua => {
-			let Ok(init_content) = plugin.read_init_lua() else {
+			let Ok(menu_content) = plugin.read_menu_lua() else {
 				return Ok(());
 			};
 
-			env.execute(lua, state, c"init.lua", &init_content)
+			env.execute(lua, state, c"menu.lua", &menu_content)
 		}
 
 		_ => Err(anyhow::anyhow!("Unsupported language: {:?}", config.plugin.language)),

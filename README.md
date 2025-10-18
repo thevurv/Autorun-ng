@@ -11,6 +11,7 @@ This is [Autorun](https://github.com/Vurv78/Autorun-rs) for the next generation.
 - 📂 **Fully sandboxed filesystem** will ensure no mistakes are made wrt. sandboxing. Plugins are isolated from one another, Autorun cannot access files outside of its own directory. Powered by [cap-std](https://github.com/bytecodealliance/cap-std), which webassembly uses for their sandboxing.
 - 🌑 A refreshing new set of Lua C API bindings - **[autorun-lua](./autorun-lua)**. This was built from the ground up to be ergonomic and replace [rglua](https://github.com/thevurv/rglua) and gmod-rs. _You can use this outside of Autorun-ng for your own binary module projects._
 - 👨🏻‍💻 A new set of interface bindings, **[autorun-interfaces](./autorun-interfaces)**. This is a zero dependency library which provides access to source engine interfaces. _You can use this outside of Autorun-ng for your own binary module projects._
+- ✅ Run code in the **menu state** upon start! Bringing menu plugins back to life.
 
 ![showcase](./assets/showcase.png)
 

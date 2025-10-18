@@ -1,3 +1,5 @@
+use autorun_types::Realm;
+
 mod events;
 mod hooks;
 mod lua_queue;
@@ -8,6 +10,23 @@ pub fn main() -> anyhow::Result<()> {
 	std::thread::spawn(|| {
 		if let Err(e) = server::start() {
 			eprintln!("Failed to start IPC server: {}", e);
+		}
+	});
+
+	// Wait for menu to be ready, then run event
+	std::thread::spawn(|| {
+		loop {
+			std::thread::sleep(std::time::Duration::from_millis(500));
+
+			if let Some(menu) = autorun_interfaces::lua::get_state(Realm::Menu).unwrap() {
+				autorun_log::info!("Menu exists?");
+
+				if let Err(why) = events::menu::run(menu) {
+					autorun_log::error!("Failed to run menu event: {why}");
+				}
+
+				break;
+			}
 		}
 	});
 
