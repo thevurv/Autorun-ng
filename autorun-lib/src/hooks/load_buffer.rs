@@ -31,15 +31,15 @@ extern "C-unwind" fn load_buffer_h(
 		}
 		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
 	} else if Some(state) == autorun_interfaces::lua::get_state(Realm::Client).unwrap() {
-		// let name = unsafe { std::ffi::CStr::from_ptr(name) };
-		// let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
-		// let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
+		let name = unsafe { std::ffi::CStr::from_ptr(name) };
+		let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
+		let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
 
-		// unsafe { LOAD_BUFFER_H.get().unwrap().disable().unwrap() }
-		// if let Err(why) = crate::events::hook::run(state, buff, name.to_bytes(), mode) {
-		// 	autorun_log::error!("Failed to run hook for {}: {why}", name.to_string_lossy());
-		// }
-		// unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
+		unsafe { LOAD_BUFFER_H.get().unwrap().disable().unwrap() }
+		if let Err(why) = crate::events::hook::run(state, buff, name.to_bytes(), mode) {
+			autorun_log::error!("Failed to run hook for {}: {why}", name.to_string_lossy());
+		}
+		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
 	}
 
 	*WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap() = is_drawing_loading_image;
