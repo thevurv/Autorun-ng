@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-interprocess = "2.2.3"
-nanoserde = { version = "0.2.1", features = ["binary"] }
+interprocess = { workspace = true }
+nanoserde = { workspace = true }
+
 autorun-types = { path = "../autorun-types" }

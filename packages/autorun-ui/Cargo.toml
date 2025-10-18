@@ -4,27 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-# For the gui itself
-eframe = "0.28.0"
-egui_extras = { version = "0.28.0", features = ["syntect"] }
-
-# To redirect stdout to the terminal
-shh = "1.0.1"
-
-# For robust error handling
 anyhow = { workspace = true }
 
-# Getting dll exports
-libloading = "0.7.3"
-
-# Self explanatory
-# retour = { version = "0.3", default-features = false }
-
-interprocess = "2.2.3"
-nanoserde = { version = "0.2.1", features = ["binary"] }
-
-# For loading PNG icon
-image = "0.24"
+eframe = { version = "0.28.0", default-features = false, features = ["wayland", "wgpu", "glow"] }
+egui_extras = { version = "0.28.0", default-features = false, features = ["syntect"] }
+shh = { version = "1.0.1" }
+image = { version = "0.24", default-features = false, features = ["png"] }
 
 autorun-ipc = { path = "../autorun-ipc" }
 autorun-steam = { path = "../autorun-steam" }
