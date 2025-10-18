@@ -45,6 +45,10 @@ impl Environment {
 		lua.push(state, c"mkdir");
 		lua.push(state, autorun_lua::as_lua_function!(crate::functions::mkdir));
 		lua.set_table(state, -3);
+
+		lua.push(state, c"VERSION");
+		lua.push(state, env!("CARGO_PKG_VERSION").to_string());
+		lua.set_table(state, -3);
 	}
 
 	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, name: &CStr, src: &[u8]) -> anyhow::Result<()> {
