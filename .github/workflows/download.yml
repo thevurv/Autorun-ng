@@ -3,6 +3,11 @@ name: Download
 on:
     push:
         branches: [master]
+        paths:
+            - "**.lua"
+            - "**.rs"
+            - "**/Cargo.toml"
+            - "!**/examples/**.rs"
     workflow_dispatch:
 
 jobs:
