@@ -2,6 +2,12 @@ use std::ffi::{c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
 
 use autorun_types::LuaState;
 
+#[cfg(target_os = "linux")]
+const LUA_SHARED_PATH: &str = "lua_shared_client.so";
+
+#[cfg(target_os = "windows")]
+const LUA_SHARED_PATH: &str = "lua_shared.dll";
+
 #[repr(C)]
 struct ILuaShared {
 	vtable: *const ILuaSharedVTable,
@@ -72,7 +78,7 @@ pub enum GetStateError {
 // todo: maybe make a get_api to get access to other functions which may be useful
 
 pub fn get_state(realm: autorun_types::Realm) -> Result<Option<*mut LuaState>, GetStateError> {
-	let lua_shared_003 = crate::util::get_interface("lua_shared_client.so", c"LUASHARED003")? as *mut ILuaShared;
+	let lua_shared_003 = crate::util::get_interface(LUA_SHARED_PATH, c"LUASHARED003")? as *mut ILuaShared;
 	let lua_shared_003 = unsafe { lua_shared_003.as_mut().unwrap() };
 
 	let vtable = lua_shared_003.vtable;

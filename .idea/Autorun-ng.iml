@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/autorun-core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-env/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-interfaces/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-ipc/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-lib/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-log/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-lua/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-lua/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-scan/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-steam/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/autorun-ui/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

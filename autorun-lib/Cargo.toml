@@ -23,3 +23,6 @@ autorun-interfaces = { path = "../autorun-interfaces" }
 autorun-scan = { path = "../autorun-scan" }
 autorun-core = { path = "../autorun-core" }
 autorun-env = { path = "../autorun-env" }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = ["Win32_System_Console"] }

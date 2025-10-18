@@ -3,6 +3,7 @@ use autorun_types::Realm;
 mod events;
 mod hooks;
 mod lua_queue;
+mod menu;
 mod server;
 
 pub fn main() -> anyhow::Result<()> {
@@ -13,26 +14,28 @@ pub fn main() -> anyhow::Result<()> {
 		}
 	});
 
-	// Wait for menu to be ready, then run event
-	std::thread::spawn(|| {
-		loop {
-			std::thread::sleep(std::time::Duration::from_millis(500));
-
-			if let Some(menu) = autorun_interfaces::lua::get_state(Realm::Menu).unwrap() {
-				if let Err(why) = events::menu::run(menu) {
-					autorun_log::error!("Failed to run menu event: {why}");
-				}
-
-				break;
-			}
-		}
-	});
-
 	// hooks::paint_traverse::init()?;
 	hooks::load_buffer::init()?;
 	// hooks::the_fn::init()?;
 
 	Ok(())
+}
+
+#[cfg(target_os = "windows")]
+#[unsafe(no_mangle)]
+extern "C" fn autorun_entrypoint() {
+	// Redirect stdout to stderr.
+	// This is a hack because for some reason stdout isn't intercepted on windows?
+	// Might be gmod's fault. I don't care.
+	unsafe {
+		use windows::Win32::System::Console::*;
+		let stderr_handle = GetStdHandle(STD_ERROR_HANDLE).unwrap();
+		SetStdHandle(STD_OUTPUT_HANDLE, stderr_handle).ok();
+	}
+
+	if let Err(why) = main() {
+		autorun_log::error!("{why}");
+	}
 }
 
 #[ctor::ctor]

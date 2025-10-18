@@ -2,6 +2,12 @@ use std::{ffi::c_void, os::raw::c_int};
 
 use crate::net::INetChannelInfo;
 
+#[cfg(target_os = "linux")]
+const ENGINE_PATH: &str = "engine_client.so";
+
+#[cfg(target_os = "windows")]
+const ENGINE_PATH: &str = "engine.dll";
+
 #[repr(C)]
 pub struct IEngineClient {
 	pub vtable: *const IEngineClientVTable,
@@ -91,7 +97,7 @@ pub fn get_api() -> Result<&'static EngineClientApi, crate::util::GetInterfaceEr
 		return Ok(api);
 	}
 
-	let engine_client = crate::util::get_interface("engine_client.so", c"VEngineClient015")? as *mut IEngineClient;
+	let engine_client = crate::util::get_interface(ENGINE_PATH, c"VEngineClient015")? as *mut IEngineClient;
 	let engine_client = EngineClientApi::new(engine_client)?;
 
 	ENGINE_CLIENT_API

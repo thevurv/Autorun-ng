@@ -4,6 +4,7 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let lua = autorun_lua::get_api()?;
 	let env = autorun_env::global::get_env(&lua, state);
 
+
 	let (plugins, _errors) = workspace.get_plugins()?;
 	if plugins.is_empty() {
 		return Ok(());
@@ -12,7 +13,6 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	env.set_name(lua, state, b"");
 	env.set_code(lua, state, b"");
 	env.set_mode(lua, state, b"init");
-
 	for plugin in &plugins {
 		env.set_plugin(lua, state, plugin);
 		run_entrypoint(lua, state, plugin, env)?;
