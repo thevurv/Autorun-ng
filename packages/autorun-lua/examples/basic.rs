@@ -6,12 +6,14 @@
 use autorun_lua::*;
 use std::ffi::c_int;
 
-fn lua_adder(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<c_int> {
+fn lua_adder(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<f64> {
 	let x = lua.check_number(state, 1);
 	let y = lua.check_number(state, 2);
 
-	lua.push_number(state, x + y);
-	Ok(1)
+	// This pushes it onto lua's stack for you.
+	// You can return multiple values via a tuple of values
+	// Additionally, Option<T> values work too, where None pushes nil.
+	Ok(x + y)
 }
 
 #[unsafe(no_mangle)]
