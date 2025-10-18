@@ -38,22 +38,25 @@ extern "C" fn autorun_entrypoint() {
 	}
 }
 
-#[ctor::ctor]
-fn on_library_load() {
-	match std::env::current_exe() {
-		Err(why) => {
-			eprintln!("Failed to get current exe path: {:?}", why);
-		}
-		Ok(exe) => {
-			// Ensure LD_PRELOAD doesn't affect other programs
-			// Without this, iirc steam messes up
-			if exe.file_name() == Some(std::ffi::OsStr::new("gmod")) {
-				unsafe { std::env::remove_var("LD_PRELOAD") };
+#[cfg(target_os = "linux")]
+ctor::declarative::ctor! {
+	#[ctor]
+	fn on_library_load() {
+			match std::env::current_exe() {
+				Err(why) => {
+					eprintln!("Failed to get current exe path: {:?}", why);
+				}
+				Ok(exe) => {
+					// Ensure LD_PRELOAD doesn't affect other programs
+					// Without this, iirc steam messes up
+					if exe.file_name() == Some(std::ffi::OsStr::new("gmod")) {
+						unsafe { std::env::remove_var("LD_PRELOAD") };
 
-				if let Err(why) = main() {
-					autorun_log::error!("{why}");
+						if let Err(why) = main() {
+							autorun_log::error!("{why}");
+						}
+					}
 				}
 			}
-		}
 	}
 }

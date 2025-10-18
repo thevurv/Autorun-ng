@@ -1,0 +1,18 @@
+[package]
+name = "autorun-ui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+
+eframe = { version = "0.28.0", default-features = false, features = ["wayland", "wgpu", "glow", "default_fonts"] }
+egui_extras = { version = "0.28.0", default-features = false, features = ["syntect"] }
+shh = { version = "1.0.1" }
+image = { version = "0.24", default-features = false, features = ["png"] }
+
+autorun-ipc = { path = "../../packages/autorun-ipc" }
+autorun-steam = { path = "../../packages/autorun-steam" }
+autorun-types = { path = "../../packages/autorun-types" }
+autorun-log = { path = "../../packages/autorun-log" }
+autorun-core = { path = "../../packages/autorun-core" }

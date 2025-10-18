@@ -1,6 +1,8 @@
 [workspace]
 members = [
-    "packages/*"
+    "packages/*",
+    "apps/*",
+    "services/*"
 ]
 resolver = "3"
 
@@ -10,10 +12,10 @@ authors = ["Vurv78 <vurvdevelops@gmail.com>"]
 description = "..."
 
 [workspace.dependencies]
-anyhow = "1.0.99"
-libloading = "0.8.8"
-thiserror = "2.0.16"
-cap-std = "3.4.4"
+anyhow = { version = "1.0.99" }
+libloading = { version = "0.8.8" }
+thiserror = { version = "2.0.16" }
+cap-std = { version = "3.4.4" }
 serde = { version = "1.0.219", features = ["derive"] }
 interprocess = "2.2.3"
 nanoserde = { version = "0.2.1", default-features = false, features = ["binary"] }
