@@ -8,9 +8,7 @@ pub fn mkdir(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<core::ffi::c_
 	}
 
 	let target_path = lua.check_string(state, 1);
-	let plugin = crate::global::get_running_plugin(lua, state).ok_or(anyhow::anyhow!(
-		"What is wrong with you why did you delete Autorun.PLUGIN. You will pay for this."
-	))?;
+	let plugin = crate::global::get_running_plugin(lua, state).ok_or(anyhow::anyhow!("dont delete autorun.plugin lil bro."))?;
 
 	let data_dir = plugin.data_dir();
 	let target_path = target_path.to_string();

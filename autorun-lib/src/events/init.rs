@@ -36,7 +36,7 @@ fn run_entrypoint(
 				return Ok(());
 			};
 
-			env.execute(lua, state, &init_content)
+			env.execute(lua, state, c"init.lua", &init_content)
 		}
 
 		_ => Err(anyhow::anyhow!("Unsupported language: {:?}", config.plugin.language)),

@@ -14,11 +14,6 @@ members = [
 ]
 resolver = "3"
 
-[profile.release]
-panic = "abort"
-opt-level = "z"
-lto = "fat"
-
 [workspace.package]
 edition = "2024"
 authors = ["Vurv78 <vurvdevelops@gmail.com>"]

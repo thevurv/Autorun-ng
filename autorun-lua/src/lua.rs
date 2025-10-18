@@ -340,12 +340,11 @@ impl LuaApi {
 	pub fn load_buffer_x(
 		&self,
 		state: *mut LuaState,
-		buff: *const c_char,
-		size: usize,
-		name: *const c_char,
-		mode: *const c_char,
+		buff: &[u8],
+		name: &CStr,
+		mode: &CStr,
 	) -> Result<(), std::borrow::Cow<'static, str>> {
-		match self._load_buffer_x(state, buff, size, name, mode) {
+		match self._load_buffer_x(state, buff.as_ptr() as _, buff.len(), name.as_ptr(), mode.as_ptr()) {
 			LUA_OK | LUA_YIELD => Ok(()),
 
 			_ => {
@@ -420,7 +419,7 @@ impl LuaReturn for i32 {
 #[macro_export]
 macro_rules! as_lua_function {
 	($func:expr) => {{
-		extern "C-unwind" fn lua_wrapper(state: *mut autorun_types::LuaState) -> i32 {
+		extern "C-unwind" fn lua_wrapper(state: *mut $crate::LuaState) -> i32 {
 			let lua = autorun_lua::get_api().expect("Failed to get Lua API");
 			match $func(lua, state) {
 				Ok(ret) => $crate::LuaReturn::into_lua_return(ret),

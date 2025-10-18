@@ -19,6 +19,9 @@ jobs:
                   toolchain: stable
                   override: true
 
+            - name: Install just
+              uses: extractions/setup-just@v2
+
             - name: Cache cargo registry
               uses: actions/cache@v3
               with:
@@ -37,15 +40,17 @@ jobs:
                   path: target
                   key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
 
-            - name: Build autorun-lib
-              run: cargo build -p autorun-lib --release
+            - name: Build with just
+              run: just build-release
 
-            - name: Build autorun-ui
-              run: cargo build -p autorun-ui --release
+            - name: Create zip archive
+              run: |
+                  cd release
+                  zip -r ../autorun-${{ runner.os }}.zip .
 
-            - name: Upload autorun-ui binary
+            - name: Upload release archive
               uses: actions/upload-artifact@v4
               with:
-                  name: autorun-ui-${{ runner.os }}
-                  path: target/release/autorun-ui
+                  name: Autorun ${{ runner.os }}
+                  path: autorun-${{ runner.os }}.zip
                   if-no-files-found: error

@@ -1,27 +1,26 @@
 use autorun_lua::LuaApi;
 use autorun_types::LuaState;
 
-pub fn write(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<core::ffi::c_int> {
+pub fn write(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<()> {
 	if !crate::global::is_inside_env(lua, state) {
 		autorun_log::warn!("Attempted to call 'print' outside of authorized environment");
-		return Ok(0);
+		return Ok(());
 	}
 
 	let target_path = lua.check_string(state, 1);
 	let content = lua.check_string(state, 2);
 
-	let plugin = crate::global::get_running_plugin(lua, state).ok_or(anyhow::anyhow!(
-		"What is wrong with you why did you delete Autorun.PLUGIN. You will pay for this."
-	))?;
+	let plugin = crate::global::get_running_plugin(lua, state).ok_or(anyhow::anyhow!("dont delete autorun.plugin lil bro"))?;
 
 	let data_dir = plugin.data_dir();
 	let target_path = target_path.to_string();
 
 	if !data_dir.exists(&target_path) {
 		data_dir.create(&target_path)?;
+		return Ok(());
 	}
 
 	data_dir.write(target_path.to_string(), content.to_string())?;
 
-	Ok(0)
+	Ok(())
 }

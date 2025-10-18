@@ -38,7 +38,7 @@ impl Workspace {
 
 		let settings = path.join(Self::SETTINGS_FILE);
 		if !settings.exists() {
-			std::fs::write(&settings, include_str!("../data/default_settings.toml"))?;
+			std::fs::write(&settings, include_bytes!("../data/default_settings.toml"))?;
 		}
 
 		Ok(Self {

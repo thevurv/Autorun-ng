@@ -1,0 +1,6 @@
+[plugin]
+name = "example"
+author = "vurv"
+version = "0.1.0"
+description = "An example plugin for Autorun-ng"
+language = "lua"

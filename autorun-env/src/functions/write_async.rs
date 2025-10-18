@@ -10,9 +10,7 @@ pub fn write_async(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<core::f
 	let target_path = lua.check_string(state, 1);
 	let content = lua.check_string(state, 2);
 
-	let plugin = crate::global::get_running_plugin(lua, state).ok_or(anyhow::anyhow!(
-		"What is wrong with you why did you delete Autorun.PLUGIN. You will pay for this."
-	))?;
+	let plugin = crate::global::get_running_plugin(lua, state).ok_or(anyhow::anyhow!("dont delete autorun.plugin lil bro."))?;
 
 	let data_dir = (*plugin.data_dir()).try_clone()?;
 	let target_path = target_path.to_string();

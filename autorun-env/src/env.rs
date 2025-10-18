@@ -1,5 +1,7 @@
 pub mod global;
 
+use std::ffi::CStr;
+
 use autorun_core::plugins::Plugin;
 use autorun_lua::{IntoLua, LuaApi, RawHandle};
 use autorun_types::LuaState;
@@ -45,9 +47,9 @@ impl Environment {
 		lua.set_table(state, -3);
 	}
 
-	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, src: &[u8]) -> anyhow::Result<()> {
-		if let Err(why) = lua.load_buffer_x(state, src.as_ptr() as _, src.len(), c"@stdlib".as_ptr(), std::ptr::null()) {
-			return Err(anyhow::anyhow!("Failed to load stdlib: {why}"));
+	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, name: &CStr, src: &[u8]) -> anyhow::Result<()> {
+		if let Err(why) = lua.load_buffer_x(state, src, name, c"t") {
+			return Err(anyhow::anyhow!("Failed to compile: {why}"));
 		}
 
 		self.push(lua, state);
@@ -84,9 +86,9 @@ impl Environment {
 
 		// Create lua standard library
 		let this = Self { handle };
-		this.execute(lua, state, include_bytes!("./lua/builtins.lua"))?;
-		this.execute(lua, state, include_bytes!("./lua/include.lua"))?;
-		this.execute(lua, state, include_bytes!("./lua/require.lua"))?;
+		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/builtins.lua"))?;
+		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/include.lua"))?;
+		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/require.lua"))?;
 
 		Ok(this)
 	}
