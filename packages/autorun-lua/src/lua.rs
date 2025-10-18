@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::ffi::{CStr, c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
 
 use crate::{FromLua, IntoLua, LuaFunction, types::LuaState};
@@ -226,6 +227,22 @@ define_lua_api! {
 	pub fn set_metatable(state: *mut LuaState, index: c_int) -> c_int;
 }
 
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum SetfenvError {
+	GenericFail,
+}
+
+impl core::fmt::Display for SetfenvError {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			SetfenvError::GenericFail => write!(f, "Failed to set environment"),
+		}
+	}
+}
+
+impl core::error::Error for SetfenvError {}
+
 impl LuaApi {
 	pub fn get_global(&self, state: *mut LuaState, name: *const c_char) {
 		self.get_field(state, GLOBALS_INDEX, name);
@@ -325,8 +342,12 @@ impl LuaApi {
 		}
 	}
 
-	pub fn set_fenv(&self, state: *mut LuaState, index: c_int) -> Result<(), ()> {
-		if self._set_fenv(state, index) != 0 { Ok(()) } else { Err(()) }
+	pub fn set_fenv(&self, state: *mut LuaState, index: c_int) -> Result<(), SetfenvError> {
+		if self._set_fenv(state, index) != 0 {
+			Ok(())
+		} else {
+			Err(SetfenvError::GenericFail)
+		}
 	}
 
 	pub fn is_raw_equal(&self, state: *mut LuaState, index1: c_int, index2: c_int) -> bool {

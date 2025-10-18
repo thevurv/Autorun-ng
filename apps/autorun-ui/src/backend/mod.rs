@@ -1,7 +1,6 @@
 mod attach;
 mod exec;
 
-use anyhow;
 use autorun_ipc::{Client, Message};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -85,7 +84,7 @@ impl Autorun {
 				};
 
 				if should_disconnect {
-					self.status = AutorunStatus::Disconnected;
+					self.set_status(AutorunStatus::Disconnected);
 					self.client = None;
 				}
 			}

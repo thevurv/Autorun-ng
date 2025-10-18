@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::ffi::{c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
 
 use autorun_types::LuaState;

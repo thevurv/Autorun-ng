@@ -10,12 +10,15 @@ pub struct Command {
 	pub name: String,
 	pub description: String,
 	pub usage: String,
-	pub execute: Box<dyn Fn(&[String], &mut CommandContext<'_>, &CommandRegistry) -> Result<(), String> + Send + Sync>,
+	pub execute: Box<CommandExecuteFn>,
 }
+
+type CommandExecuteFn = dyn Fn(&[String], &mut CommandContext<'_>, &CommandRegistry) -> Result<(), String> + Send + Sync;
 
 /// Context passed to command execution functions
 pub struct CommandContext<'a> {
 	pub log: Arc<RwLock<String>>,
+	#[allow(unused)]
 	pub autorun: &'a Autorun,
 }
 
@@ -45,6 +48,7 @@ impl<'a> CommandContext<'a> {
 	}
 
 	/// Write success output to the terminal log (in green)
+	#[allow(unused)]
 	pub fn write_success(&self, message: &str) {
 		if let Ok(mut log) = self.log.write() {
 			log.push_str(&format!("\x1b[32m{}\x1b[0m", message));
@@ -65,6 +69,7 @@ impl<'a> CommandContext<'a> {
 	}
 
 	/// Write warning output to the terminal log (in yellow)
+	#[allow(unused)]
 	pub fn write_warning(&self, message: &str) {
 		if let Ok(mut log) = self.log.write() {
 			log.push_str(&format!("\x1b[33m{}\x1b[0m", message));

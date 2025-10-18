@@ -72,6 +72,7 @@ extern "C-unwind" fn paint_traverse_h(this: *mut std::ffi::c_void, panel_id: i32
 	}
 }
 
+#[allow(unused)]
 pub fn init() -> anyhow::Result<()> {
 	let vgui = autorun_interfaces::vgui::get_api()?;
 

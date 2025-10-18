@@ -19,7 +19,7 @@ pub fn write(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<()> {
 		data_dir.create(&target_path)?;
 	}
 
-	data_dir.write(target_path.to_string(), content.to_string())?;
+	data_dir.write(target_path, content.to_string())?;
 
 	Ok(())
 }

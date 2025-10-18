@@ -7,12 +7,12 @@ mod commands;
 use commands::{CommandContext, CommandRegistry};
 
 use eframe::{
+	CreationContext,
 	egui::{
-		self, text::LayoutJob, Button, Color32, ComboBox, FontId, Frame, IconData, Margin, Rounding, Shadow, Stroke, TextEdit,
-		TextFormat, Ui, Vec2, ViewportBuilder,
+		self, Button, Color32, ComboBox, FontId, Frame, IconData, Margin, Rounding, Shadow, Stroke, TextEdit, TextFormat, Ui,
+		Vec2, ViewportBuilder, text::LayoutJob,
 	},
 	epaint::FontFamily,
-	CreationContext,
 };
 use egui_extras::syntax_highlighting::CodeTheme;
 
@@ -62,8 +62,9 @@ pub fn run(autorun: Autorun) {
 	);
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Default, PartialEq)]
 enum ActiveTab {
+	#[default]
 	Console,
 	Settings,
 	About,
@@ -76,12 +77,6 @@ impl ActiveTab {
 			ActiveTab::Settings => "Settings",
 			ActiveTab::About => "About",
 		}
-	}
-}
-
-impl Default for ActiveTab {
-	fn default() -> Self {
-		ActiveTab::Console
 	}
 }
 
@@ -164,18 +159,20 @@ impl App {
 
 		// Background thread to read stdout/stderr to console
 		let ctx = cc.egui_ctx.clone();
-		std::thread::spawn(move || loop {
-			use std::io::Read;
+		std::thread::spawn(move || {
+			loop {
+				use std::io::Read;
 
-			std::thread::sleep(WAIT_TIME);
+				std::thread::sleep(WAIT_TIME);
 
-			let mut log = log_thread.write().unwrap();
-			match (stdio.read_to_string(&mut log), stderr.read_to_string(&mut log)) {
-				(Ok(_), Ok(_)) | (Ok(_), _) | (_, Ok(_)) => ctx.request_repaint(),
-				_ => (),
+				let mut log = log_thread.write().unwrap();
+				match (stdio.read_to_string(&mut log), stderr.read_to_string(&mut log)) {
+					(Ok(_), Ok(_)) | (Ok(_), _) | (_, Ok(_)) => ctx.request_repaint(),
+					_ => (),
+				}
+
+				ctx.request_repaint();
 			}
-
-			ctx.request_repaint();
 		});
 
 		if let Err(why) = Self::validate_plugins(&autorun) {
@@ -360,10 +357,10 @@ impl App {
 					ui.horizontal(|ui| {
 						ui.heading("💻 Terminal");
 						ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-							if ui.button("🗑 Clear").clicked() {
-								if let Ok(mut log) = self.log.write() {
-									log.clear();
-								}
+							if ui.button("🗑 Clear").clicked()
+								&& let Ok(mut log) = self.log.write()
+							{
+								log.clear();
 							}
 						});
 					});
@@ -735,10 +732,11 @@ fn parse_ansi_text(text: &str) -> Vec<TextSegment> {
 			let mut code = String::new();
 
 			// Read until 'm'
-			while let Some(ch) = chars.next() {
+			for ch in chars.by_ref() {
 				if ch == 'm' {
 					break;
 				}
+
 				code.push(ch);
 			}
 

@@ -2,17 +2,17 @@ use std::io::{Read, Seek};
 
 struct Permissions {
 	read: bool,
-	write: bool,
+	_write: bool,
 	exec: bool,
-	private: bool,
+	_private: bool,
 }
 
 fn parse_perms(perms: &str) -> Permissions {
 	Permissions {
-		read: perms.chars().nth(0) == Some('r'),
-		write: perms.chars().nth(1) == Some('w'),
+		read: perms.starts_with('r'),
+		_write: perms.chars().nth(1) == Some('w'),
 		exec: perms.chars().nth(2) == Some('x'),
-		private: perms.chars().nth(3) == Some('p'),
+		_private: perms.chars().nth(3) == Some('p'),
 	}
 }
 
@@ -64,11 +64,11 @@ fn find_signature(haystack: &[u8], needle: &[Option<u8>]) -> Option<usize> {
 		let mut matches = true;
 
 		for (j, &pattern_byte) in needle.iter().enumerate() {
-			if let Some(expected) = pattern_byte {
-				if haystack[i + j] != expected {
-					matches = false;
-					break;
-				}
+			if let Some(expected) = pattern_byte
+				&& haystack[i + j] != expected
+			{
+				matches = false;
+				break;
 			}
 		}
 

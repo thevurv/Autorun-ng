@@ -17,11 +17,11 @@ pub fn write_async(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<core::f
 	let content = content.to_string();
 
 	std::thread::spawn(move || {
-		if !data_dir.exists(&target_path) {
-			if let Err(why) = data_dir.create(&target_path) {
-				autorun_log::error!("Failed to create file '{target_path}' asynchronously: {why}");
-				return;
-			}
+		if !data_dir.exists(&target_path)
+			&& let Err(why) = data_dir.create(&target_path)
+		{
+			autorun_log::error!("Failed to create file '{target_path}' asynchronously: {why}");
+			return;
 		}
 
 		if let Err(why) = data_dir.write(&target_path, content) {

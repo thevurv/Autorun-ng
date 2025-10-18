@@ -1,5 +1,6 @@
 /// Start a thread waiting for the menu to be ready to then run the menu init event.
 /// This is to avoid a race condition where the menu starts before IPC is ready.
+#[allow(unused)]
 pub fn start_waiting_for_menu() {
 	// Wait for menu to be ready, then run event
 	std::thread::spawn(|| {

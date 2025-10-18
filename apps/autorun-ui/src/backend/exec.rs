@@ -13,6 +13,7 @@ impl Autorun {
 		Ok(())
 	}
 
+	#[allow(unused)]
 	pub fn print_to_game(&self, text: impl Into<String>) -> anyhow::Result<()> {
 		let text = text.into();
 

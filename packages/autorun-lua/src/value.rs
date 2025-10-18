@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 
 use crate::{LuaApi, LuaFunction, LuaState};
 
@@ -16,7 +16,7 @@ impl IntoLua for f64 {
 	}
 }
 
-impl<'a> FromLua for f64 {
+impl FromLua for f64 {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
 		lua.to_number(state, stack_idx)
 	}
@@ -28,17 +28,7 @@ impl IntoLua for &CStr {
 	}
 }
 
-// Commented because Strings aren't guaranteed to be nul terminated
-// impl<'a> FromLua for &'a CStr {
-// 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-// 		let str = lua.to_lstring(state, stack_idx, std::ptr::null_mut());
-// 		if str.is_null() {
-// 			c"nil"
-// 		} else {
-// 			unsafe { CStr::from_ptr(str) }
-// 		}
-// 	}
-// }
+// NOTE: Do not implement FromLua for &CStr because strings arent guaranteed to be null terminated
 
 impl IntoLua for bool {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {

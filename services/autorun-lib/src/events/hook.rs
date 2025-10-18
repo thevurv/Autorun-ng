@@ -1,8 +1,8 @@
 /// Function that triggers all plugins hook (each file) scripts.
-pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode: &[u8]) -> anyhow::Result<()> {
+pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], _mode: &[u8]) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
-	let env = autorun_env::global::get_env(&lua, state);
+	let env = autorun_env::global::get_env(lua, state);
 
 	let (plugins, _errors) = workspace.get_plugins()?;
 	if plugins.is_empty() {

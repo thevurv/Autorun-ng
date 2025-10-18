@@ -1,4 +1,4 @@
-use std::ffi::{c_char, c_float, c_void};
+use std::ffi::{c_char, c_float};
 
 #[repr(C)]
 #[derive(Debug)]

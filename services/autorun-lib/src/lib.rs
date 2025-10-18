@@ -1,5 +1,3 @@
-use autorun_types::Realm;
-
 mod events;
 mod hooks;
 mod lua_queue;

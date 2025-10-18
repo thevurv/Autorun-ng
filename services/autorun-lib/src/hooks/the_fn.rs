@@ -9,6 +9,7 @@ extern "C-unwind" fn the_target_fn_h(a: i64, b: i64, c: u64) {
 	autorun_log::info!("Called with {a:x} {b:x} {c:x}");
 }
 
+#[allow(unused)]
 pub fn init() -> anyhow::Result<()> {
 	// let scan_result = autorun_scan::scan(autorun_scan::sig![0x8b, 0x88, 0x0c, 0x10, 0x00, 0x00, 0x85, 0xc9, 0x0f, 0x95])?;
 	// let scan_result = autorun_scan::scan(autorun_scan::sig![
@@ -19,7 +20,7 @@ pub fn init() -> anyhow::Result<()> {
 		0x55, 0x48, 0x89, 0xe5, 0x41, 0x55, 0x41, 0x54, 0x49, 0x89, 0xfc, 0x53, 0x48, 0x83, 0xec, ?, 0x48, 0x8b, 0x77, ?
 	])?;
 	if let Some(addr) = scan_result {
-		let fn_start_addr = addr - 0;
+		let fn_start_addr = addr;
 		// let fn_start_addr = addr - 33;
 		// let fn_start_addr = addr - 0;
 

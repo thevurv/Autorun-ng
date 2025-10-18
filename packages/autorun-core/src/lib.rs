@@ -24,6 +24,7 @@ impl Workspace {
 		self.path.open_dir(Self::PLUGINS_DIR)
 	}
 
+	#[allow(unused)]
 	fn logs(&self) -> std::io::Result<cap_std::fs::Dir> {
 		self.path.open_dir(Self::LOGS_DIR)
 	}

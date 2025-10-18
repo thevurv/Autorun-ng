@@ -14,7 +14,7 @@ fn steam_linux_soldier_dir() -> Option<std::path::PathBuf> {
 		while let Some((_index, crate::vdf::Value::Object(folder))) = iter.next() {
 			if let Some((_, crate::vdf::Value::String(path))) = folder.iter().find(|x| x.0 == b"path") {
 				if let Some((_, crate::vdf::Value::Object(apps))) = folder.iter().find(|x| x.0 == b"apps") {
-					if apps.iter().find(|x| x.0 == b"1391110").is_some() {
+					if apps.iter().any(|x| x.0 == b"1391110") {
 						let steam_linux_soldier_dir = std::path::PathBuf::from(String::from_utf8_lossy(path).to_string())
 							.join("steamapps")
 							.join("common")
@@ -50,7 +50,7 @@ pub fn steam_linux_scout_dir() -> Option<std::path::PathBuf> {
 		while let Some((_index, crate::vdf::Value::Object(folder))) = iter.next() {
 			if let Some((_, crate::vdf::Value::String(path))) = folder.iter().find(|x| x.0 == b"path") {
 				if let Some((_, crate::vdf::Value::Object(apps))) = folder.iter().find(|x| x.0 == b"apps") {
-					if apps.iter().find(|x| x.0 == b"1070560").is_some() {
+					if apps.iter().any(|x| x.0 == b"1070560") {
 						let steam_linux_scout_dir = std::path::PathBuf::from(String::from_utf8_lossy(path).to_string())
 							.join("steamapps")
 							.join("common")

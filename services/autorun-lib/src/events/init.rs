@@ -2,8 +2,7 @@
 pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
-	let env = autorun_env::global::get_env(&lua, state);
-
+	let env = autorun_env::global::get_env(lua, state);
 
 	let (plugins, _errors) = workspace.get_plugins()?;
 	if plugins.is_empty() {

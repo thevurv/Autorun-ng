@@ -3,7 +3,7 @@ pub mod global;
 use std::ffi::CStr;
 
 use autorun_core::plugins::Plugin;
-use autorun_lua::{IntoLua, LuaApi, RawHandle};
+use autorun_lua::{LuaApi, RawHandle};
 use autorun_types::LuaState;
 
 pub struct Environment {
