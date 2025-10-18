@@ -23,7 +23,7 @@ pub extern "C-unwind" fn gmod13_open(state: *mut LuaState) -> c_int {
 	lua.push_globals(state); // Push _G
 
 	lua.push(state, "adder");
-	lua.push_function(state, as_lua_function!(lua_adder));
+	lua.push(state, as_lua_function!(lua_adder));
 	lua.set_table(state, -3); // _G["adder"] = lua_adder
 
 	0
