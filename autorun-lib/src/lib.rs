@@ -37,6 +37,28 @@ pub fn main() -> anyhow::Result<()> {
 	Ok(())
 }
 
+#[cfg(target_os = "windows")]
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
+pub extern "system" fn DllMain(
+    _instance: *mut std::ffi::c_void,
+    reason: u32,
+    _reserved: *mut std::ffi::c_void,
+) -> i32 {
+    match reason {
+        1 => {
+            // attached
+            std::thread::spawn(|| {
+                // hack to let the loader finish
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                main().unwrap();
+            });
+        }
+        _ => {}
+    }
+
+    1
+}
 #[ctor::ctor]
 fn on_library_load() {
 	match std::env::current_exe() {
