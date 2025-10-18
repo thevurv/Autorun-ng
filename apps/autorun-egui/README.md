@@ -1,4 +1,4 @@
-# autorun-ui
+# autorun-egui
 
 The main user interface for Autorun.
 

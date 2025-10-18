@@ -1,18 +1,13 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
-exe := if os() == "windows" { "autorun-ui.exe" } else { "autorun-ui" }
+exe_suffix := if os() == "windows" { ".exe" } else { "" }
 mv := if os() == "windows" { "Move-Item -Force" } else { "mv -f" }
 ignore_fail := if os() == "windows" { "" } else { "|| true" }
 
-build:
-    cargo build -p autorun-lib
-    cargo build -p autorun-ui
-    {{mv}} target/debug/{{exe}} release/ {{ignore_fail}}
+build-egui target="debug":
+    cargo build -p autorun-lib {{ if target == "release" {"--release"} else {""} }}
+    cargo build -p autorun-egui {{ if target == "release" {"--release"} else {""} }}
+    {{mv}} target/{{target}}/autorun-egui{{exe_suffix}} release/ {{ignore_fail}}
 
-build-release:
-    cargo build --release -p autorun-lib
-    cargo build --release -p autorun-ui
-    {{mv}} target/release/{{exe}} release/ {{ignore_fail}}
-
-run: build
-    ./release/{{exe}}
+run-egui: build-egui
+    ./release/autorun-egui{{exe_suffix}}
