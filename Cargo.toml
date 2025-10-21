@@ -1,5 +1,4 @@
 [workspace]
-edition = "2024"
 members = [
     "packages/*",
     "apps/*",
@@ -10,7 +9,7 @@ resolver = "3"
 [workspace.package]
 edition = "2024"
 authors = ["Vurv78 <vurvdevelops@gmail.com>"]
-description = "..."
+description = "Autorun is an all-in-one game launcher and modification framework currently for Garry's Mod."
 
 [workspace.dependencies]
 anyhow = { version = "1.0.99" }
