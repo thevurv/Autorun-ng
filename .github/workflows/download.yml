@@ -49,7 +49,7 @@ jobs:
                   key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
 
             - name: Build with just
-              run: just build-release
+              run: just build-egui release
 
             - name: Create zip archive (Linux)
               if: runner.os == 'Linux'
