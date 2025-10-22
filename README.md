@@ -42,8 +42,14 @@ This is [Autorun](https://github.com/Vurv78/Autorun-rs) for the next generation.
 
 On Linux, you're gonna need [GModPatchTool](https://github.com/solsticegamestudios/GModPatchTool) to even run the game.
 
-## Building
+## Development
 
-Use `just build` to build the project.
+You're gonna need [Rust](https://www.rust-lang.org/) and [Just](https://github.com/casey/just).
 
-If you don't do this, build order might be messed up which will cause the ui to fail to build as it depends on the library.
+Any IDE should work, I use [Zed](https://zed.dev).
+
+### Building
+
+Use `just build-egui` to build the project and the egui frontend.
+
+This is necessary since there is a particular build order that must be followed that `cargo run` may not respect.
