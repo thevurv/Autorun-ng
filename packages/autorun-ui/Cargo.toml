@@ -1,0 +1,11 @@
+[package]
+name = "autorun-ui"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+
+[dependencies]
+glam = "0.30.8"
+miniquad = "0.4.8"
+taffy = { version = "0.9.1", default-features = false, features = ["flexbox", "taffy_tree", "std"] }
