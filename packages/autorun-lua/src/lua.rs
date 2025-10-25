@@ -1,7 +1,7 @@
 #![allow(unused)]
-use std::ffi::{CStr, c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
+use core::ffi::{CStr, c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
 
-use crate::{FromLua, IntoLua, LuaFunction, types::LuaState};
+use crate::{FromLua, IntoLua, LuaFunction, LuaTypeId, types::LuaState};
 
 const LUA_IDSIZE: usize = 60;
 
@@ -34,17 +34,6 @@ const LUA_ERRERR: c_int = 6;
 
 const LUA_REFNIL: c_int = -1;
 const LUA_NOREF: c_int = -2;
-
-pub(crate) const LUA_TNONE: c_int = -1;
-pub(crate) const LUA_TNIL: c_int = 0;
-pub(crate) const LUA_TBOOLEAN: c_int = 1;
-pub(crate) const LUA_TLIGHTUSERDATA: c_int = 2;
-pub(crate) const LUA_TNUMBER: c_int = 3;
-pub(crate) const LUA_TSTRING: c_int = 4;
-pub(crate) const LUA_TTABLE: c_int = 5;
-pub(crate) const LUA_TFUNCTION: c_int = 6;
-pub(crate) const LUA_TUSERDATA: c_int = 7;
-pub(crate) const LUA_TTHREAD: c_int = 8;
 
 macro_rules! define_lua_api {
     (
@@ -157,7 +146,7 @@ define_lua_api! {
 	#[name = "lua_status"]
 	pub fn status(state: *mut LuaState) -> c_int;
 	#[name = "lua_type"]
-	pub fn type_id(state: *mut LuaState, index: c_int) -> c_int;
+	fn _type_id(state: *mut LuaState, index: c_int) -> c_int;
 	#[name = "lua_typename"]
 	fn _type_name(state: *mut LuaState, type_: c_int) -> *const c_char;
 
@@ -225,6 +214,9 @@ define_lua_api! {
 	pub fn get_metatable(state: *mut LuaState, index: c_int) -> c_int;
 	#[name = "lua_setmetatable"]
 	pub fn set_metatable(state: *mut LuaState, index: c_int) -> c_int;
+
+	#[name = "lua_newuserdata"]
+	fn _new_userdata(state: *mut LuaState, size: usize) -> *mut c_void;
 }
 
 #[derive(Debug)]
@@ -279,7 +271,7 @@ impl LuaApi {
 		let ty = self.type_id(state, -1);
 		self.pop(state, 1);
 
-		if ty == LUA_TNIL {
+		if ty == LuaTypeId::Nil {
 			return Err(RegistryDerefError::InvalidReference);
 		}
 
@@ -322,6 +314,23 @@ impl LuaApi {
 		}
 
 		Some(debug_info)
+	}
+
+	pub fn type_id(&self, state: *mut LuaState, index: c_int) -> LuaTypeId {
+		let raw_type_id = self._type_id(state, index);
+		match raw_type_id {
+			-1 => LuaTypeId::None,
+			0 => LuaTypeId::Nil,
+			1 => LuaTypeId::Boolean,
+			2 => LuaTypeId::LightUserdata,
+			3 => LuaTypeId::Number,
+			4 => LuaTypeId::String,
+			5 => LuaTypeId::Table,
+			6 => LuaTypeId::Function,
+			7 => LuaTypeId::Userdata,
+			8 => LuaTypeId::Thread,
+			_ => unreachable!("Invalid Lua type id: {}", raw_type_id),
+		}
 	}
 
 	pub fn type_name(&self, state: *mut LuaState, type_: c_int) -> Option<&std::ffi::CStr> {
@@ -429,6 +438,14 @@ impl LuaApi {
 
 				Err(err_str)
 			}
+		}
+	}
+
+	pub fn new_userdata<T: Sized>(&self, state: *mut LuaState, init: T) -> &mut T {
+		let ptr = self._new_userdata(state, core::mem::size_of::<T>()) as *mut T;
+		unsafe {
+			ptr.write(init);
+			&mut *ptr
 		}
 	}
 

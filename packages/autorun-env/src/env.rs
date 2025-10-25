@@ -18,6 +18,29 @@ impl core::ops::Deref for EnvHandle {
 	}
 }
 
+macro_rules! as_env_lua_function {
+	($func:expr) => {
+		autorun_lua::as_lua_function!(|lua: &LuaApi, state: *mut LuaState| {
+			let realm = crate::global::get_realm(state);
+			let env = crate::global::get_realm_env(realm).ok_or_else(|| anyhow::anyhow!("env doesn't exist somehow"))?;
+
+			if !env.is_active(lua, state) {
+				autorun_log::warn!(
+					"Attempted to call '{}' outside of authorized environment",
+					stringify!($func)
+				);
+
+				// todo: potentially add a silenterror type so we can return that and it'll return a nil.
+				// right now this would kind of leak the fact that it's an autorun function.
+				lua.push(state, c"");
+				lua.error(state);
+			} else {
+				$func(lua, state, env)
+			}
+		})
+	};
+}
+
 impl EnvHandle {
 	pub fn is_active(&self, lua: &LuaApi, state: *mut LuaState) -> bool {
 		if lua.get_info(state, 1, c"f").is_none() {
@@ -39,8 +62,7 @@ impl EnvHandle {
 			return None;
 		}
 
-		self.push(lua, state);
-		lua.get_field(state, -1, c"Autorun".as_ptr());
+		self.push_autorun_table(lua, state);
 		lua.get_field(state, -1, c"PLUGIN".as_ptr());
 
 		let dir = lua.to_userdata(state, -1) as *mut Plugin;
@@ -54,38 +76,26 @@ impl EnvHandle {
 	}
 
 	fn create_autorun_table(lua: &LuaApi, state: *mut LuaState) {
-		lua.create_table(state, 0, 3);
-
-		lua.push(state, c"NAME");
-		lua.push(state, c"");
-		lua.set_table(state, -3);
-
-		lua.push(state, c"CODE");
-		lua.push(state, c"");
-		lua.set_table(state, -3);
-
-		lua.push(state, c"CODE_LEN");
-		lua.push(state, 0);
-		lua.set_table(state, -3);
+		lua.create_table(state, 0, 6);
 
 		lua.push(state, c"print");
-		lua.push(state, autorun_lua::as_lua_function!(crate::functions::print));
+		lua.push(state, as_env_lua_function!(crate::functions::print));
 		lua.set_table(state, -3);
 
 		lua.push(state, c"read");
-		lua.push(state, autorun_lua::as_lua_function!(crate::functions::read));
+		lua.push(state, as_env_lua_function!(crate::functions::read));
 		lua.set_table(state, -3);
 
 		lua.push(state, c"write");
-		lua.push(state, autorun_lua::as_lua_function!(crate::functions::write));
+		lua.push(state, as_env_lua_function!(crate::functions::write));
 		lua.set_table(state, -3);
 
 		lua.push(state, c"writeAsync");
-		lua.push(state, autorun_lua::as_lua_function!(crate::functions::write_async));
+		lua.push(state, as_env_lua_function!(crate::functions::write_async));
 		lua.set_table(state, -3);
 
 		lua.push(state, c"mkdir");
-		lua.push(state, autorun_lua::as_lua_function!(crate::functions::mkdir));
+		lua.push(state, as_env_lua_function!(crate::functions::mkdir));
 		lua.set_table(state, -3);
 
 		lua.push(state, c"VERSION");
@@ -130,6 +140,7 @@ impl EnvHandle {
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/builtins.lua"))?;
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/include.lua"))?;
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/require.lua"))?;
+		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/event.lua"))?;
 
 		Ok(this)
 	}
@@ -140,47 +151,14 @@ impl EnvHandle {
 		lua.remove(state, -2);
 	}
 
-	pub fn set_name(&self, lua: &LuaApi, state: *mut LuaState, name: &[u8]) {
-		self.push_autorun_table(lua, state);
-
-		lua.push(state, c"NAME");
-		lua.push_lstring(state, name.as_ptr() as _, name.len());
-		lua.set_table(state, -3);
-
-		lua.pop(state, 1);
-	}
-
-	pub fn set_code(&self, lua: &LuaApi, state: *mut LuaState, code: &[u8]) {
-		self.push_autorun_table(lua, state);
-
-		lua.push(state, c"CODE");
-		lua.push_lstring(state, code.as_ptr() as _, code.len());
-		lua.set_table(state, -3);
-
-		lua.push(state, c"CODE_LEN");
-		lua.push(state, code.len() as i32);
-		lua.set_table(state, -3);
-
-		lua.pop(state, 1);
-	}
-
-	pub fn set_mode(&self, lua: &LuaApi, state: *mut LuaState, mode: &[u8]) {
-		self.push_autorun_table(lua, state);
-
-		lua.push(state, c"MODE");
-		lua.push_lstring(state, mode.as_ptr() as _, mode.len());
-		lua.set_table(state, -3);
-
-		lua.pop(state, 1);
-	}
-
-	pub fn set_plugin(&self, lua: &LuaApi, state: *mut LuaState, plugin: &Plugin) {
+	pub fn set_plugin(&self, lua: &LuaApi, state: *mut LuaState, plugin: &Plugin) -> anyhow::Result<()> {
 		self.push_autorun_table(lua, state);
 
 		lua.push(state, c"PLUGIN");
-		lua.push_lightuserdata(state, &raw const *plugin as _);
+		lua.new_userdata(state, plugin.try_clone()?);
 		lua.set_table(state, -3);
 
 		lua.pop(state, 1);
+		Ok(())
 	}
 }

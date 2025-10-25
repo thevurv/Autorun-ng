@@ -1,15 +1,7 @@
 use autorun_lua::LuaApi;
 use autorun_types::LuaState;
 
-pub fn read(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<Option<String>> {
-	let realm = crate::global::get_realm(state);
-	let env = crate::global::get_realm_env(realm).ok_or_else(|| anyhow::anyhow!("env doesn't exist somehow"))?;
-
-	if !env.is_active(lua, state) {
-		autorun_log::warn!("Attempted to call 'read' outside of authorized environment");
-		return Ok(None);
-	}
-
+pub fn read(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Option<String>> {
 	let target_path = lua.check_string(state, 1);
 	let plugin = env
 		.get_active_plugin(lua, state)

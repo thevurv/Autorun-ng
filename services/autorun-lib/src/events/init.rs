@@ -12,11 +12,8 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 		return Ok(());
 	}
 
-	env.set_name(lua, state, b"");
-	env.set_code(lua, state, b"");
-	env.set_mode(lua, state, b"init");
 	for plugin in &plugins {
-		env.set_plugin(lua, state, plugin);
+		env.set_plugin(lua, state, plugin)?;
 		run_entrypoint(lua, state, plugin, &env)?;
 	}
 
@@ -33,11 +30,11 @@ fn run_entrypoint(
 
 	match config.plugin.language {
 		autorun_core::plugins::ConfigPluginLanguage::Lua => {
-			let Ok(init_content) = plugin.read_init_lua() else {
+			let Ok(init_content) = plugin.read_client_init() else {
 				return Ok(());
 			};
 
-			env.execute(lua, state, c"init.lua", &init_content)
+			env.execute(lua, state, c"client/init.lua", &init_content)
 		}
 
 		_ => Err(anyhow::anyhow!("Unsupported language: {:?}", config.plugin.language)),

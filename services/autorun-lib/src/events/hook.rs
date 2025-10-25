@@ -1,45 +1,67 @@
 /// Function that triggers all plugins hook (each file) scripts.
-pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], _mode: &[u8]) -> anyhow::Result<()> {
+pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode: &[u8]) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
 
 	let realm = autorun_env::global::get_realm(state);
 	let env = autorun_env::global::get_realm_env(realm).expect("env should exist here");
 
-	let (plugins, _errors) = workspace.get_plugins()?;
-	if plugins.is_empty() {
-		return Ok(());
+	env.push(lua, state);
+	lua.get_field(state, -1, c"Autorun".as_ptr());
+	lua.remove(state, -2); // remove env
+	lua.get_field(state, -1, c"trigger".as_ptr());
+	lua.remove(state, -2); // remove Autorun table
+
+	if lua.type_id(state, -1) != autorun_lua::LuaTypeId::Function {
+		lua.pop(state, 1);
+		return Err(anyhow::anyhow!("don't remove Autorun.trigger lil bro."));
 	}
 
-	env.set_name(lua, state, name);
-	env.set_code(lua, state, buffer);
-	env.set_mode(lua, state, b"hook");
+	lua.push(state, "loadbuffer");
+	lua.push(state, name);
+	lua.push(state, buffer);
+	lua.push(state, mode);
 
-	for plugin in plugins {
-		env.set_plugin(lua, state, &plugin);
-		run_entrypoint(lua, state, &plugin, &env)?;
-	}
+	// todo: handle returns
+	lua.pcall(state, 4, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
+
+	// let n_returns = lua.get_top(state);
+	// match n_returns {
+	// 	0 => (),
+	// 	1 => match lua.type_id(state, -1) {
+	// 		autorun_lua::LuaTypeId::Nil => {
+	// 			lua.pop(state, 1);
+	// 		}
+
+	// 		autorun_lua::LuaTypeId::String => {
+	// 			let str = lua.to::<&[u8]>(state, -1);
+	// 			let str = std::str::from_utf8(str).unwrap_or("<invalid utf8>");
+	// 			lua.pop(state, 1);
+	// 			autorun_log::info!("Hmm?? {str:?}");
+
+	// 			// Replace buffer
+	// 			return Err(anyhow::anyhow!("Replacing buffer in loadbuffer event"));
+	// 		}
+
+	// 		autorun_lua::LuaTypeId::Boolean => {
+	// 			let bool = lua.to_bool(state, -1);
+	// 			lua.pop(state, 1);
+
+	// 			if bool {
+	// 				return Err(anyhow::anyhow!("Blocking loadbuffer in loadbuffer event"));
+	// 			}
+	// 		}
+
+	// 		_ => {
+	// 			lua.pop(state, 1);
+	// 			return Err(anyhow::anyhow!("loadbuffer event returned invalid type"));
+	// 		}
+	// 	},
+
+	// 	_ => {
+	// 		return Err(anyhow::anyhow!("loadbuffer event returned too many values: {}", n_returns));
+	// 	}
+	// }
 
 	Ok(())
-}
-
-fn run_entrypoint(
-	lua: &autorun_lua::LuaApi,
-	state: *mut autorun_types::LuaState,
-	plugin: &autorun_core::plugins::Plugin,
-	env: &autorun_env::EnvHandle,
-) -> anyhow::Result<()> {
-	let config = plugin.get_config()?;
-
-	match config.plugin.language {
-		autorun_core::plugins::ConfigPluginLanguage::Lua => {
-			let Ok(hook_content) = plugin.read_hook_lua() else {
-				return Ok(());
-			};
-
-			env.execute(lua, state, c"hook.lua", &hook_content)
-		}
-
-		_ => Err(anyhow::anyhow!("Unsupported language: {:?}", config.plugin.language)),
-	}
 }

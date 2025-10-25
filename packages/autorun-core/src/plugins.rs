@@ -11,15 +11,22 @@ pub struct Plugin {
 	config: std::sync::OnceLock<Config>,
 }
 
+impl core::fmt::Display for Plugin {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self.get_config() {
+			Ok(cfg) => write!(f, "{} v{} by {}", cfg.plugin.name, cfg.plugin.version, cfg.plugin.author),
+			Err(_) => write!(f, "Invalid Plugin"),
+		}
+	}
+}
+
 impl Plugin {
 	const PLUGIN_CONFIG: &str = "plugin.toml";
 
 	const PLUGIN_SRC: &str = "src";
 	const PLUGIN_DATA: &str = "data";
 
-	const PLUGIN_MENU_FILE: &str = "menu.lua";
-	const PLUGIN_INIT_FILE: &str = "init.lua";
-	const PLUGIN_HOOK_FILE: &str = "hook.lua";
+	const INIT_FILE: &str = "init.lua";
 
 	pub fn dir(&self) -> &Dir {
 		&self.dir
@@ -33,16 +40,36 @@ impl Plugin {
 		self.dir.open_dir(Self::PLUGIN_SRC)
 	}
 
-	pub fn read_init_lua(&self) -> std::io::Result<Vec<u8>> {
-		self.src()?.read(Self::PLUGIN_INIT_FILE)
+	pub fn client(&self) -> std::io::Result<Dir> {
+		self.src()?.open_dir("client")
 	}
 
-	pub fn read_hook_lua(&self) -> std::io::Result<Vec<u8>> {
-		self.src()?.read(Self::PLUGIN_HOOK_FILE)
+	pub fn menu(&self) -> std::io::Result<Dir> {
+		self.src()?.open_dir("menu")
 	}
 
-	pub fn read_menu_lua(&self) -> std::io::Result<Vec<u8>> {
-		self.src()?.read(Self::PLUGIN_MENU_FILE)
+	pub fn try_clone(&self) -> std::io::Result<Self> {
+		Ok(Self {
+			dir: self.dir.try_clone()?,
+			data_dir: self.data_dir.try_clone()?,
+			config: std::sync::OnceLock::new(),
+		})
+	}
+
+	pub fn read_client_init(&self) -> std::io::Result<Vec<u8>> {
+		self.client()?.read(Self::INIT_FILE)
+	}
+
+	pub fn client_exists(&self) -> std::io::Result<bool> {
+		self.client()?.try_exists(Self::INIT_FILE)
+	}
+
+	pub fn read_menu_init(&self) -> std::io::Result<Vec<u8>> {
+		self.menu()?.read("init.lua")
+	}
+
+	pub fn menu_exists(&self) -> std::io::Result<bool> {
+		self.menu()?.try_exists(Self::INIT_FILE)
 	}
 
 	pub fn from_dir(dir: Dir) -> anyhow::Result<Self> {
@@ -62,15 +89,17 @@ impl Plugin {
 			}
 		};
 
-		if !src.exists(Self::PLUGIN_MENU_FILE) && !src.exists(Self::PLUGIN_INIT_FILE) && !src.exists(Self::PLUGIN_HOOK_FILE) {
-			return Err(anyhow::anyhow!("No plugin entrypoint files found"));
-		}
-
-		Ok(Self {
+		let this = Self {
 			dir,
 			data_dir,
 			config: std::sync::OnceLock::new(),
-		})
+		};
+
+		if !this.menu_exists().unwrap_or(false) && !this.client_exists().unwrap_or(false) {
+			return Err(anyhow::anyhow!("No plugin entrypoint files found"));
+		}
+
+		Ok(this)
 	}
 
 	pub fn get_config(&self) -> anyhow::Result<&Config> {

@@ -1,9 +1,5 @@
 --- @class Autorun
---- @field NAME string # Name of script running
---- @field MODE "init" | "menu" | "hook" # Mode in which script is running
---- @field CODE string # Source code of script
---- @field CODE_LEN integer # Length of source code
---- @field PLUGIN lightuserdata # Used internally. Don't touch this
+--- @field PLUGIN userdata # Currently running plugin pointer
 --- @field VERSION string # Version of Autorun-ng using semver format
 Autorun = Autorun
 

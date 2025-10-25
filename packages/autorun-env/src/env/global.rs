@@ -52,18 +52,3 @@ pub fn set_realm_env(realm: autorun_types::Realm, env: crate::EnvHandle) {
 		autorun_types::Realm::Menu => menu::set_env(env),
 	}
 }
-
-pub fn get_running_plugin(env: crate::EnvHandle, lua: &LuaApi, state: *mut LuaState) -> Option<&Plugin> {
-	env.push(lua, state);
-	lua.get_field(state, -1, c"Autorun".as_ptr());
-	lua.get_field(state, -1, c"PLUGIN".as_ptr());
-
-	let dir = lua.to_userdata(state, -1) as *mut Plugin;
-	if dir.is_null() {
-		lua.pop(state, 3);
-		return None;
-	}
-	lua.pop(state, 3);
-
-	unsafe { dir.as_ref() }
-}

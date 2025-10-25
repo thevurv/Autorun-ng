@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use core::ffi::CStr;
 
 use crate::{LuaApi, LuaFunction, LuaState};
 
