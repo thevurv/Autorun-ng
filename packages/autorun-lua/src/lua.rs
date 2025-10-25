@@ -1,7 +1,7 @@
 #![allow(unused)]
-use std::ffi::{CStr, c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
+use core::ffi::{CStr, c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void};
 
-use crate::{FromLua, IntoLua, LuaFunction, types::LuaState};
+use crate::{FromLua, IntoLua, LuaFunction, LuaTypeId, types::LuaState};
 
 const LUA_IDSIZE: usize = 60;
 
@@ -34,31 +34,6 @@ const LUA_ERRERR: c_int = 6;
 
 const LUA_REFNIL: c_int = -1;
 const LUA_NOREF: c_int = -2;
-
-pub(crate) const LUA_TNONE: c_int = -1;
-pub(crate) const LUA_TNIL: c_int = 0;
-pub(crate) const LUA_TBOOLEAN: c_int = 1;
-pub(crate) const LUA_TLIGHTUSERDATA: c_int = 2;
-pub(crate) const LUA_TNUMBER: c_int = 3;
-pub(crate) const LUA_TSTRING: c_int = 4;
-pub(crate) const LUA_TTABLE: c_int = 5;
-pub(crate) const LUA_TFUNCTION: c_int = 6;
-pub(crate) const LUA_TUSERDATA: c_int = 7;
-pub(crate) const LUA_TTHREAD: c_int = 8;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LuaTypeId {
-	None = -1,
-	Nil = 0,
-	Boolean = 1,
-	LightUserdata = 2,
-	Number = 3,
-	String = 4,
-	Table = 5,
-	Function = 6,
-	Userdata = 7,
-	Thread = 8,
-}
 
 macro_rules! define_lua_api {
     (
