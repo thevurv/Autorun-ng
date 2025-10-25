@@ -13,8 +13,8 @@ static PREVIOUS_LUA_STATE: std::sync::Mutex<usize> = std::sync::Mutex::new(0);
 
 extern "C-unwind" fn load_buffer_h(
 	state: *mut LuaState,
-	buff: *const c_char,
-	size: usize,
+	mut buff: *const c_char,
+	mut size: usize,
 	name: *const c_char,
 	mode: *const c_char,
 ) -> c_int {
@@ -35,13 +35,20 @@ extern "C-unwind" fn load_buffer_h(
 		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
 	} else {
 		// Hook
-		let name = unsafe { std::ffi::CStr::from_ptr(name) };
-		let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
-		let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
+		let name_cstr = unsafe { std::ffi::CStr::from_ptr(name) };
+		let buff_bytes = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
+		let mode_bytes = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
 
 		unsafe { LOAD_BUFFER_H.get().unwrap().disable().unwrap() }
-		if let Err(why) = crate::events::hook::run(state, buff, name.to_bytes(), mode) {
-			autorun_log::error!("Failed to run hook for {}: {why}", name.to_string_lossy());
+		match crate::events::hook::run(state, buff_bytes, name_cstr.to_bytes(), mode_bytes) {
+			Ok(Some(x)) => {
+				buff = x.as_ptr() as *const c_char;
+				size = x.len();
+			}
+			Err(why) => {
+				autorun_log::error!("Failed to run hook for {}: {why}", name_cstr.to_string_lossy());
+			}
+			_ => (),
 		}
 		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
 	}
