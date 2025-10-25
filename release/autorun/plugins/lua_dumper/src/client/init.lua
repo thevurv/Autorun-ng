@@ -1,4 +1,5 @@
-GetHostName = _G.GetHostName
+-- Store it once for those weird servers that change hostnames mid-session.
+local hostName = string.match(_G.GetHostName(), "^([%w_%-][%w _%-']*)$") or "unknown_host"
 
 Autorun.print("Started Lua dumping plugin.")
 
@@ -8,7 +9,6 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     end
 
     -- A little bit of extra sanitizing.
-    local hostName = string.match(GetHostName(), "^([%w_%-][%w _%-']*)$") or "unknown_host"
     local parentDir = string.match(scriptName, "^(.*)/") or "."
 
     Autorun.mkdir(hostName .. "/" .. parentDir)
