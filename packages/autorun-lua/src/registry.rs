@@ -20,7 +20,7 @@ impl RawHandle {
 		lua.get_registry(state, self.0);
 	}
 
-	pub fn free(self, lua: &crate::LuaApi, state: *mut LuaState) {
-		lua.dereference(state, self.0);
+	pub fn free(self, lua: &crate::LuaApi, state: *mut LuaState) -> Result<(), crate::RegistryDerefError> {
+		lua.dereference(state, self.0)
 	}
 }

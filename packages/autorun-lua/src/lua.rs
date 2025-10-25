@@ -241,6 +241,20 @@ impl core::fmt::Display for SetfenvError {
 	}
 }
 
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum RegistryDerefError {
+	InvalidReference,
+}
+
+impl core::fmt::Display for RegistryDerefError {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			RegistryDerefError::InvalidReference => write!(f, "Invalid registry reference"),
+		}
+	}
+}
+
 impl core::error::Error for SetfenvError {}
 
 impl LuaApi {
@@ -259,8 +273,18 @@ impl LuaApi {
 		}
 	}
 
-	pub fn dereference(&self, state: *mut LuaState, reference: c_int) {
+	pub fn dereference(&self, state: *mut LuaState, reference: c_int) -> Result<(), RegistryDerefError> {
+		self.get_registry(state, reference);
+
+		let ty = self.type_id(state, -1);
+		self.pop(state, 1);
+
+		if ty == LUA_TNIL {
+			return Err(RegistryDerefError::InvalidReference);
+		}
+
 		self._dereference(state, REGISTRY_INDEX, reference);
+		Ok(())
 	}
 
 	pub fn get_registry(&self, state: *mut LuaState, key: impl IntoLua) {
