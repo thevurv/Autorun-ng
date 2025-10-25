@@ -1,10 +1,7 @@
-use std::{
-	ffi::CString,
-	sync::{Arc, LazyLock, Mutex},
-};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use autorun_types::Realm;
 
-type LuaExecutionBundle = (Realm, CString);
+type LuaExecutionBundle = (Realm, String);
 
 pub static LUA_QUEUE: LazyLock<Arc<Mutex<Vec<LuaExecutionBundle>>>> = LazyLock::new(|| Arc::new(Mutex::new(vec![])));

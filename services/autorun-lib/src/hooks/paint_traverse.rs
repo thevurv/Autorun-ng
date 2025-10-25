@@ -1,10 +1,10 @@
 use crate::lua_queue::LUA_QUEUE;
 
-type PaintTraverseFn = extern "C-unwind" fn(this: *mut std::ffi::c_void, panel: i32, force_repaint: bool, allow_force: bool);
+type PaintTraverseFn = extern "C-unwind" fn(this: *mut std::ffi::c_void, panel: usize, force_repaint: bool, allow_force: bool);
 
 static PAINT_TRAVERSE_H: std::sync::OnceLock<retour::GenericDetour<PaintTraverseFn>> = std::sync::OnceLock::new();
 
-extern "C-unwind" fn paint_traverse_h(this: *mut std::ffi::c_void, panel_id: i32, force_repaint: bool, force_allow: bool) {
+extern "C-unwind" fn paint_traverse_h(this: *mut std::ffi::c_void, panel_id: usize, force_repaint: bool, force_allow: bool) {
 	PAINT_TRAVERSE_H
 		.get()
 		.unwrap()
@@ -17,31 +17,16 @@ extern "C-unwind" fn paint_traverse_h(this: *mut std::ffi::c_void, panel_id: i32
 
 	let lua = autorun_lua::get_api().expect("it's over");
 
-	let menu_state = autorun_interfaces::lua::get_state(autorun_types::Realm::Menu).expect("it's over");
-	let client_state = autorun_interfaces::lua::get_state(autorun_types::Realm::Client).expect("it's over");
-
 	let (realm, source) = queue.remove(0);
-
-	let state = match realm {
-		autorun_types::Realm::Client => {
-			if let Some(state) = client_state {
-				state
-			} else {
-				autorun_log::warn!("Client Lua state not ready, skipping queued code");
-				return;
-			}
-		}
-		autorun_types::Realm::Menu => {
-			if let Some(state) = menu_state {
-				state
-			} else {
-				autorun_log::warn!("Menu Lua state not ready, skipping queued code");
-				return;
-			}
+	let state = match autorun_interfaces::lua::get_state(realm).expect("it's over") {
+		Some(s) => s,
+		None => {
+			autorun_log::error!("Lua state for realm {realm:?} is not ready");
+			return;
 		}
 	};
 
-	if let Err(why) = lua.load_string(state, source.as_ptr()) {
+	if let Err(why) = lua.load_buffer_x(state, source.as_bytes(), c"RunString", c"t") {
 		autorun_log::error!("Failed to load Lua string: {why}");
 		return;
 	}

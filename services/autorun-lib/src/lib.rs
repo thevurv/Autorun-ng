@@ -12,7 +12,7 @@ pub fn main() -> anyhow::Result<()> {
 		}
 	});
 
-	// hooks::paint_traverse::init()?;
+	hooks::paint_traverse::init()?;
 	hooks::load_buffer::init()?;
 	// hooks::the_fn::init()?;
 
