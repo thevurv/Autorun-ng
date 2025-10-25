@@ -15,3 +15,5 @@ string = {
     char = _G.string.char,
     format = _G.string.format,
 }
+
+GetHostName = _G.GetHostName

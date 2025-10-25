@@ -3,9 +3,9 @@ if string.sub(scriptName, 1, 1) == "@" then
 	scriptName = string.sub(scriptName, 2)
 end
 
-local parentDir = string.match(scriptName, "^(.*)/")
-if parentDir then
-    Autorun.mkdir(parentDir)
-end
+-- A little bit of extra sanitizing.
+local hostName = string.match(GetHostName(), "^([%w_%-][%w _%-']*)$") or "unknown_host"
+local parentDir = string.match(scriptName, "^(.*)/") or "."
 
-Autorun.writeAsync(scriptName, Autorun.CODE)
+Autorun.mkdir(hostName .. "/" .. parentDir)
+Autorun.writeAsync(hostName .. "/" .. scriptName, Autorun.CODE)
