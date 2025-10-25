@@ -11,6 +11,15 @@ pub struct Plugin {
 	config: std::sync::OnceLock<Config>,
 }
 
+impl core::fmt::Display for Plugin {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self.get_config() {
+			Ok(cfg) => write!(f, "{} v{} by {}", cfg.plugin.name, cfg.plugin.version, cfg.plugin.author),
+			Err(_) => write!(f, "Invalid Plugin"),
+		}
+	}
+}
+
 impl Plugin {
 	const PLUGIN_CONFIG: &str = "plugin.toml";
 

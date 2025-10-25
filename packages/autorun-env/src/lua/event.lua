@@ -17,10 +17,21 @@ end
 
 ---@overload fun(eventName: "loadbuffer", callback: fun(name: string, content: string, mode: string): boolean | nil | string): EventHandler
 function Autorun.on(eventName, callback)
+    local currentPlugin = Autorun.PLUGIN
     Autorun.EVENTS[eventName] = Autorun.EVENTS[eventName] or {}
 
     local idx = (EventCounters[eventName] or 0) + 1
-    Autorun.EVENTS[eventName][idx] = callback
+
+    Autorun.EVENTS[eventName][idx] = function(a, b, c, d, e, f)
+        local previousPlugin = Autorun.PLUGIN
+
+        Autorun.PLUGIN = currentPlugin
+        local fnReturn = callback(a, b, c, d, e, f)
+        Autorun.PLUGIN = previousPlugin
+
+        return fnReturn
+    end
+
     EventCounters[eventName] = idx
 
     return setmetatable({ event = eventName, id = idx }, EventHandler)

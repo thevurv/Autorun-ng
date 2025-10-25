@@ -1,4 +1,5 @@
 --- @class Autorun
+--- @field PLUGIN userdata # Currently running plugin pointer
 --- @field VERSION string # Version of Autorun-ng using semver format
 Autorun = Autorun
 
