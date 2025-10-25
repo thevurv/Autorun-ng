@@ -112,20 +112,15 @@ impl EnvHandle {
 
 	pub fn create(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<Self> {
 		// Create autorun environment
-		lua.create_table(state, 0, 1);
+		lua.create_table(state, 0, 2);
 
-		lua.push(state, c"Autorun");
+		lua.push(state, "Autorun");
 		Self::create_autorun_table(lua, state);
 		lua.set_table(state, -3);
 
-		// Create metatable for environment
-		lua.create_table(state, 0, 1);
-
-		lua.push(state, c"__index");
+		lua.push(state, "_G");
 		lua.push_globals(state);
 		lua.set_table(state, -3);
-
-		lua.set_metatable(state, -2);
 
 		// Can unwrap since we are sure there is something on the stack
 		let handle = RawHandle::from_stack(lua, state).unwrap();
