@@ -6,6 +6,7 @@ Cargo.lock
 .vscode
 
 .zed
+.idea
 
 release/*
 !release/autorun
