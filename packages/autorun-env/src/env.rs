@@ -40,33 +40,20 @@ impl EnvHandle {
 		}
 
 		self.push(lua, state);
-		lua.get_field(state, -1, c"Autorun".as_ptr());
-		lua.get_field(state, -1, c"PLUGIN".as_ptr());
+		lua.get_field(state, -1, c"_AUTORUN_PLUGIN".as_ptr());
 
 		let dir = lua.to_userdata(state, -1) as *mut Plugin;
 		if dir.is_null() {
-			lua.pop(state, 3);
+			lua.pop(state, 2);
 			return None;
 		}
-		lua.pop(state, 3);
+		lua.pop(state, 2);
 
 		unsafe { dir.as_ref() }
 	}
 
 	fn create_autorun_table(lua: &LuaApi, state: *mut LuaState) {
-		lua.create_table(state, 0, 3);
-
-		lua.push(state, c"NAME");
-		lua.push(state, c"");
-		lua.set_table(state, -3);
-
-		lua.push(state, c"CODE");
-		lua.push(state, c"");
-		lua.set_table(state, -3);
-
-		lua.push(state, c"CODE_LEN");
-		lua.push(state, 0);
-		lua.set_table(state, -3);
+		lua.create_table(state, 0, 6);
 
 		lua.push(state, c"print");
 		lua.push(state, autorun_lua::as_lua_function!(crate::functions::print));
@@ -130,54 +117,15 @@ impl EnvHandle {
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/builtins.lua"))?;
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/include.lua"))?;
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/require.lua"))?;
+		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/event.lua"))?;
 
 		Ok(this)
 	}
 
-	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
-		self.0.push(lua, state);
-		lua.get_field(state, -1, c"Autorun".as_ptr());
-		lua.remove(state, -2);
-	}
-
-	pub fn set_name(&self, lua: &LuaApi, state: *mut LuaState, name: &[u8]) {
-		self.push_autorun_table(lua, state);
-
-		lua.push(state, c"NAME");
-		lua.push_lstring(state, name.as_ptr() as _, name.len());
-		lua.set_table(state, -3);
-
-		lua.pop(state, 1);
-	}
-
-	pub fn set_code(&self, lua: &LuaApi, state: *mut LuaState, code: &[u8]) {
-		self.push_autorun_table(lua, state);
-
-		lua.push(state, c"CODE");
-		lua.push_lstring(state, code.as_ptr() as _, code.len());
-		lua.set_table(state, -3);
-
-		lua.push(state, c"CODE_LEN");
-		lua.push(state, code.len() as i32);
-		lua.set_table(state, -3);
-
-		lua.pop(state, 1);
-	}
-
-	pub fn set_mode(&self, lua: &LuaApi, state: *mut LuaState, mode: &[u8]) {
-		self.push_autorun_table(lua, state);
-
-		lua.push(state, c"MODE");
-		lua.push_lstring(state, mode.as_ptr() as _, mode.len());
-		lua.set_table(state, -3);
-
-		lua.pop(state, 1);
-	}
-
 	pub fn set_plugin(&self, lua: &LuaApi, state: *mut LuaState, plugin: &Plugin) {
-		self.push_autorun_table(lua, state);
+		self.0.push(lua, state);
 
-		lua.push(state, c"PLUGIN");
+		lua.push(state, c"_AUTORUN_PLUGIN");
 		lua.push_lightuserdata(state, &raw const *plugin as _);
 		lua.set_table(state, -3);
 
