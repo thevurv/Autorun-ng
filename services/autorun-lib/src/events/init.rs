@@ -13,7 +13,7 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	}
 
 	for plugin in &plugins {
-		env.set_plugin(lua, state, plugin);
+		env.set_plugin(lua, state, plugin)?;
 		run_entrypoint(lua, state, plugin, &env)?;
 	}
 

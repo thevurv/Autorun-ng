@@ -214,6 +214,9 @@ define_lua_api! {
 	pub fn get_metatable(state: *mut LuaState, index: c_int) -> c_int;
 	#[name = "lua_setmetatable"]
 	pub fn set_metatable(state: *mut LuaState, index: c_int) -> c_int;
+
+	#[name = "lua_newuserdata"]
+	fn _new_userdata(state: *mut LuaState, size: usize) -> *mut c_void;
 }
 
 #[derive(Debug)]
@@ -436,6 +439,11 @@ impl LuaApi {
 				Err(err_str)
 			}
 		}
+	}
+
+	pub fn new_userdata<T: Sized>(&self, state: *mut LuaState) -> *mut T {
+		let ptr = self._new_userdata(state, core::mem::size_of::<T>());
+		ptr as _
 	}
 
 	pub fn pop(&self, state: *mut LuaState, n: c_int) {

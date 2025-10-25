@@ -39,6 +39,14 @@ impl Plugin {
 		self.src()?.open_dir("menu")
 	}
 
+	pub fn try_clone(&self) -> std::io::Result<Self> {
+		Ok(Self {
+			dir: self.dir.try_clone()?,
+			data_dir: self.data_dir.try_clone()?,
+			config: std::sync::OnceLock::new(),
+		})
+	}
+
 	pub fn read_client_init(&self) -> std::io::Result<Vec<u8>> {
 		self.client()?.read(Self::INIT_FILE)
 	}

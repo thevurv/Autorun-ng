@@ -122,13 +122,16 @@ impl EnvHandle {
 		Ok(this)
 	}
 
-	pub fn set_plugin(&self, lua: &LuaApi, state: *mut LuaState, plugin: &Plugin) {
+	pub fn set_plugin(&self, lua: &LuaApi, state: *mut LuaState, plugin: &Plugin) -> anyhow::Result<()> {
 		self.0.push(lua, state);
 
 		lua.push(state, c"_AUTORUN_PLUGIN");
-		lua.push_lightuserdata(state, &raw const *plugin as _);
+		// lua.push_lightuserdata(state, &raw const *plugin as _);
+		let cloned = lua.new_userdata::<Plugin>(state);
+		unsafe { cloned.write(plugin.try_clone()?) };
 		lua.set_table(state, -3);
 
 		lua.pop(state, 1);
+		Ok(())
 	}
 }
