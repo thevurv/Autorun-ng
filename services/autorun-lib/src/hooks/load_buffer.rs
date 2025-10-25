@@ -1,11 +1,15 @@
-use std::ffi::{c_char, c_int};
+use core::ffi::{c_char, c_int};
 
 use autorun_types::{LuaState, Realm};
 
 type LoadBufferFn = extern "C-unwind" fn(*mut LuaState, *const c_char, usize, *const c_char, *const c_char) -> c_int;
 
 static LOAD_BUFFER_H: std::sync::OnceLock<retour::GenericDetour<LoadBufferFn>> = std::sync::OnceLock::new();
-static WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
+// static WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
+
+// Holds a usize but really holding *mut LuaState
+// This stores the previous Lua state acquired upon init's run.
+static PREVIOUS_LUA_STATE: std::sync::Mutex<usize> = std::sync::Mutex::new(0);
 
 extern "C-unwind" fn load_buffer_h(
 	state: *mut LuaState,
@@ -14,23 +18,23 @@ extern "C-unwind" fn load_buffer_h(
 	name: *const c_char,
 	mode: *const c_char,
 ) -> c_int {
-	let is_client_state = Some(state) == autorun_interfaces::lua::get_state(Realm::Client).unwrap();
-	if !is_client_state {
+	// Ignore menu code
+	if autorun_env::global::get_realm(state) != Realm::Client {
 		return call_original(state, buff, size, name, mode);
 	}
 
-	let engine = autorun_interfaces::engine_client::get_api().unwrap();
-	let is_drawing_loading_image = engine.is_drawing_loading_image();
-	let previously_was_drawing_loading_image = *WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap();
+	// Init
+	if *PREVIOUS_LUA_STATE.lock().unwrap() != (state as usize) {
+		*PREVIOUS_LUA_STATE.lock().unwrap() = state as usize;
 
-	if is_drawing_loading_image && !previously_was_drawing_loading_image {
 		unsafe { LOAD_BUFFER_H.get().unwrap().disable().unwrap() }
 		if let Err(why) = crate::events::init::run(state) {
 			let name = unsafe { std::ffi::CStr::from_ptr(name) };
 			autorun_log::error!("Failed to run init for {}: {why}", name.to_string_lossy());
 		}
 		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
-	} else if Some(state) == autorun_interfaces::lua::get_state(Realm::Client).unwrap() {
+	} else {
+		// Hook
 		let name = unsafe { std::ffi::CStr::from_ptr(name) };
 		let buff = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
 		let mode = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
@@ -41,8 +45,6 @@ extern "C-unwind" fn load_buffer_h(
 		}
 		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
 	}
-
-	*WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE.lock().unwrap() = is_drawing_loading_image;
 
 	call_original(state, buff, size, name, mode)
 }

@@ -2,7 +2,9 @@
 pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], _mode: &[u8]) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
-	let env = autorun_env::global::get_env(lua, state);
+
+	let realm = autorun_env::global::get_realm(state);
+	let env = autorun_env::global::get_realm_env(realm).expect("env should exist here");
 
 	let (plugins, _errors) = workspace.get_plugins()?;
 	if plugins.is_empty() {
@@ -15,7 +17,7 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], _mod
 
 	for plugin in plugins {
 		env.set_plugin(lua, state, &plugin);
-		run_entrypoint(lua, state, &plugin, env)?;
+		run_entrypoint(lua, state, &plugin, &env)?;
 	}
 
 	Ok(())
@@ -25,7 +27,7 @@ fn run_entrypoint(
 	lua: &autorun_lua::LuaApi,
 	state: *mut autorun_types::LuaState,
 	plugin: &autorun_core::plugins::Plugin,
-	env: &autorun_env::Environment,
+	env: &autorun_env::EnvHandle,
 ) -> anyhow::Result<()> {
 	let config = plugin.get_config()?;
 

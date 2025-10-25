@@ -1,16 +1,59 @@
 use autorun_core::plugins::Plugin;
 use autorun_lua::{LuaApi, LuaState};
 
-use super::Environment;
+mod client {
+	use crate::EnvHandle;
 
-static AUTORUN_ENV: std::sync::OnceLock<Environment> = std::sync::OnceLock::new();
+	static ENV: std::sync::Mutex<Option<EnvHandle>> = std::sync::Mutex::new(None);
 
-pub fn get_env(lua: &LuaApi, state: *mut LuaState) -> &'static Environment {
-	AUTORUN_ENV.get_or_init(|| Environment::create(lua, state).expect("Failed to create environment"))
+	pub fn set_env(env: EnvHandle) {
+		*ENV.lock().unwrap() = Some(env);
+	}
+
+	pub fn get_env() -> Option<EnvHandle> {
+		ENV.lock().unwrap().clone()
+	}
 }
 
-pub fn get_running_plugin(lua: &LuaApi, state: *mut LuaState) -> Option<&Plugin> {
-	let env = get_env(lua, state);
+mod menu {
+	use crate::EnvHandle;
+
+	static ENV: std::sync::Mutex<Option<EnvHandle>> = std::sync::Mutex::new(None);
+
+	pub fn set_env(env: EnvHandle) {
+		*ENV.lock().unwrap() = Some(env);
+	}
+
+	pub fn get_env() -> Option<EnvHandle> {
+		ENV.lock().unwrap().clone()
+	}
+}
+
+pub fn get_realm(state: *mut LuaState) -> autorun_types::Realm {
+	let client_state = autorun_interfaces::lua::get_state(autorun_types::Realm::Client).unwrap();
+
+	if Some(state) == client_state {
+		autorun_types::Realm::Client
+	} else {
+		autorun_types::Realm::Menu
+	}
+}
+
+pub fn get_realm_env(realm: autorun_types::Realm) -> Option<crate::EnvHandle> {
+	match realm {
+		autorun_types::Realm::Client => client::get_env(),
+		autorun_types::Realm::Menu => menu::get_env(),
+	}
+}
+
+pub fn set_realm_env(realm: autorun_types::Realm, env: crate::EnvHandle) {
+	match realm {
+		autorun_types::Realm::Client => client::set_env(env),
+		autorun_types::Realm::Menu => menu::set_env(env),
+	}
+}
+
+pub fn get_running_plugin(env: crate::EnvHandle, lua: &LuaApi, state: *mut LuaState) -> Option<&Plugin> {
 	env.push(lua, state);
 	lua.get_field(state, -1, c"Autorun".as_ptr());
 	lua.get_field(state, -1, c"PLUGIN".as_ptr());
@@ -23,23 +66,4 @@ pub fn get_running_plugin(lua: &LuaApi, state: *mut LuaState) -> Option<&Plugin>
 	lua.pop(state, 3);
 
 	unsafe { dir.as_ref() }
-}
-
-pub fn is_inside_env(lua: &LuaApi, state: *mut LuaState) -> bool {
-	if let Some(env) = AUTORUN_ENV.get() {
-		if lua.get_info(state, 1, c"f").is_none() {
-			// No function info available
-			return false;
-		}
-
-		lua.get_fenv(state, -1);
-		env.handle.push(lua, state);
-
-		let equal = lua.is_raw_equal(state, -1, -2);
-		lua.pop(state, 3);
-
-		equal
-	} else {
-		false
-	}
 }

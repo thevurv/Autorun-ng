@@ -1,14 +1,19 @@
 use autorun_lua::LuaApi;
 use autorun_types::LuaState;
 
-pub fn mkdir(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<core::ffi::c_int> {
-	if !crate::global::is_inside_env(lua, state) {
-		autorun_log::warn!("Attempted to call 'print' outside of authorized environment");
-		return Ok(0);
+pub fn mkdir(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<Option<bool>> {
+	let realm = crate::global::get_realm(state);
+	let env = crate::global::get_realm_env(realm).ok_or_else(|| anyhow::anyhow!("env doesn't exist somehow"))?;
+
+	if !env.is_active(lua, state) {
+		autorun_log::warn!("Attempted to call 'mkdir' outside of authorized environment");
+		return Ok(None);
 	}
 
 	let target_path = lua.check_string(state, 1);
-	let plugin = crate::global::get_running_plugin(lua, state).ok_or(anyhow::anyhow!("dont delete autorun.plugin lil bro."))?;
+	let plugin = env
+		.get_active_plugin(lua, state)
+		.ok_or(anyhow::anyhow!("dont delete autorun.plugin lil bro."))?;
 
 	let data_dir = plugin.data_dir();
 	let target_path = target_path.to_string();
@@ -23,10 +28,8 @@ pub fn mkdir(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<core::ffi::c_
 	if !data_dir.exists(&target_path) {
 		data_dir.create_dir_all(&target_path)?;
 
-		lua.push(state, true);
-		return Ok(1);
+		return Ok(Some(true));
 	}
 
-	lua.push(state, false);
-	Ok(1)
+	Ok(Some(false))
 }

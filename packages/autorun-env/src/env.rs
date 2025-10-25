@@ -6,11 +6,53 @@ use autorun_core::plugins::Plugin;
 use autorun_lua::{LuaApi, RawHandle};
 use autorun_types::LuaState;
 
-pub struct Environment {
-	handle: RawHandle,
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy)]
+pub struct EnvHandle(RawHandle);
+
+impl core::ops::Deref for EnvHandle {
+	type Target = RawHandle;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
 }
 
-impl Environment {
+impl EnvHandle {
+	pub fn is_active(&self, lua: &LuaApi, state: *mut LuaState) -> bool {
+		if lua.get_info(state, 1, c"f").is_none() {
+			// No function info available
+			return false;
+		}
+
+		lua.get_fenv(state, -1);
+		self.push(lua, state);
+
+		let equal = lua.is_raw_equal(state, -1, -2);
+		lua.pop(state, 3);
+
+		equal
+	}
+
+	pub fn get_active_plugin(&self, lua: &LuaApi, state: *mut LuaState) -> Option<&Plugin> {
+		if !self.is_active(lua, state) {
+			return None;
+		}
+
+		self.push(lua, state);
+		lua.get_field(state, -1, c"Autorun".as_ptr());
+		lua.get_field(state, -1, c"PLUGIN".as_ptr());
+
+		let dir = lua.to_userdata(state, -1) as *mut Plugin;
+		if dir.is_null() {
+			lua.pop(state, 3);
+			return None;
+		}
+		lua.pop(state, 3);
+
+		unsafe { dir.as_ref() }
+	}
+
 	fn create_autorun_table(lua: &LuaApi, state: *mut LuaState) {
 		lua.create_table(state, 0, 3);
 
@@ -89,7 +131,7 @@ impl Environment {
 		let handle = RawHandle::from_stack(lua, state).unwrap();
 
 		// Create lua standard library
-		let this = Self { handle };
+		let this = Self(handle);
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/builtins.lua"))?;
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/include.lua"))?;
 		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/require.lua"))?;
@@ -98,7 +140,7 @@ impl Environment {
 	}
 
 	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
-		self.handle.push(lua, state);
+		self.0.push(lua, state);
 		lua.get_field(state, -1, c"Autorun".as_ptr());
 		lua.remove(state, -2);
 	}
@@ -145,10 +187,5 @@ impl Environment {
 		lua.set_table(state, -3);
 
 		lua.pop(state, 1);
-	}
-
-	/// Pushes the environment onto the stack.
-	pub fn push(&self, lua: &LuaApi, state: *mut LuaState) {
-		self.handle.push(lua, state);
 	}
 }

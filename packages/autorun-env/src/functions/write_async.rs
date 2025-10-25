@@ -1,16 +1,21 @@
 use autorun_lua::LuaApi;
 use autorun_types::LuaState;
 
-pub fn write_async(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<core::ffi::c_int> {
-	if !crate::global::is_inside_env(lua, state) {
-		autorun_log::warn!("Attempted to call 'print' outside of authorized environment");
-		return Ok(0);
+pub fn write_async(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<()> {
+	let realm = crate::global::get_realm(state);
+	let env = crate::global::get_realm_env(realm).ok_or_else(|| anyhow::anyhow!("env doesn't exist somehow"))?;
+
+	if !env.is_active(lua, state) {
+		autorun_log::warn!("Attempted to call 'writeAsync' outside of authorized environment");
+		return Ok(());
 	}
 
 	let target_path = lua.check_string(state, 1);
 	let content = lua.check_string(state, 2);
 
-	let plugin = crate::global::get_running_plugin(lua, state).ok_or(anyhow::anyhow!("dont delete autorun.plugin lil bro."))?;
+	let plugin = env
+		.get_active_plugin(lua, state)
+		.ok_or(anyhow::anyhow!("dont delete autorun.plugin lil bro."))?;
 
 	let data_dir = (*plugin.data_dir()).try_clone()?;
 	let target_path = target_path.to_string();
@@ -29,5 +34,5 @@ pub fn write_async(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<core::f
 		}
 	});
 
-	Ok(0)
+	Ok(())
 }
