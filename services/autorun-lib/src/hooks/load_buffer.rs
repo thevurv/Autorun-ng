@@ -27,19 +27,19 @@ extern "C-unwind" fn load_buffer_h(
 	if *PREVIOUS_LUA_STATE.lock().unwrap() != (state as usize) {
 		*PREVIOUS_LUA_STATE.lock().unwrap() = state as usize;
 
-		unsafe { LOAD_BUFFER_H.get().unwrap().disable().unwrap() }
+		disable();
 		if let Err(why) = crate::events::init::run(state) {
 			let name = unsafe { std::ffi::CStr::from_ptr(name) };
 			autorun_log::error!("Failed to run init for {}: {why}", name.to_string_lossy());
 		}
-		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
+		enable();
 	} else {
 		// Hook
 		let name_cstr = unsafe { std::ffi::CStr::from_ptr(name) };
 		let buff_bytes = unsafe { std::ffi::CStr::from_ptr(buff).to_bytes() };
 		let mode_bytes = unsafe { std::ffi::CStr::from_ptr(mode).to_bytes() };
 
-		unsafe { LOAD_BUFFER_H.get().unwrap().disable().unwrap() }
+		disable();
 		match crate::events::hook::run(state, buff_bytes, name_cstr.to_bytes(), mode_bytes) {
 			Ok(Some(x)) => {
 				buff = x.as_ptr() as *const c_char;
@@ -50,7 +50,7 @@ extern "C-unwind" fn load_buffer_h(
 			}
 			_ => (),
 		}
-		unsafe { LOAD_BUFFER_H.get().unwrap().enable().unwrap() }
+		enable();
 	}
 
 	call_original(state, buff, size, name, mode)
@@ -69,6 +69,22 @@ pub fn init() -> anyhow::Result<()> {
 	LOAD_BUFFER_H.set(detour).unwrap();
 
 	Ok(())
+}
+
+pub fn disable() {
+	if let Some(detour) = LOAD_BUFFER_H.get() {
+		unsafe {
+			detour.disable().unwrap();
+		}
+	}
+}
+
+pub fn enable() {
+	if let Some(detour) = LOAD_BUFFER_H.get() {
+		unsafe {
+			detour.disable().unwrap();
+		}
+	}
 }
 
 #[inline]

@@ -26,10 +26,13 @@ extern "C-unwind" fn paint_traverse_h(this: *mut std::ffi::c_void, panel_id: usi
 		}
 	};
 
+	crate::hooks::load_buffer::disable();
 	if let Err(why) = lua.load_buffer_x(state, source.as_bytes(), c"RunString", c"t") {
+		crate::hooks::load_buffer::enable();
 		autorun_log::error!("Failed to load Lua string: {why}");
 		return;
 	}
+	crate::hooks::load_buffer::enable();
 
 	let existing_hook = lua.get_hook(state);
 	let existing_hook_info = if existing_hook.is_null() {
