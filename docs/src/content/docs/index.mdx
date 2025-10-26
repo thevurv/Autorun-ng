@@ -1,0 +1,32 @@
+---
+title: Welcome to Autorun
+template: splash
+hero:
+    tagline: Your next generation toolkit for Garry's Mod
+    # image:
+    #     file: ../../assets/houston.webp
+    actions:
+        - text: Your First Plugin
+          link: /guides/your-first-plugin
+          icon: right-arrow
+        - text: Join our discord
+          link: https://discord.gg/cSC3ebaR3q
+          icon: discord
+          variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+## Next steps
+
+<CardGrid stagger>
+    <Card title="History" icon="pencil">
+        Read about Autorun-ng's History [here](/reference/what-is-autorun)
+    </Card>
+    <Card title="Lua API" icon="document">
+        Read about Autorun-ng's Lua API [here](/reference/lua-api)
+    </Card>
+    <Card title="File Structure" icon="document">
+        Read about Autorun-ng's File Structure [here](/reference/file-structure)
+    </Card>
+</CardGrid>

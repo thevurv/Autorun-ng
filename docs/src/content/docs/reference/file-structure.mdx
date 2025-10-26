@@ -1,0 +1,21 @@
+---
+title: File Structure
+description: A reference to Autorun's file structure.
+---
+
+Autorun-ng's file structure is relative to the client UI executable's location.
+
+```lua
+./
+├── autorun
+└── autorun/
+    ├── plugins/
+    │   └── foo-plugin/
+    │       ├── src/
+    │       │   ├── client/
+    │       │   │   └── init.lua -- Runs a single time upon server join
+    │       │   └── menu/
+    │       │       └── init.lua -- Runs a single time upon game start
+    │       └── plugin.toml
+    └── settings.toml
+```

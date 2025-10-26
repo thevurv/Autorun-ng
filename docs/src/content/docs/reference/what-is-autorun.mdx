@@ -1,0 +1,59 @@
+---
+title: What Is Autorun?
+description: Explanation of what Autorun is and its purpose.
+---
+
+import { Card, Aside } from "@astrojs/starlight/components";
+
+Autorun is a full toolkit to manage your Garry's Mod experience via introspection and execution of Lua code.
+
+The problem with Garry's Mod is that its Lua API is a little too powerful. You are able to track every compilation of Lua code, and the game doesn't even have any permissions system to restrict weird behavior like reading your game files to fingerprint you, or stealing your data files.
+
+This is unfair. Servers have way too much control and trust over your client. Autorun aims to even the tide and bring back control to users so creepy addons and servers can't do whatever they want to your game.
+
+<Aside type="caution">
+    There are a scary amount of servers and addons that try to write to your
+    System32 folder.
+</Aside>
+
+## History
+
+Autorun is an old project of mine. I created the very first version as a simple Lua dumper in 2021, simply named [Autorun](https://github.com/thevurv/Autorun).
+
+### Autorun
+
+This was badly written in C++, back when I hardly even used systems programming languages.
+
+It was inspired by projects like [glua-steal](https://github.com/lewisclark/glua-steal), but tried to be minimal.
+
+But I quickly realized just dumping lua wasn't enough. Additionally, I wanted to rewrite this in Rust due to its nicer tooling and memory safety to avoid crashes.
+
+### Autorun-rs
+
+[Autorun-rs](https://github.com/thevurv/Autorun-rs) was created in 2021, shortly after Autorun was created.
+
+It worked as a simple library you'd inject into the game. It used AllocConsole() to allocate a console separate from the program which is what managed Autorun entirely.
+
+Being written in Rust, I had to make my own lua bindings. I made [rglua](https://github.com/thevurv/rglua), which is basically Rust's [garrysmod_common](https://github.com/danielga/garrysmod_common). It provided low level bindings to the Lua C API, alongside some Source SDK bindings.
+
+[It did pretty well and garnered a lot of attention](https://www.star-history.com/#thevurv/Autorun-rs&type=date&legend=top-left), I'm happy that it got to 121 stars.
+
+But as time went on, cracks started to show.
+
+1. Linux support was impossible due to reliance on allocating a console inside of a library.
+2. The filesystem was manually sandboxed and brittle. This led to an incident where someone was able to escape the sandbox and write random lua files to a user's VM.
+3. The codebase was a mess. rglua didn't implement any abstractions and was a pain to use as the low level C api and very brittle.
+
+All of these led to me repeatedly attempting to create what is now Autorun-ng, all the way back in 2022. Point #1 in that list is what postponed its creation from 2022, three years in the future to late 2025.
+
+<Aside type="caution">
+    There have been several exploits in Garry's Mod where servers could run
+    arbitrary code, even malware on your computer. That's what the cough virus
+    was.
+</Aside>
+
+### Autorun-ng
+
+The jump from 2022 to 2025 did come with some benefits. I've drastically improved my Rust and general programming skills. I'm confident I can tackle this project.
+
+Given time, I'll see that this becomes the de-facto standard to ensure people can play this game without creepy servers and addons ruining their experience.

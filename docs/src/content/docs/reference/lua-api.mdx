@@ -1,0 +1,177 @@
+---
+title: Lua API
+description: A reference to Autorun's Lua API
+---
+
+import { Aside, Card, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+The Autorun Lua API provides a set of functions and properties for plugin development. All API functions are accessed through the global `Autorun` object.
+
+## Global Properties
+
+### `Autorun.VERSION`
+
+<Card>
+**Type:** `string`
+
+The version of Autorun-ng using semantic versioning (semver) format (e.g., `"1.0.0"`).
+</Card>
+
+```lua
+-- Example: Check Autorun version
+Autorun.print("Running Autorun version: " .. Autorun.VERSION)
+```
+
+## Console & Debugging
+
+### `Autorun.print(...)`
+
+Prints output to the Autorun console with the prefix `[Lua]:`.
+
+**Parameters:**
+- `...` (any) - Any number of values to print
+
+**Returns:** None
+
+```lua
+-- Example usage
+Autorun.print("Hello, world!")
+Autorun.print("Debug value:", myVariable, "Status:", status)
+```
+
+<Aside type="tip">
+Use `Autorun.print()` instead of standard `print()` to ensure your output appears in the Autorun console with proper formatting.
+</Aside>
+
+## File System Operations
+
+All file system operations are relative to the active plugin's directory.
+
+### `Autorun.read(path)`
+
+Reads a file from a path relative to the active plugin's directory.
+
+**Parameters:**
+- `path` (string) - The relative path to the file
+
+**Returns:** `string?` - The contents of the file, or `nil` if the file doesn't exist or can't be read
+
+```lua
+-- Example: Read a configuration file
+local config = Autorun.read("config.txt")
+if config then
+    Autorun.print("Config loaded:", config)
+else
+    Autorun.print("Failed to read config")
+end
+```
+
+### `Autorun.write(path, content)`
+
+Writes content to a file at the specified path relative to the active plugin's directory.
+
+**Parameters:**
+- `path` (string) - The relative path where the file should be written
+- `content` (string) - The content to write to the file
+
+**Returns:** None
+
+```lua
+-- Example: Save data to a file
+Autorun.write("data.txt", "Important data here")
+```
+
+<Aside type="caution">
+This operation is **synchronous** and will block the main thread. For large writes, consider using `Autorun.writeAsync()` instead.
+</Aside>
+
+### `Autorun.writeAsync(path, content)`
+
+Asynchronously writes content to a file at the specified path relative to the active plugin's directory.
+
+**Parameters:**
+- `path` (string) - The relative path where the file should be written
+- `content` (string) - The content to write to the file
+
+**Returns:** None
+
+```lua
+-- Example: Save large data without blocking
+Autorun.writeAsync("large-file.txt", largeDataString)
+```
+
+<Aside type="tip">
+Use `writeAsync()` for large file operations to avoid blocking the main thread and potential detection by anti-cheat systems.
+</Aside>
+
+### `Autorun.mkdir(path)`
+
+Creates a directory recursively at the specified path relative to the active plugin's directory.
+
+**Parameters:**
+- `path` (string) - The relative path of the directory to create
+
+**Returns:** `boolean` - `true` if the directory was created successfully, `false` if it already exists
+
+```lua
+-- Example: Create a directory structure
+local created = Autorun.mkdir("data/configs")
+if created then
+    Autorun.print("Directory created")
+else
+    Autorun.print("Directory already exists")
+end
+```
+
+## Module System
+
+### `Autorun.include(path)`
+
+Reads and executes a Lua file from the given path. This function does **not** cache the result, so each call re-executes the file.
+
+**Parameters:**
+- `path` (string) - The path to the Lua file to execute
+
+**Returns:** `any` - Whatever the executed file returns
+
+```lua
+-- Example: Load and execute a script
+local result = Autorun.include("scripts/helper.lua")
+```
+
+<Aside type="note">
+`include()` does not cache results. If you call it multiple times with the same path, the file will be executed each time.
+</Aside>
+
+### `Autorun.require(path)`
+
+Reads and executes a Lua file from the given path. This function **caches** the result, so subsequent calls with the same path return the cached value without re-executing the file.
+
+**Parameters:**
+- `path` (string) - The path to the Lua file to execute
+
+**Returns:** `any` - Whatever the executed file returns (cached after first call)
+
+```lua
+-- Example: Load a module once
+local utils = Autorun.require("modules/utils.lua")
+local sameUtils = Autorun.require("modules/utils.lua") -- Returns cached version
+```
+
+<Aside type="tip">
+Use `require()` for modules that should only be executed once, and `include()` for scripts that need to run every time they're called.
+</Aside>
+
+## Best Practices
+
+<Card title="Performance Considerations">
+- Use `writeAsync()` instead of `write()` for large file operations
+- Prefer `require()` over `include()` for module dependencies to avoid redundant execution
+- Check return values from `read()` and `mkdir()` to handle errors gracefully
+</Card>
+
+<Card title="Security & Detection Avoidance">
+- Async operations help avoid detection by not blocking the main thread
+- Keep file operations relative to your plugin directory
+- Use `Autorun.print()` for debugging during development
+</Card>
