@@ -210,13 +210,6 @@ impl App {
 						// Connection controls
 						match self.autorun.status() {
 							AutorunStatus::Disconnected => {
-								if ui.button("🔌 Connect").clicked() {
-									self.user_disconnected = false;
-									if let Err(e) = self.autorun.try_connect_to_game() {
-										eprintln!("Failed to connect: {}", e);
-									}
-								}
-
 								if ui.button("Launch").clicked() {
 									self.user_disconnected = false;
 									if let Err(e) = self.autorun.launch_game() {
@@ -227,13 +220,6 @@ impl App {
 								ui.colored_label(Color32::from_rgb(255, 120, 120), "⛔ Disconnected");
 							}
 							AutorunStatus::Connected => {
-								if ui.button("Disconnect").clicked() {
-									self.user_disconnected = true;
-									if let Err(e) = self.autorun.detach() {
-										eprintln!("Failed to detach: {}", e);
-									}
-								}
-
 								ui.colored_label(Color32::from_rgb(120, 255, 120), "✅ Connected");
 							}
 						}
