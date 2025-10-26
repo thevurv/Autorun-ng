@@ -4,6 +4,8 @@ import starlight from "@astrojs/starlight";
 
 // https://astro.build/config
 export default defineConfig({
+	site: "https://thevurv.github.io",
+	base: "/Autorun-ng/",
 	integrations: [
 		starlight({
 			title: "Autorun",
