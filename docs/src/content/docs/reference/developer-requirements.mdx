@@ -1,0 +1,23 @@
+---
+title: Developer Requirements
+description: A reference to necessary requirements to build Autorun.
+---
+
+import { Aside, Card, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Rust
+
+Of course you'll need Rust. <br/>
+[Download it from here](https://rustup.rs).
+
+<Aside type="caution" title="Windows">
+    You will additionally need to set your rust toolchain to nightly on Windows.<br/>
+    Run `rustup default nightly` in your terminal.
+</Aside>
+
+## Just
+
+Just is a command runner that we use to simplify our build process. <br/>
+[Download it here](https://just.systems/man/en)
+
+(It'll probably be available from your respect package manager, aka winget, apt, dnf, whatever)
