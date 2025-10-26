@@ -37,6 +37,20 @@ fn run_entrypoint(
 			env.execute(lua, state, c"client/init.lua", &init_content)
 		}
 
+		autorun_core::plugins::ConfigPluginLanguage::Native => {
+			let dir = plugin.dir();
+			let path = autorun_fs::get_path(autorun_fs::ambient_authority(), dir)?;
+			let library = unsafe { libloading::Library::new(path.join("plugin.so"))? };
+
+			if let Ok(autorun_client_init) =
+				unsafe { library.get::<extern "C" fn(plugin: *const core::ffi::c_void)>(b"autorun_client_init\0") }
+			{
+				autorun_client_init(&raw const *plugin as _);
+			}
+
+			Ok(())
+		}
+
 		_ => Err(anyhow::anyhow!("Unsupported language: {:?}", config.plugin.language)),
 	}
 }
