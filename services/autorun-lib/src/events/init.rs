@@ -38,8 +38,24 @@ fn run_entrypoint(
 		}
 
 		autorun_core::plugins::ConfigPluginLanguage::Native => {
+			#[cfg(target_os = "linux")]
+			const PLUGIN_PATH: &str = "plugin.so";
+
+			#[cfg(target_os = "windows")]
+			const PLUGIN_PATH: &str = "plugin.dll";
+
 			let dir = plugin.dir();
 			let path = autorun_fs::get_path(autorun_fs::ambient_authority(), dir)?;
+			let lib_path = path.join(PLUGIN_PATH);
+			if !lib_path.exists() {
+				autorun_log::warn!(
+					"Native init plugin library not found for plugin '{plugin}': {}",
+					lib_path.display()
+				);
+
+				return Ok(());
+			}
+
 			let library = unsafe { libloading::Library::new(path.join("plugin.so"))? };
 
 			if let Ok(autorun_client_init) =

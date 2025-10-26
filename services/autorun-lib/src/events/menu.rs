@@ -45,7 +45,17 @@ fn run_entrypoint(
 
 			let dir = plugin.dir();
 			let path = autorun_fs::get_path(autorun_fs::ambient_authority(), dir)?;
-			let library = unsafe { libloading::Library::new(path.join(PLUGIN_PATH))? };
+			let lib_path = path.join(PLUGIN_PATH);
+			if !lib_path.exists() {
+				autorun_log::warn!(
+					"Native menu plugin library not found for plugin '{plugin}': {}",
+					lib_path.display()
+				);
+
+				return Ok(());
+			}
+
+			let library = unsafe { libloading::Library::new(lib_path)? };
 
 			if let Ok(autorun_menu_init) =
 				unsafe { library.get::<extern "C" fn(plugin: *const core::ffi::c_void)>(b"autorun_menu_init\0") }
