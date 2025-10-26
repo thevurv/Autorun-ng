@@ -25,7 +25,28 @@ export default defineConfig({
 				{
 					label: "Guides",
 					items: [
-						{ label: "Your First Plugin", slug: "guides/your-first-plugin" },
+						{
+							label: "Lua Plugins",
+							items: [
+								{
+									label: "Your First Plugin",
+									slug: "guides/your-first-plugin",
+								},
+								{
+									label: "Your Second Plugin",
+									slug: "guides/your-second-plugin",
+								},
+							],
+						},
+						{
+							label: "Native Plugins",
+							items: [
+								{
+									label: "Your First Native Plugin",
+									slug: "guides/your-first-native-plugin",
+								},
+							],
+						},
 					],
 				},
 				{

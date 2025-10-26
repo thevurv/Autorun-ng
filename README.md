@@ -14,37 +14,6 @@ This is [Autorun](https://github.com/thevurv/Autorun-rs) for the next generation
 
 ![showcase](./assets/showcase.png)
 
-## File Structure
+## Documentation
 
-**⚠️ Since Autorun-ng is based around a main program instead of the injected library, files are stored relative to the executable.**
-
-```lua
-./
-├── autorun
-└── autorun/
-    ├── plugins/
-    │   └── foo-plugin/
-    │       ├── src/
-    │       │   ├── client/
-    │       │   │   └── init.lua -- Runs a single time upon server join
-    │       │   └── menu/
-    │       │       └── init.lua -- Runs a single time upon game start
-    │       └── plugin.toml
-    └── settings.toml
-```
-
-## Requirements
-
-On Linux, you're gonna need [GModPatchTool](https://github.com/solsticegamestudios/GModPatchTool) to even run the game.
-
-## Development
-
-Setup [Rust](https://www.rust-lang.org/) and [Just](https://github.com/casey/just).
-
-Any IDE should work, I use [Zed](https://zed.dev).
-
-### Building
-
-Use `just build-egui` to build the project and the egui frontend.
-
-This is necessary since there is a particular build order that must be followed that `cargo run` may not respect.
+You can find guides and references [here](https://thevurv.github.io/Autorun-ng)
