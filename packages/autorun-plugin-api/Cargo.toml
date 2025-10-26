@@ -5,9 +5,6 @@ edition.workspace = true
 authors.workspace = true
 description.workspace = true
 
-[lib]
-crate-type = ["cdylib"]
-
 [dependencies]
 autorun-lua = { path = "../autorun-lua" }
 autorun-interfaces = { path = "../autorun-interfaces" }

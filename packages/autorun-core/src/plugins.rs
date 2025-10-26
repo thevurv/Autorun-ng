@@ -77,10 +77,6 @@ impl Plugin {
 			return Err(anyhow::anyhow!("Plugin config not found"));
 		}
 
-		let Ok(src) = dir.open_dir(Self::PLUGIN_SRC) else {
-			return Err(anyhow::anyhow!("Plugin src directory not found"));
-		};
-
 		let data_dir = match dir.exists(Self::PLUGIN_DATA) {
 			true => dir.open_dir(Self::PLUGIN_DATA)?,
 			false => {
@@ -89,17 +85,11 @@ impl Plugin {
 			}
 		};
 
-		let this = Self {
+		Ok(Self {
 			dir,
 			data_dir,
 			config: std::sync::OnceLock::new(),
-		};
-
-		if !this.menu_exists().unwrap_or(false) && !this.client_exists().unwrap_or(false) {
-			return Err(anyhow::anyhow!("No plugin entrypoint files found"));
-		}
-
-		Ok(this)
+		})
 	}
 
 	pub fn get_config(&self) -> anyhow::Result<&Config> {
@@ -123,7 +113,8 @@ nestify::nest! {
 			pub author: String,
 			pub version: String,
 			pub description: String,
-			pub language: #[serde(rename_all = "lowercase")] pub enum ConfigPluginLanguage {
+
+			pub language: #[serde(rename_all = "lowercase")] #[non_exhaustive] pub enum ConfigPluginLanguage {
 				Lua,
 				Native,
 			}

@@ -16,18 +16,19 @@ pub extern "C" fn autorun_version() -> *const c_char {
 pub extern "C" fn autorun_write(
 	plugin_handle: *mut autorun_core::plugins::Plugin,
 	path: *const c_char,
-	content: *const c_char,
+	content: *const u8,
+	content_len: usize,
 ) -> PluginResult {
 	let Some(plugin) = (unsafe { plugin_handle.as_ref() }) else {
 		return PluginResult::ErrNullHandle;
 	};
 
 	let path = unsafe { std::ffi::CStr::from_ptr(path) };
-	let content = unsafe { std::ffi::CStr::from_ptr(content) };
+	let content = unsafe { std::slice::from_raw_parts(content, content_len) };
 
 	plugin
-		.dir()
-		.write(path.to_str().unwrap_or_default(), content.to_bytes())
+		.data_dir()
+		.write(path.to_str().unwrap_or_default(), content)
 		.map(|_| PluginResult::Ok)
 		.unwrap_or(PluginResult::ErrWriteFailed)
 }
@@ -79,8 +80,17 @@ pub extern "C" fn autorun_mkdir(plugin_handle: *mut autorun_core::plugins::Plugi
 	let path = unsafe { std::ffi::CStr::from_ptr(path) };
 
 	plugin
-		.dir()
+		.data_dir()
 		.create_dir_all(path.to_str().unwrap_or_default())
 		.map(|_| PluginResult::Ok)
 		.unwrap_or(PluginResult::ErrWriteFailed)
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn autorun_print(message: *const c_char) {
+	let message = unsafe { std::ffi::CStr::from_ptr(message) };
+
+	if let Ok(message_str) = message.to_str() {
+		println!("[Autorun Plugin] {}", message_str);
+	}
 }

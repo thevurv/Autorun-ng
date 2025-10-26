@@ -21,6 +21,10 @@ autorun-interfaces = { path = "../../packages/autorun-interfaces" }
 autorun-scan = { path = "../../packages/autorun-scan" }
 autorun-core = { path = "../../packages/autorun-core" }
 autorun-env = { path = "../../packages/autorun-env" }
+autorun-fs = { path = "../../packages/autorun-fs" }
+
+# Exported plugin api
+autorun-plugin-api = { path = "../../packages/autorun-plugin-api" }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = ["Win32_System_Console"] }

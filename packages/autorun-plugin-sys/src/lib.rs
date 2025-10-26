@@ -45,6 +45,7 @@ define_autorun_api! {
 		plugin_handle: *mut c_void,
 		path: *const c_char,
 		content: *const c_char,
+		content_len: usize,
 	) -> c_int;
 
 	#[name = "autorun_read"]
@@ -91,9 +92,8 @@ impl AutorunApi {
 
 	pub fn write(&self, path: impl AsRef<std::path::Path>, content: &[u8]) -> AutorunResult<()> {
 		let c_path = std::ffi::CString::new(path.as_ref().to_string_lossy().as_bytes())?;
-		let c_content = std::ffi::CString::new(content)?;
 
-		let result = (self._write)(self.plugin_handle, c_path.as_ptr(), c_content.as_ptr());
+		let result = (self._write)(self.plugin_handle, c_path.as_ptr(), content.as_ptr() as _, content.len());
 
 		match result {
 			0 => Ok(()),
@@ -124,18 +124,22 @@ impl AutorunApi {
 
 #[macro_export]
 macro_rules! autorun_entrypoint {
-	($init_fn:expr) => {
+	($init_fn:expr, $name:ident) => {
 		#[unsafe(no_mangle)]
-		pub extern "C-unwind" fn autorun_plugin_init(plugin_handle: *mut c_void) -> c_int {
+		pub extern "C-unwind" fn $name(plugin_handle: *mut c_void) -> c_int {
 			if plugin_handle.is_null() {
 				return 1;
 			}
 
-			let Ok(lib) = (unsafe { libloading::Library::new("autorun") }) else {
+			#[cfg(target_os = "linux")]
+			let lib = libloading::os::unix::Library::this();
+
+			#[cfg(target_os = "windows")]
+			let Ok(lib) = libloading::os::windows::Library::this() else {
 				return 2;
 			};
 
-			let api = match AutorunApi::new(&lib, plugin_handle) {
+			let api = match AutorunApi::new(&lib.into(), plugin_handle) {
 				Ok(api) => api,
 				Err(_) => return 2,
 			};
@@ -148,6 +152,26 @@ macro_rules! autorun_entrypoint {
 	};
 }
 
-pub mod prelude {
-	pub use crate::{AutorunApi, AutorunError, AutorunResult, autorun_entrypoint};
+#[macro_export]
+macro_rules! autorun_client_entrypoint {
+	($init_fn:expr) => {
+		autorun_entrypoint!($init_fn, autorun_client_init);
+	};
 }
+
+#[macro_export]
+macro_rules! autorun_menu_entrypoint {
+	($init_fn:expr) => {
+		autorun_entrypoint!($init_fn, autorun_menu_init);
+	};
+}
+
+pub mod prelude {
+	pub use crate::{AutorunApi, AutorunError, AutorunResult, autorun_client_entrypoint, autorun_menu_entrypoint};
+}
+
+fn test(v: &AutorunApi) -> Result<(), Box<dyn core::error::Error>> {
+	Ok(())
+}
+
+autorun_client_entrypoint!(test);

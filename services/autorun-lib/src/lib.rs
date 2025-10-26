@@ -4,6 +4,8 @@ mod lua_queue;
 mod menu;
 mod server;
 
+pub use autorun_plugin_api::*;
+
 pub fn main() -> anyhow::Result<()> {
 	// Start IPC server in background thread
 	std::thread::spawn(|| {
