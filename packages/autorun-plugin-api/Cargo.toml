@@ -1,0 +1,15 @@
+[package]
+name = "autorun-plugin-api"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+autorun-lua = { path = "../autorun-lua" }
+autorun-interfaces = { path = "../autorun-interfaces" }
+autorun-env = { path = "../autorun-env" }
+autorun-core = { path = "../autorun-core" }

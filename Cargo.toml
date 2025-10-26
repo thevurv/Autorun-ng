@@ -10,6 +10,7 @@ resolver = "3"
 edition = "2024"
 authors = ["Vurv78 <vurvdevelops@gmail.com>"]
 description = "Autorun is an all-in-one game launcher and modification framework currently for Garry's Mod."
+version = "0.1.0"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.99" }
