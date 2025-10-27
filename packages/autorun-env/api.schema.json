@@ -1,0 +1,147 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Autorun API Specification",
+	"description": "Schema for defining the Autorun-ng Lua API",
+	"type": "object",
+	"properties": {
+		"namespaces": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/namespace"
+			}
+		},
+		"classes": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/class"
+			}
+		}
+	},
+	"required": ["namespaces"],
+	"definitions": {
+		"namespace": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "Name of the namespace (e.g., 'Autorun')"
+				},
+				"description": {
+					"type": "string",
+					"description": "Description of the namespace"
+				},
+				"fields": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/field"
+					}
+				},
+				"functions": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/function"
+					}
+				}
+			},
+			"required": ["name"]
+		},
+		"field": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"description": "Lua type (e.g., 'string', 'userdata', 'number')"
+				},
+				"description": {
+					"type": "string"
+				}
+			},
+			"required": ["name", "type"]
+		},
+		"function": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"description": {
+					"type": "string"
+				},
+				"parameters": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/parameter"
+					}
+				},
+				"returns": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/returnValue"
+					}
+				}
+			},
+			"required": ["name"]
+		},
+		"parameter": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"description": "Lua type or variadic (...)"
+				},
+				"description": {
+					"type": "string"
+				},
+				"default": {
+					"type": "string",
+					"default": null
+				}
+			},
+			"required": ["name", "type"]
+		},
+		"returnValue": {
+			"type": "object",
+			"properties": {
+				"type": {
+					"type": "string"
+				},
+				"description": {
+					"type": "string"
+				}
+			},
+			"required": ["type"]
+		},
+		"class": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "Name of the class (e.g., 'EventHandler')"
+				},
+				"description": {
+					"type": "string",
+					"description": "Description of the class"
+				},
+				"fields": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/field"
+					}
+				},
+				"methods": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/function"
+					}
+				}
+			},
+			"required": ["name"]
+		}
+	}
+}

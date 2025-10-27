@@ -1,7 +1,7 @@
 use autorun_lua::LuaApi;
 use autorun_types::LuaState;
 
-pub fn mkdir(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Option<bool>> {
+pub fn mkdir(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<bool> {
 	let target_path = lua.check_string(state, 1);
 	let plugin = env
 		.get_active_plugin(lua, state)
@@ -20,8 +20,8 @@ pub fn mkdir(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 	if !data_dir.exists(&target_path) {
 		data_dir.create_dir_all(&target_path)?;
 
-		return Ok(Some(true));
+		return Ok(true);
 	}
 
-	Ok(Some(false))
+	Ok(false)
 }

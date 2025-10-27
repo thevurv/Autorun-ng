@@ -1,0 +1,201 @@
+{
+	"namespaces": [
+		{
+			"name": "Autorun",
+			"description": "Main Autorun-ng namespace",
+			"fields": [
+				{
+					"name": "PLUGIN",
+					"type": "userdata",
+					"description": "Currently running plugin pointer. Don't touch this."
+				},
+				{
+					"name": "VERSION",
+					"type": "string",
+					"description": "Version of Autorun-ng using semver format"
+				},
+				{
+					"name": "EVENTS",
+					"type": "table<string, table<integer, function>>",
+					"description": "Internal event registry. Don't modify this directly, use Autorun.on() instead."
+				}
+			],
+			"functions": [
+				{
+					"name": "print",
+					"description": "Prints to the Autorun console in the format of [Lua]: ...",
+					"parameters": [
+						{
+							"name": "values",
+							"type": "...any",
+							"description": "Values to print"
+						}
+					],
+					"returns": []
+				},
+				{
+					"name": "read",
+					"description": "Reads a path relative to the active plugin's directory.",
+					"parameters": [
+						{
+							"name": "path",
+							"type": "string"
+						}
+					],
+					"returns": [
+						{
+							"type": "string?",
+							"description": "Contents of the file, nil if failed to read"
+						}
+					]
+				},
+				{
+					"name": "write",
+					"description": "Writes to a path relative to the active plugin's directory.",
+					"parameters": [
+						{
+							"name": "path",
+							"type": "string"
+						},
+						{
+							"name": "content",
+							"type": "string"
+						}
+					],
+					"returns": []
+				},
+				{
+					"name": "writeAsync",
+					"description": "ASYNCHRONOUSLY writes to a path relative to the active plugin's directory. This is important to avoid blocking the main thread on large writes to avoid detection.",
+					"parameters": [
+						{
+							"name": "path",
+							"type": "string"
+						},
+						{
+							"name": "content",
+							"type": "string"
+						}
+					],
+					"returns": []
+				},
+				{
+					"name": "include",
+					"description": "Reads and executes a Lua file from the given path. This doesn't do any caching.",
+					"parameters": [
+						{
+							"name": "path",
+							"type": "string"
+						}
+					],
+					"returns": [
+						{
+							"type": "...any"
+						}
+					]
+				},
+				{
+					"name": "require",
+					"description": "Reads and executes a Lua file from the given path. This caches the output of the include so subsequent calls return the same values.",
+					"parameters": [
+						{
+							"name": "path",
+							"type": "string"
+						}
+					],
+					"returns": [
+						{
+							"type": "...any"
+						}
+					]
+				},
+				{
+					"name": "mkdir",
+					"description": "Makes a directory recursively. This runs relative to the plugin's /data/ directory",
+					"parameters": [
+						{
+							"name": "path",
+							"type": "string"
+						}
+					],
+					"returns": [
+						{
+							"type": "boolean",
+							"description": "Whether the directory was created successfully, false if exists"
+						}
+					]
+				},
+				{
+					"name": "on",
+					"description": "Registers an event handler for the specified event. Returns an EventHandler object that can be used to remove the handler.",
+					"parameters": [
+						{
+							"name": "eventName",
+							"type": "string",
+							"description": "Name of the event to listen for (e.g., 'loadbuffer')"
+						},
+						{
+							"name": "callback",
+							"type": "function",
+							"description": "Function to call when the event is triggered. Return value can modify event behavior."
+						}
+					],
+					"returns": [
+						{
+							"type": "EventHandler",
+							"description": "Handler object with remove() method to unregister the event"
+						}
+					]
+				},
+				{
+					"name": "trigger",
+					"description": "Triggers all registered handlers for the specified event. Used internally by Autorun.",
+					"parameters": [
+						{
+							"name": "eventName",
+							"type": "string",
+							"description": "Name of the event to trigger"
+						},
+						{
+							"name": "...",
+							"type": "...any",
+							"description": "Arguments to pass to event handlers"
+						}
+					],
+					"returns": [
+						{
+							"type": "any?",
+							"description": "First non-nil return value from event handlers, or nil"
+						}
+					]
+				}
+			]
+		}
+	],
+	"classes": [
+		{
+			"name": "EventHandler",
+			"description": "Object returned by Autorun.on() to manage event subscriptions",
+			"fields": [
+				{
+					"name": "event",
+					"type": "string",
+					"description": "Name of the event this handler is registered for"
+				},
+				{
+					"name": "id",
+					"type": "integer",
+					"description": "Unique identifier for this handler"
+				}
+			],
+			"methods": [
+				{
+					"name": "remove",
+					"description": "Removes this event handler from the event registry",
+					"parameters": [],
+					"returns": []
+				}
+			]
+		}
+	]
+}

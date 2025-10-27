@@ -1,0 +1,29 @@
+name: Validate API Schema
+
+on:
+    push:
+        paths:
+            - "packages/autorun-env/api.json"
+            - "packages/autorun-env/api.schema.json"
+    pull_request:
+        paths:
+            - "packages/autorun-env/api.json"
+            - "packages/autorun-env/api.schema.json"
+
+jobs:
+    validate:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install ajv-cli
+              run: bun install -g ajv-cli
+
+            - name: Validate API spec against schema
+              run: ajv validate -s packages/autorun-env/api.schema.json -d packages/autorun-env/api.json
