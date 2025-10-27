@@ -1,10 +1,73 @@
 ---
 title: Your Second Lua Plugin
-description: A guide to creating your second Autorun-ng plugin
+description: Working with events to monitor and modify code execution
 ---
 
-## WIP
+import { Aside, Code, Tabs, TabItem, FileTree } from "@astrojs/starlight/components";
 
-While you're here, there's a little bit of documentation in the references.
+## The Golden Snitch Detector
 
-Check those out.
+Let's build a plugin that monitors all Lua code being loaded on the server and alerts you when it contains the text "the golden snitch".
+
+This introduces event handling with `Autorun.on()` and the powerful `loadbuffer` event.
+
+## Setup
+
+Create your plugin structure:
+
+<FileTree>
+    - snitch_detector
+        - src
+            - client
+                - init.lua
+        - plugin.toml
+</FileTree>
+
+<Tabs>
+    <TabItem label="plugin.toml">
+        <Code lang="toml" code={`[plugin]\nname = "snitch_detector"\nauthor = "you"\nversion = "0.1.0"\ndescription = "Detects the golden snitch in loaded code"\nlanguage = "lua"`} />
+    </TabItem>
+</Tabs>
+
+## The loadbuffer Event
+
+The `loadbuffer` event fires whenever Lua code is about to be loaded and executed. This includes addon code, console commands, RunString calls - everything.
+
+See the [Events reference](/Autorun-ng/reference/lua-api/events) for full parameter details.
+
+## Implementation
+
+<Tabs>
+    <TabItem label="client/init.lua">
+        <Code lang="lua" code={`Autorun.on("loadbuffer", function(name, content, mode)\n    if string.find(content, "the golden snitch") then\n        Autorun.print("Found the golden snitch in: " .. name)\n    end\nend)`} />
+    </TabItem>
+</Tabs>
+
+That's it. The event handler receives every piece of code loaded on the server and checks if it contains our target string.
+
+## Going Further
+
+### Counting Occurrences
+
+<Code lang="lua" code={`local snitchCount = 0\n\nAutorun.on("loadbuffer", function(name, content, mode)\n    if string.find(content, "the golden snitch") then\n        snitchCount = snitchCount + 1\n        Autorun.print("Snitch #" .. snitchCount .. " found in: " .. name)\n    end\nend)`} lang="lua" />
+
+### Logging to File
+
+<Code lang="lua" code={`Autorun.on("loadbuffer", function(name, content, mode)\n    if string.find(content, "the golden snitch") then\n        local timestamp = os.date("%Y-%m-%d %H:%M:%S")\n        local log = string.format("[%s] Found in: %s\\n", timestamp, name)\n        \n        -- Read existing log\n        local existing = Autorun.read("snitches.txt") or ""\n        \n        -- Append new entry\n        Autorun.write("snitches.txt", existing .. log)\n        \n        Autorun.print("Logged snitch detection: " .. name)\n    end\nend)`} lang="lua" />
+
+<Aside type="note">
+`Autorun.write()` is restricted to your plugin's `/data/` directory for security. The file will be at `autorun/plugins/snitch_detector/data/snitches.txt`.
+</Aside>
+
+## Performance Considerations
+
+The `loadbuffer` event fires frequently. Keep your handlers fast:
+
+<Tabs>
+    <TabItem label="Bad">
+        <Code lang="lua" code={`Autorun.on("loadbuffer", function(name, content, mode)\n    -- Don't do expensive operations on every single chunk\n    for i = 1, 1000000 do\n        -- Heavy processing\n    end\nend)`} />
+    </TabItem>
+    <TabItem label="Good">
+        <Code lang="lua" code={`Autorun.on("loadbuffer", function(name, content, mode)\n    -- Quick string check, bail early if no match\n    if not string.find(content, "the golden snitch") then\n        return\n    end\n    \n    -- Only do work when needed\n    Autorun.print("Found snitch in: " .. name)\nend)`} />
+    </TabItem>
+</Tabs>

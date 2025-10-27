@@ -51,7 +51,7 @@
 				},
 				{
 					"name": "write",
-					"description": "Writes to a path relative to the active plugin's directory.",
+					"description": "Writes to a path relative to the active plugin's /data/ directory. Cannot write outside /data/ for security reasons.",
 					"parameters": [
 						{
 							"name": "path",
@@ -66,7 +66,7 @@
 				},
 				{
 					"name": "writeAsync",
-					"description": "ASYNCHRONOUSLY writes to a path relative to the active plugin's directory. This is important to avoid blocking the main thread on large writes to avoid detection.",
+					"description": "ASYNCHRONOUSLY writes to a path relative to the active plugin's /data/ directory. Cannot write outside /data/ for security reasons. This is important to avoid blocking the main thread on large writes to avoid detection.",
 					"parameters": [
 						{
 							"name": "path",
