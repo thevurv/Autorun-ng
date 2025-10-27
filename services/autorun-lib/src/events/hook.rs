@@ -22,7 +22,7 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	lua.push(state, mode);
 
 	// todo: handle returns
-	// lua.pcall(state, 4, -1, 0).map_err(|e| anyhow::anyhow!(e))?;
+	lua.pcall(state, 4, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
 
 	// let n_returns = lua.get_top(state);
 	// match n_returns {

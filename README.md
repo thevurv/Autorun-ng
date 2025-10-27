@@ -1,4 +1,4 @@
-# Autorun-ng [![License](https://img.shields.io/github/license/thevurv/Autorun-ng?color=red&labelColor=2c2f33)](https://opensource.org/license/gpl-3-0) [![CI](https://github.com/thevurv/Autorun-ng/workflows/Download/badge.svg)](https://github.com/thevurv/Autorun-ng/actions/workflows/download.yml) [![Discord](https://img.shields.io/discord/1413304078284492823?label=Discord&logo=discord&logoColor=ffffff&labelColor=7289DA&color=2c2f33)](https://discord.gg/cSC3ebaR3q)
+# Autorun-ng [![License](https://img.shields.io/github/license/thevurv/Autorun-ng?label=License&color=red&labelColor=2c2f33)](https://opensource.org/license/gpl-3-0) [![CI](https://github.com/thevurv/Autorun-ng/workflows/Download/badge.svg)](https://github.com/thevurv/Autorun-ng/actions/workflows/download.yml) [![Discord](https://img.shields.io/discord/1413304078284492823?label=Discord&logo=discord&logoColor=ffffff&labelColor=7289DA&color=2c2f33)](https://discord.gg/cSC3ebaR3q) [![Documentation](https://img.shields.io/badge/docs-online-blue?label=Documentation&labelColor=2c2f33)](https://thevurv.github.io/Autorun-ng/)
 
 This is [Autorun](https://github.com/thevurv/Autorun-rs) for the next generation.
 
@@ -16,4 +16,4 @@ This is [Autorun](https://github.com/thevurv/Autorun-rs) for the next generation
 
 ## Documentation
 
-You can find guides and references [here](https://thevurv.github.io/Autorun-ng)
+[The Autorun-ng documentation page can be found here.](https://thevurv.github.io/Autorun-ng)

@@ -98,6 +98,10 @@ impl EnvHandle {
 		lua.push(state, as_env_lua_function!(crate::functions::mkdir));
 		lua.set_table(state, -3);
 
+		lua.push(state, c"append");
+		lua.push(state, as_env_lua_function!(crate::functions::append));
+		lua.set_table(state, -3);
+
         lua.push(state, c"detour");
         lua.push(state, as_env_lua_function!(crate::functions::detour));
         lua.set_table(state, -3);
