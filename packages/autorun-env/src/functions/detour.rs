@@ -1,62 +1,14 @@
 mod raw;
 mod mcode;
 mod conv;
+mod handlers;
+mod userdata;
 
 use retour::GenericDetour;
 use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle, LUA_MULTRET};
 use autorun_types::LuaState;
 use crate::functions::detour::raw::{CallbackTrampoline, RetourLuaTrampoline};
-
-pub struct Detour {
-    detour: Box<retour::GenericDetour<LuaFunction>>,
-    detour_callback: RawHandle,
-    callback_trampoline: CallbackTrampoline,
-    retour_trampoline: RetourLuaTrampoline,
-}
-
-impl IntoLua for Detour {
-    fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-        lua.new_userdata(state, self);
-    }
-}
-
-extern "C-unwind" fn retour_handler(state: *mut LuaState, detour: *const retour::GenericDetour<LuaFunction>) -> i32 {
-    dbg!("retour handler called");
-
-    unsafe {
-        (*detour).call(state)
-    }
-}
-
-extern "C-unwind" fn detour_handler(state: *mut LuaState, metadata: i32, lua_api: *const LuaApi, original_function: *const LuaFunction) -> i32 {
-    let detour_metadata = raw::DetourMetadata::from_packed(metadata);
-    let callback_id = detour_metadata.callback_ref();
-    let num_arguments = detour_metadata.num_arguments();
-
-    dbg!("detour handler called with callback id: {}", callback_id);
-    let lua = unsafe { &*lua_api };
-
-    let callback_handle = RawHandle::from_id(callback_id);
-    callback_handle.push(lua, state);
-    lua.insert(state, 1);
-
-    // add the original function as the first argument
-    unsafe {
-        lua.push_function(state, *original_function);
-        lua.insert(state, 2);
-    }
-
-    let base = lua.get_top(state) - num_arguments - 2; // 2 for the callback and original function
-    if let Err(why) = lua.pcall(state, num_arguments + 1, LUA_MULTRET, 0) {
-        dbg!("Error calling detour callback: {}", why);
-        return 0;
-    }
-
-    let ret_count = lua.get_top(state) - base;
-    dbg!("detour handler returning {} values", ret_count);
-
-    ret_count
-}
+use crate::functions::detour::userdata::Detour;
 
 pub fn detour(
     lua: &LuaApi,
@@ -90,7 +42,7 @@ pub fn detour(
 
     let mut callback_trampoline = callback_trampoline.unwrap();
     unsafe {
-        callback_trampoline.generate_code(detour_callback.get_id(), lua, num_arguments, detour_handler);
+        callback_trampoline.generate_code(detour_callback.get_id(), lua, num_arguments, handlers::detour_handler);
         if callback_trampoline.make_executable().is_err() {
             anyhow::bail!("Failed to make callback trampoline executable.");
         }
@@ -117,7 +69,7 @@ pub fn detour(
 
     let mut retour_trampoline = retour_trampoline.unwrap();
     unsafe {
-        retour_trampoline.generate_code(detour.as_ref() as *const GenericDetour<LuaFunction>, retour_handler);
+        retour_trampoline.generate_code(detour.as_ref() as *const GenericDetour<LuaFunction>, handlers::retour_handler);
         if retour_trampoline.make_executable().is_err() {
             anyhow::bail!("Failed to make retour trampoline executable.");
         }
