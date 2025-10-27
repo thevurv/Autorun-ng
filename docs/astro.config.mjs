@@ -39,8 +39,8 @@ export default defineConfig({
 					label: "Reference",
 					items: [
 						{
-							label: "Developer",
-							autogenerate: { directory: "reference/developer" },
+							label: "Getting Started",
+							autogenerate: { directory: "reference/getting-started" },
 						},
 						{
 							label: "Lua API",
@@ -49,6 +49,10 @@ export default defineConfig({
 						{
 							label: "Native API",
 							autogenerate: { directory: "reference/native-api" },
+						},
+						{
+							label: "Developer",
+							autogenerate: { directory: "reference/developer" },
 						},
 						{
 							label: "Misc",
