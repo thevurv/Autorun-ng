@@ -12,3 +12,6 @@ pub use write_async::*;
 
 mod mkdir;
 pub use mkdir::*;
+
+mod append;
+pub use append::*;

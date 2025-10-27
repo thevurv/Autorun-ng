@@ -9,6 +9,7 @@ description.workspace = true
 thiserror = { workspace = true }
 libloading = { workspace = true }
 anyhow = { workspace = true }
+cap-std = { workspace = true }
 
 autorun-core = { path = "../autorun-core" }
 autorun-types = { path = "../autorun-types" }

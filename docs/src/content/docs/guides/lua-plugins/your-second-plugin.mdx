@@ -53,7 +53,7 @@ That's it. The event handler receives every piece of code loaded on the server a
 
 ### Logging to File
 
-<Code lang="lua" code={`Autorun.on("loadbuffer", function(name, content, mode)\n    if string.find(content, "the golden snitch") then\n        local timestamp = os.date("%Y-%m-%d %H:%M:%S")\n        local log = string.format("[%s] Found in: %s\\n", timestamp, name)\n        \n        -- Read existing log\n        local existing = Autorun.read("snitches.txt") or ""\n        \n        -- Append new entry\n        Autorun.write("snitches.txt", existing .. log)\n        \n        Autorun.print("Logged snitch detection: " .. name)\n    end\nend)`} lang="lua" />
+<Code lang="lua" code={`Autorun.on("loadbuffer", function(name, content, mode)\n    if string.find(content, "the golden snitch") then\n        local timestamp = os.date("%Y-%m-%d %H:%M:%S")\n        local log = string.format("[%s] Found in: %s\\n", timestamp, name)\n        \n        -- Append to log file\n        Autorun.append("snitches.txt", log)\n        \n        Autorun.print("Logged snitch detection: " .. name)\n    end\nend)`} lang="lua" />
 
 <Aside type="note">
 `Autorun.write()` is restricted to your plugin's `/data/` directory for security. The file will be at `autorun/plugins/snitch_detector/data/snitches.txt`.
