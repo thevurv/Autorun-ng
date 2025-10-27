@@ -1,6 +1,8 @@
 use std::ffi::{c_void, c_int};
 use region::Allocation;
 use autorun_lua::{LuaState, LuaFunction, LuaApi};
+use crate::functions::detour::conv::{ArgumentValue, CallingConvention};
+use crate::functions::detour::mcode::MCode;
 
 // In practice, there should never be more than 16 million refs in a single Lua state
 // and I think LuaJIT limits the number of arguments to 255
@@ -8,6 +10,12 @@ use autorun_lua::{LuaState, LuaFunction, LuaApi};
 // There can also be up to 64 bits used, but we dont need that much as of now
 const CALLBACK_REF_BITS: u32 = 24;
 const ARGUMENTS_BITS: u32 = 8;
+
+#[cfg(target_os = "windows")]
+const CALLING_CONVENTION: CallingConvention = CallingConvention::Win64;
+
+#[cfg(target_os = "linux")]
+const CALLING_CONVENTION: CallingConvention = CallingConvention::SysV64;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DetourMetadata(i32);
@@ -63,57 +71,16 @@ impl CallbackTrampoline {
         }
     }
 
-    // Per-OS as calling conventions differ
-    #[cfg(target_os = "windows")]
-    pub unsafe fn generate_code(&mut self, callback_ref: i32, lua: &LuaApi, num_arguments: i32, handler: HandlerType) {
-        unsafe {
-            let lua_ptr = lua as *const LuaApi as usize;
-            let trampoline_ptr = self.allocation.as_mut_ptr::<u8>();
-            let metadata = DetourMetadata::new(callback_ref, num_arguments).0;
-            let mut offset = 0;
+    pub fn generate_code(&mut self, callback_ref: i32, lua: &LuaApi, num_arguments: i32, handler: HandlerType) {
+        let lua_ptr = lua as *const LuaApi as usize;
+        let trampoline_ptr = self.allocation.as_mut_ptr::<u8>();
+        let metadata = DetourMetadata::new(callback_ref, num_arguments).0;
+        let mut mcode = MCode::new(trampoline_ptr, TRAMPOLINE_SIZE);
 
+        CALLING_CONVENTION.write_args(&mut mcode, ArgumentValue::Imm32(metadata as u32), Some(lua_ptr as u64), Some(self.original_function_indirection.as_ptr::<u8>() as u64));
 
-            // mov edx, metadata (only lower 32-bits needed)
-            std::ptr::write(trampoline_ptr.add(offset), 0xBA);
-            offset += 1; // opcode for mov edx, imm32
-            std::ptr::copy_nonoverlapping(&metadata as *const i32 as *const u8, trampoline_ptr.add(offset), 4);
-            offset += 4;
-
-            // mov r8, lua pointer (need to extend to 64-bit with REX prefixa)
-            std::ptr::write(trampoline_ptr.add(offset), 0x49);
-            offset += 1; // REX.W prefix
-            std::ptr::write(trampoline_ptr.add(offset), 0xB8);
-            offset += 1; // opcode for mov r8, imm64
-            std::ptr::copy_nonoverlapping(&lua_ptr as *const usize as *const u8, trampoline_ptr.add(offset), 8);
-            offset += 8;
-
-
-            // mov r9, original function pointer (need to extend to 64-bit with REX prefix)
-            std::ptr::write(trampoline_ptr.add(offset), 0x49);
-            offset += 1; // REX.W prefix
-            std::ptr::write(trampoline_ptr.add(offset), 0xB9);
-            offset += 1; // opcode for mov r9, imm64
-            let original_func_ptr = self.original_function_indirection.as_ptr::<u8>() as usize;
-            std::ptr::copy_nonoverlapping(&original_func_ptr as *const usize as *const u8, trampoline_ptr.add(offset), 8);
-            offset += 8;
-
-            // mov rax, handler address (need to extend to 64-bit with REX prefix)
-            std::ptr::write(trampoline_ptr.add(offset), 0x48);
-            offset += 1; // REX.W prefix
-            std::ptr::write(trampoline_ptr.add(offset), 0xB8);
-            offset += 1; // opcode for mov rax, imm
-            let handler_addr = handler as usize;
-            std::ptr::copy_nonoverlapping(&handler_addr as *const usize as *const u8, trampoline_ptr.add(offset), 8);
-            offset += 8;
-
-            // jmp rax
-            std::ptr::write(trampoline_ptr.add(offset), 0xFF);
-            offset += 1; // opcode for jmp r/m64
-            std::ptr::write(trampoline_ptr.add(offset), 0xE0);
-            offset += 1; // modrm byte for jmp rax
-
-            debug_assert!(offset <= TRAMPOLINE_SIZE, "Trampoline code exceeds allocated size");
-        }
+        mcode.write_mov_rax_imm64(handler as u64);
+        mcode.write_jmp_rax();
     }
 
     pub fn write_original_function_pointer(&mut self, func: LuaFunction) {
@@ -154,40 +121,15 @@ impl RetourLuaTrampoline {
         }
     }
 
-    // Per-OS as calling conventions differ
-    #[cfg(target_os = "windows")]
     pub unsafe fn generate_code(&mut self, detour_ptr: *const retour::GenericDetour<LuaFunction>, handler: RetourHandlerType) {
-        unsafe {
-            let trampoline_ptr = self.allocation.as_mut_ptr::<u8>();
-            let detour_ptr_usize = detour_ptr as usize;
-            let mut offset = 0;
+        let trampoline_ptr = self.allocation.as_mut_ptr::<u8>();
+        let detour_ptr_usize = detour_ptr as usize;
+        let mut mcode = MCode::new(trampoline_ptr, TRAMPOLINE_SIZE);
 
-            // mov rdx, detour_ptr (need to extend to 64-bit with REX prefix)
-            std::ptr::write(trampoline_ptr.add(offset), 0x48);
-            offset += 1; // REX.W prefix
-            std::ptr::write(trampoline_ptr.add(offset), 0xBA);
-            offset += 1; // opcode for mov rdx, imm64
-            std::ptr::copy_nonoverlapping(&detour_ptr_usize as *const usize as *const u8, trampoline_ptr.add(offset), 8);
-            offset += 8;
+        CALLING_CONVENTION.write_args(&mut mcode, ArgumentValue::Imm64(detour_ptr_usize as u64), None, None);
 
-            // mov rax, handler address (need to extend to 64-bit with REX prefix)
-            std::ptr::write(trampoline_ptr.add(offset), 0x48);
-            offset += 1; // REX.W prefix
-            std::ptr::write(trampoline_ptr.add(offset), 0xB8);
-            offset += 1; // opcode for mov rax, imm
-            let handler_addr = handler as usize;
-            std::ptr::copy_nonoverlapping(&handler_addr as *const usize as *const u8, trampoline_ptr.add(offset), 8);
-            offset += 8;
-
-            // jmp rax
-            std::ptr::write(trampoline_ptr.add(offset), 0xFF);
-            offset += 1; // opcode for jmp r/m64
-            std::ptr::write(trampoline_ptr.add(offset), 0xE0);
-            offset += 1; // modrm byte for jmp rax
-
-            debug_assert!(offset <= TRAMPOLINE_SIZE, "Retour trampoline code exceeds allocated size");
-        }
-
+        mcode.write_mov_rax_imm64(handler as u64);
+        mcode.write_jmp_rax();
     }
 
     pub fn as_function(&self) -> LuaFunction {

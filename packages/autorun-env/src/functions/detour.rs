@@ -1,4 +1,6 @@
 mod raw;
+mod mcode;
+mod conv;
 
 use retour::GenericDetour;
 use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle, LUA_MULTRET};
