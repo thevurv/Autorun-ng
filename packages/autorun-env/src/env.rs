@@ -106,6 +106,14 @@ impl EnvHandle {
         lua.push(state, as_env_lua_function!(crate::functions::detour));
         lua.set_table(state, -3);
 
+        lua.push(state, c"detour_enable");
+        lua.push(state, as_env_lua_function!(crate::functions::detour_enable));
+        lua.set_table(state, -3);
+
+        lua.push(state, c"detour_disable");
+        lua.push(state, as_env_lua_function!(crate::functions::detour_disable));
+        lua.set_table(state, -3);
+
 		lua.push(state, c"VERSION");
 		lua.push(state, env!("CARGO_PKG_VERSION").to_string());
 		lua.set_table(state, -3);

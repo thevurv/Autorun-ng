@@ -10,6 +10,8 @@ use autorun_types::LuaState;
 use crate::functions::detour::raw::{CallbackTrampoline, RetourLuaTrampoline};
 use crate::functions::detour::userdata::Detour;
 
+pub use userdata::{detour_enable, detour_disable};
+
 pub fn detour(
     lua: &LuaApi,
     state: *mut LuaState,
