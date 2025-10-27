@@ -12,3 +12,7 @@ pub use write_async::*;
 
 mod mkdir;
 pub use mkdir::*;
+
+mod detour;
+pub use detour::*;
+

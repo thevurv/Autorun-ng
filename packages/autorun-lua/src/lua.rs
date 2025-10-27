@@ -23,6 +23,7 @@ pub struct DebugInfo {
 pub const GLOBALS_INDEX: c_int = -10002;
 pub const ENVIRON_INDEX: c_int = -10001;
 pub const REGISTRY_INDEX: c_int = -10000;
+pub const LUA_MULTRET: c_int = -1;
 
 const LUA_OK: c_int = 0;
 const LUA_YIELD: c_int = 1;
@@ -165,7 +166,7 @@ define_lua_api! {
 	#[name = "lua_tointeger"]
 	pub fn to_integer(state: *mut LuaState, index: c_int) -> c_int;
 	#[name = "lua_tocfunction"]
-	pub fn to_function(state: *mut LuaState, index: c_int) -> LuaFunction;
+	pub fn to_function(state: *mut LuaState, index: c_int) -> Option<LuaFunction>;
 
 	#[name = "lua_xmove"]
 	pub fn xmove(from: *mut LuaState, to: *mut LuaState, n: c_int);

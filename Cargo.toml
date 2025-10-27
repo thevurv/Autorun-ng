@@ -20,3 +20,4 @@ cap-std = { version = "3.4.4" }
 serde = { version = "1.0.219", features = ["derive"] }
 interprocess = "2.2.3"
 nanoserde = { version = "0.2.1", default-features = false, features = ["binary"] }
+retour = { git = "https://github.com/thevurv/retour-rs" }

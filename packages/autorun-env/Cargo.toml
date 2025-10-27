@@ -9,9 +9,12 @@ description.workspace = true
 thiserror = { workspace = true }
 libloading = { workspace = true }
 anyhow = { workspace = true }
+retour = { workspace = true }
 
 autorun-core = { path = "../autorun-core" }
 autorun-types = { path = "../autorun-types" }
 autorun-lua = { path = "../autorun-lua" }
 autorun-log = { path = "../autorun-log" }
 autorun-interfaces = { path = "../autorun-interfaces" }
+
+region = "3.0.2"
