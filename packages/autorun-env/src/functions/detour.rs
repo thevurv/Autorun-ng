@@ -23,10 +23,9 @@ pub fn detour(
     }
 
     let target_function = target_function.unwrap();
-    let num_arguments = lua.check_number(state, 2) as i32;
 
-    if lua.type_id(state, 3) != LuaTypeId::Function {
-        anyhow::bail!("Third argument must be a function to use as detour.");
+    if lua.type_id(state, 2) != LuaTypeId::Function {
+        anyhow::bail!("Second argument must be a function to use as detour.");
     }
 
     let detour_callback = RawHandle::from_stack(lua, state);
@@ -44,7 +43,7 @@ pub fn detour(
 
     let mut callback_trampoline = callback_trampoline.unwrap();
     unsafe {
-        callback_trampoline.generate_code(detour_callback.get_id(), lua, num_arguments, handlers::detour_handler);
+        callback_trampoline.generate_code(detour_callback.get_id(), lua, handlers::detour_handler);
         if callback_trampoline.make_executable().is_err() {
             anyhow::bail!("Failed to make callback trampoline executable.");
         }

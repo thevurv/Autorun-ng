@@ -15,9 +15,12 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
 Autorun.print("Detour: " .. tostring(Autorun.detour))
-testDetour = Autorun.detour(_G.DamageInfo, 0, function(orig)
+testDetour = Autorun.detour(_G.game.GetIPAddress, function(orig, ...)
     Autorun.print("Autorun.detour is working! Calling original function...")
     _G.print("Hi from autorun detour! Returning original value.")
+    local args = {...}
+    _G.print("Arguments passed to game.GetIPAddress: ")
+    _G.PrintTable(args)
     return orig()
 end)
 

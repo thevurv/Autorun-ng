@@ -5,11 +5,10 @@ use crate::functions::detour::conv::{ArgumentValue, CallingConvention};
 use crate::functions::detour::mcode::MCode;
 
 // In practice, there should never be more than 16 million refs in a single Lua state
-// and I think LuaJIT limits the number of arguments to 255
 //
 // There can also be up to 64 bits used, but we dont need that much as of now
 const CALLBACK_REF_BITS: u32 = 24;
-const ARGUMENTS_BITS: u32 = 8;
+const RESERVED_BITS: u32 = 8;
 
 #[cfg(target_os = "windows")]
 const CALLING_CONVENTION: CallingConvention = CallingConvention::Win64;
@@ -21,9 +20,9 @@ const CALLING_CONVENTION: CallingConvention = CallingConvention::SysV64;
 pub struct DetourMetadata(i32);
 
 impl DetourMetadata {
-    pub fn new(callback_ref: i32, num_arguments: i32) -> Self {
-        let packed = ((callback_ref & ((1 << CALLBACK_REF_BITS) - 1)) << ARGUMENTS_BITS)
-            | (num_arguments & ((1 << ARGUMENTS_BITS) - 1));
+    pub fn new(callback_ref: i32, reserved: i32) -> Self {
+        let packed = ((callback_ref & ((1 << CALLBACK_REF_BITS) - 1)) << RESERVED_BITS)
+            | (reserved & ((1 << RESERVED_BITS) - 1));
         Self(packed)
     }
 
@@ -32,11 +31,11 @@ impl DetourMetadata {
     }
 
     pub fn callback_ref(&self) -> i32 {
-        (self.0 >> ARGUMENTS_BITS) & ((1 << CALLBACK_REF_BITS) - 1)
+        (self.0 >> RESERVED_BITS) & ((1 << CALLBACK_REF_BITS) - 1)
     }
 
-    pub fn num_arguments(&self) -> i32 {
-        self.0 & ((1 << ARGUMENTS_BITS) - 1)
+    pub fn reserved(&self) -> i32 {
+        self.0 & ((1 << RESERVED_BITS) - 1)
     }
 }
 
@@ -71,10 +70,10 @@ impl CallbackTrampoline {
         }
     }
 
-    pub fn generate_code(&mut self, callback_ref: i32, lua: &LuaApi, num_arguments: i32, handler: HandlerType) {
+    pub fn generate_code(&mut self, callback_ref: i32, lua: &LuaApi, handler: HandlerType) {
         let lua_ptr = lua as *const LuaApi as usize;
         let trampoline_ptr = self.allocation.as_mut_ptr::<u8>();
-        let metadata = DetourMetadata::new(callback_ref, num_arguments).0;
+        let metadata = DetourMetadata::new(callback_ref, 0).0;
         let mut mcode = MCode::new(trampoline_ptr, TRAMPOLINE_SIZE);
 
         CALLING_CONVENTION.write_args(&mut mcode, ArgumentValue::Imm32(metadata as u32), Some(lua_ptr as u64), Some(self.original_function_indirection.as_ptr::<u8>() as u64));
