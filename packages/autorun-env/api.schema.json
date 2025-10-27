@@ -15,6 +15,12 @@
 			"items": {
 				"$ref": "#/definitions/class"
 			}
+		},
+		"events": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/event"
+			}
 		}
 	},
 	"required": ["namespaces"],
@@ -142,6 +148,39 @@
 				}
 			},
 			"required": ["name"]
+		},
+		"event": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "Name of the event (e.g., 'loadbuffer')"
+				},
+				"description": {
+					"type": "string",
+					"description": "Description of when and why the event is triggered"
+				},
+				"realm": {
+					"type": "string",
+					"enum": ["menu", "shared", "client"],
+					"description": "Which realm(s) the event is available in"
+				},
+				"parameters": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/parameter"
+					},
+					"description": "Parameters passed to the event callback"
+				},
+				"returns": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/returnValue"
+					},
+					"description": "Values that can be returned from the event callback to modify behavior"
+				}
+			},
+			"required": ["name", "realm"]
 		}
 	}
 }

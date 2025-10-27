@@ -27,31 +27,34 @@ export default defineConfig({
 					items: [
 						{
 							label: "Lua Plugins",
-							items: [
-								{
-									label: "Your First Plugin",
-									slug: "guides/your-first-plugin",
-								},
-								{
-									label: "Your Second Plugin",
-									slug: "guides/your-second-plugin",
-								},
-							],
+							autogenerate: { directory: "guides/lua-plugins" },
 						},
 						{
 							label: "Native Plugins",
-							items: [
-								{
-									label: "Your First Native Plugin",
-									slug: "guides/your-first-native-plugin",
-								},
-							],
+							autogenerate: { directory: "guides/native-plugins" },
 						},
 					],
 				},
 				{
 					label: "Reference",
-					autogenerate: { directory: "reference" },
+					items: [
+						{
+							label: "Developer",
+							autogenerate: { directory: "reference/developer" },
+						},
+						{
+							label: "Lua API",
+							autogenerate: { directory: "reference/lua-api" },
+						},
+						{
+							label: "Native API",
+							autogenerate: { directory: "reference/native-api" },
+						},
+						{
+							label: "Misc",
+							autogenerate: { directory: "reference/misc" },
+						},
+					],
 				},
 			],
 		}),

@@ -1,0 +1,75 @@
+---
+title: Classes
+description: Classes in Autorun's Lua API
+---
+
+import { Aside, Card, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import apiData from '../../../../../../packages/autorun-env/api.json';
+import { formatParameters, formatReturns } from '../../../../utils/api-formatter';
+
+{apiData.classes && apiData.classes.map(cls => (
+  <div key={cls.name}>
+    <h2><code>{cls.name}</code></h2>
+    <p>{cls.description}</p>
+
+    {cls.fields && cls.fields.length > 0 && (
+      <>
+        <h3>Fields</h3>
+        {cls.fields.map((field, index) => (
+          <div key={field.name}>
+            <h4><code>{field.name}</code></h4>
+            <Code code={`${cls.name}.${field.name}: ${field.type}`} lang="lua" />
+            <p>{field.description}</p>
+            {index < cls.fields.length - 1 && <hr style={{ margin: '2rem 0' }} />}
+          </div>
+        ))}
+      </>
+    )}
+
+    {cls.methods && cls.methods.length > 0 && (
+      <>
+        <h3>Methods</h3>
+        {cls.methods.map(method => (
+          <div key={method.name}>
+            <h4><code>{method.name}</code></h4>
+            <Code
+              code={`${cls.name}:${method.name}(${formatParameters(method.parameters)}): ${formatReturns(method.returns)}`}
+              lang="lua"
+            />
+            <p>{method.description}</p>
+
+            {method.parameters && method.parameters.length > 0 && (
+              <>
+                <p><strong>Parameters:</strong></p>
+                <ul>
+                  {method.parameters.map((param, i) => (
+                    <li key={i}>
+                      <code>{param.name}</code> (<code>{param.type}</code>)
+                      {param.description && ` - ${param.description}`}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {method.returns && method.returns.length > 0 && (
+              <>
+                <p><strong>Returns:</strong></p>
+                <ul>
+                  {method.returns.map((ret, i) => (
+                    <li key={i}>
+                      <code>{ret.type}</code>
+                      {ret.description && ` - ${ret.description}`}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            <hr style={{ margin: '2rem 0' }} />
+          </div>
+        ))}
+      </>
+    )}
+  </div>
+))}

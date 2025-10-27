@@ -197,5 +197,35 @@
 				}
 			]
 		}
+	],
+	"events": [
+		{
+			"name": "loadbuffer",
+			"description": "Called when Lua code is about to be loaded and executed. Can be used to modify, block, or replace the code before execution.",
+			"realm": "client",
+			"parameters": [
+				{
+					"name": "name",
+					"type": "string",
+					"description": "Name/identifier of the chunk being loaded"
+				},
+				{
+					"name": "content",
+					"type": "string",
+					"description": "The Lua code content to be executed"
+				},
+				{
+					"name": "mode",
+					"type": "string",
+					"description": "Load mode ('t' for text, 'b' for binary, 'bt' for both)"
+				}
+			],
+			"returns": [
+				{
+					"type": "boolean | string | nil",
+					"description": "Return true to block execution, return a string to replace the code, or return nil to allow normal execution"
+				}
+			]
+		}
 	]
 }

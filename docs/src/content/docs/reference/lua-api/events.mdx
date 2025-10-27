@@ -1,0 +1,76 @@
+---
+title: Events
+description: Events in Autorun's Lua API
+---
+
+import { Aside, Card, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import apiData from '../../../../../../packages/autorun-env/api.json';
+import { formatParameters, formatReturns } from '../../../../utils/api-formatter';
+
+export function getRealmEmoji(realm) {
+    if (realm === 'shared') return '🟢🟠';
+    if (realm === 'menu') return '🟢';
+    if (realm === 'client') return '🟠';
+    return '';
+}
+
+<Aside type="note">
+Events can be listened to using `Autorun.on(eventName, callback)`. The callback's return value can modify event behavior.
+</Aside>
+
+{apiData.events && apiData.events.map(event => (
+  <div key={event.name}>
+    <h2>{getRealmEmoji(event.realm)} <code>{event.name}</code></h2>
+
+    <p>{event.description}</p>
+
+    {event.parameters && event.parameters.length > 0 && (
+      <>
+        <h3>Parameters</h3>
+        <ul>
+          {event.parameters.map((param, i) => (
+            <li key={i}>
+              <code>{param.name}: {param.type}</code>
+              {param.description && ` - ${param.description}`}
+            </li>
+          ))}
+        </ul>
+      </>
+    )}
+
+    {event.returns && event.returns.length > 0 && (
+      <>
+        <h3>Returns</h3>
+        <ul>
+          {event.returns.map((ret, i) => (
+            <li key={i}>
+              <code>{ret.type}</code>
+              {ret.description && ` - ${ret.description}`}
+            </li>
+          ))}
+        </ul>
+      </>
+    )}
+
+    <h3>Example</h3>
+    <Code
+      code={`Autorun.on("${event.name}", function(${event.parameters ? event.parameters.map(p => p.name).join(', ') : ''})\n    -- Your event handler code here\nend)\n\n`}
+      lang="lua"
+    />
+
+    <hr style={{ margin: '2rem 0' }} />
+  </div>
+))}
+
+## Custom Events
+
+You can create and trigger your own custom events using `Autorun.trigger()`.
+
+<Code
+  code={`-- Trigger a custom event\nAutorun.trigger("myCustomEvent", arg1, arg2, arg3)\n\n-- Listen to the custom event\nAutorun.on("myCustomEvent", function(arg1, arg2, arg3)\n    Autorun.print("Custom event triggered!", arg1, arg2, arg3)\nend)`}
+  lang="lua"
+/>
+
+<Aside type="tip">
+Custom events are useful for communication between different parts of your plugin or between multiple plugins.
+</Aside>

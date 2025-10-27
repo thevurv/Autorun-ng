@@ -1,0 +1,75 @@
+---
+title: Namespaces
+description: Namespaces in Autorun's Lua API
+---
+
+import { Aside, Card, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import apiData from '../../../../../../packages/autorun-env/api.json';
+import { formatParameters, formatReturns } from '../../../../utils/api-formatter';
+
+{apiData.namespaces.map(namespace => (
+  <div key={namespace.name}>
+    <h2><code>{namespace.name}</code></h2>
+    <p>{namespace.description}</p>
+
+    {namespace.fields && namespace.fields.length > 0 && (
+      <>
+        <h3>Fields</h3>
+        {namespace.fields.map((field, index) => (
+          <div key={field.name}>
+            <h4><code>{namespace.name}.{field.name}</code></h4>
+            <Code code={`${namespace.name}.${field.name}: ${field.type}`} lang="lua" />
+            <p>{field.description}</p>
+            {index < namespace.fields.length - 1 && <hr style={{ margin: '2rem 0' }} />}
+          </div>
+        ))}
+      </>
+    )}
+
+    {namespace.functions && namespace.functions.length > 0 && (
+      <>
+        <h3>Functions</h3>
+        {namespace.functions.map(func => (
+          <div key={func.name}>
+            <h4><code>{func.name}</code></h4>
+            <Code
+              code={`${namespace.name}.${func.name}(${formatParameters(func.parameters)}): ${formatReturns(func.returns)}`}
+              lang="lua"
+            />
+            <p>{func.description}</p>
+
+            {func.parameters && func.parameters.length > 0 && (
+              <>
+                <p><strong>Parameters:</strong></p>
+                <ul>
+                  {func.parameters.map((param, i) => (
+                    <li key={i}>
+                      <code>{param.name}: {param.type}</code>
+                      {param.description && ` - ${param.description}`}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {func.returns && func.returns.length > 0 && (
+              <>
+                <p><strong>Returns:</strong></p>
+                <ul>
+                  {func.returns.map((ret, i) => (
+                    <li key={i}>
+                      <code>{ret.type}</code>
+                      {ret.description && ` - ${ret.description}`}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            <hr style={{ margin: '2rem 0' }} />
+          </div>
+        ))}
+      </>
+    )}
+  </div>
+))}
