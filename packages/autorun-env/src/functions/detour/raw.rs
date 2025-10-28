@@ -41,7 +41,7 @@ type HandlerType = extern "C-unwind" fn(
 	state: *mut LuaState,
 	metadata: i32,
 	lua: *const LuaApi,
-	orignal_function: *const LuaFunction,
+	original_function: *const LuaFunction,
 ) -> c_int;
 type RetourHandlerType = extern "C-unwind" fn(state: *mut LuaState, detour: *const retour::GenericDetour<LuaFunction>) -> c_int;
 
