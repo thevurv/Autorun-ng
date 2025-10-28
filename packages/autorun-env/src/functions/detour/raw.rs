@@ -1,8 +1,7 @@
 use autorun_jit::{Arg, CallingConvention, Jump};
-use std::ffi::{c_void, c_int};
+use std::ffi::{c_int};
 use autorun_jit::Function;
 use autorun_lua::{LuaState, LuaFunction, LuaApi};
-use crate::functions::detour::mcode::MCode;
 
 const CALLBACK_REF_BITS: u32 = 24;
 const RESERVED_BITS: u32 = 8;
