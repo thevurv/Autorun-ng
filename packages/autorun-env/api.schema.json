@@ -36,6 +36,11 @@
 					"type": "string",
 					"description": "Description of the namespace"
 				},
+				"realm": {
+					"type": "string",
+					"enum": ["menu", "shared", "client"],
+					"description": "Which realm(s) the namespace is available in"
+				},
 				"fields": {
 					"type": "array",
 					"items": {
@@ -49,7 +54,7 @@
 					}
 				}
 			},
-			"required": ["name"]
+			"required": ["name", "realm"]
 		},
 		"field": {
 			"type": "object",
@@ -63,9 +68,14 @@
 				},
 				"description": {
 					"type": "string"
+				},
+				"realm": {
+					"type": "string",
+					"enum": ["menu", "shared", "client"],
+					"description": "Which realm(s) the field is available in"
 				}
 			},
-			"required": ["name", "type"]
+			"required": ["name", "type", "realm"]
 		},
 		"function": {
 			"type": "object",
@@ -75,6 +85,11 @@
 				},
 				"description": {
 					"type": "string"
+				},
+				"realm": {
+					"type": "string",
+					"enum": ["menu", "shared", "client"],
+					"description": "Which realm(s) the function is available in"
 				},
 				"parameters": {
 					"type": "array",
@@ -89,7 +104,7 @@
 					}
 				}
 			},
-			"required": ["name"]
+			"required": ["name", "realm"]
 		},
 		"parameter": {
 			"type": "object",
@@ -134,6 +149,11 @@
 					"type": "string",
 					"description": "Description of the class"
 				},
+				"realm": {
+					"type": "string",
+					"enum": ["menu", "shared", "client"],
+					"description": "Which realm(s) the class is available in"
+				},
 				"fields": {
 					"type": "array",
 					"items": {
@@ -147,7 +167,7 @@
 					}
 				}
 			},
-			"required": ["name"]
+			"required": ["name", "realm"]
 		},
 		"event": {
 			"type": "object",

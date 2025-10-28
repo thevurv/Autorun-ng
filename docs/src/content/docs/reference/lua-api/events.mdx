@@ -1,26 +1,17 @@
 ---
 title: Events
 description: Events in Autorun's Lua API
+tableOfContents: false
 ---
 
 import { Aside, Card, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import RealmBadge from '../../../../components/RealmBadge.astro';
 import apiData from '../../../../../../packages/autorun-env/api.json';
 import { formatParameters, formatReturns } from '../../../../utils/api-formatter';
 
-export function getRealmEmoji(realm) {
-    if (realm === 'shared') return '🟢🟠';
-    if (realm === 'menu') return '🟢';
-    if (realm === 'client') return '🟠';
-    return '';
-}
-
-<Aside type="note">
-Events can be listened to using `Autorun.on(eventName, callback)`. The callback's return value can modify event behavior.
-</Aside>
-
 {apiData.events && apiData.events.map(event => (
   <div key={event.name}>
-    <h2>{getRealmEmoji(event.realm)} <code>{event.name}</code></h2>
+    <h2><RealmBadge realm={event.realm} /> <code>{event.name}</code></h2>
 
     <p>{event.description}</p>
 

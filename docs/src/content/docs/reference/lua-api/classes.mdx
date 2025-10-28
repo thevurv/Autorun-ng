@@ -1,15 +1,17 @@
 ---
 title: Classes
 description: Classes in Autorun's Lua API
+tableOfContents: false
 ---
 
 import { Aside, Card, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import RealmBadge from '../../../../components/RealmBadge.astro';
 import apiData from '../../../../../../packages/autorun-env/api.json';
 import { formatParameters, formatReturns } from '../../../../utils/api-formatter';
 
 {apiData.classes && apiData.classes.map(cls => (
   <div key={cls.name}>
-    <h2><code>{cls.name}</code></h2>
+    <h2><RealmBadge realm={cls.realm} /> <code>{cls.name}</code></h2>
     <p>{cls.description}</p>
 
     {cls.fields && cls.fields.length > 0 && (
@@ -17,8 +19,7 @@ import { formatParameters, formatReturns } from '../../../../utils/api-formatter
         <h3>Fields</h3>
         {cls.fields.map((field, index) => (
           <div key={field.name}>
-            <h4><code>{field.name}</code></h4>
-            <Code code={`${cls.name}.${field.name}: ${field.type}`} lang="lua" />
+            <h4><RealmBadge realm={field.realm} /> <code>{field.name}: {field.type}</code></h4>
             <p>{field.description}</p>
             {index < cls.fields.length - 1 && <hr style={{ margin: '2rem 0' }} />}
           </div>
@@ -29,13 +30,11 @@ import { formatParameters, formatReturns } from '../../../../utils/api-formatter
     {cls.methods && cls.methods.length > 0 && (
       <>
         <h3>Methods</h3>
+        <hr />
+        <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
         {cls.methods.map(method => (
           <div key={method.name}>
-            <h4><code>{method.name}</code></h4>
-            <Code
-              code={`${cls.name}:${method.name}(${formatParameters(method.parameters)}): ${formatReturns(method.returns)}`}
-              lang="lua"
-            />
+            <h4><RealmBadge realm={method.realm} /> <code>{method.name}({formatParameters(method.parameters)}): {formatReturns(method.returns)}</code></h4>
             <p>{method.description}</p>
 
             {method.parameters && method.parameters.length > 0 && (
@@ -65,10 +64,9 @@ import { formatParameters, formatReturns } from '../../../../utils/api-formatter
                 </ul>
               </>
             )}
-
-            <hr style={{ margin: '2rem 0' }} />
           </div>
         ))}
+        </div>
       </>
     )}
   </div>
