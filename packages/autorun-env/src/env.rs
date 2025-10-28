@@ -106,12 +106,20 @@ impl EnvHandle {
         lua.push(state, as_env_lua_function!(crate::functions::detour));
         lua.set_table(state, -3);
 
-        lua.push(state, c"detour_enable");
+        lua.push(state, c"enable_detour");
         lua.push(state, as_env_lua_function!(crate::functions::detour_enable));
         lua.set_table(state, -3);
 
-        lua.push(state, c"detour_disable");
+        lua.push(state, c"disable_detour");
         lua.push(state, as_env_lua_function!(crate::functions::detour_disable));
+        lua.set_table(state, -3);
+
+        lua.push(state, c"remove_detour");
+        lua.push(state, as_env_lua_function!(crate::functions::detour_remove));
+        lua.set_table(state, -3);
+
+        lua.push(state, c"get_original_function");
+        lua.push(state, as_env_lua_function!(crate::functions::detour_get_original));
         lua.set_table(state, -3);
 
 		lua.push(state, c"VERSION");
