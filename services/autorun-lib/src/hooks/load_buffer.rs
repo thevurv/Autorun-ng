@@ -82,7 +82,7 @@ pub fn disable() {
 pub fn enable() {
 	if let Some(detour) = LOAD_BUFFER_H.get() {
 		unsafe {
-			detour.disable().unwrap();
+			detour.enable().unwrap();
 		}
 	}
 }
