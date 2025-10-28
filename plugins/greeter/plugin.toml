@@ -1,0 +1,6 @@
+[plugin]
+name = "greeter"
+author = "vurv"
+version = "0.1.0"
+description = "Greets you in the menu upon startup"
+language = "lua"

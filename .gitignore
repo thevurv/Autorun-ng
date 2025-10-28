@@ -8,7 +8,4 @@ Cargo.lock
 .zed
 .idea
 
-release/*
-!release/autorun
-release/autorun/*
-!release/autorun/plugins
+release
