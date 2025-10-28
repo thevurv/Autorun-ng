@@ -1,12 +1,9 @@
+use autorun_jit::{Arg, CallingConvention, Jump};
 use std::ffi::{c_void, c_int};
-use region::Allocation;
+use autorun_jit::Function;
 use autorun_lua::{LuaState, LuaFunction, LuaApi};
-use crate::functions::detour::conv::{ArgumentValue, CallingConvention};
 use crate::functions::detour::mcode::MCode;
 
-// In practice, there should never be more than 16 million refs in a single Lua state
-//
-// There can also be up to 64 bits used, but we dont need that much as of now
 const CALLBACK_REF_BITS: u32 = 24;
 const RESERVED_BITS: u32 = 8;
 
@@ -19,6 +16,8 @@ const CALLING_CONVENTION: CallingConvention = CallingConvention::SysV64;
 #[derive(Debug, Clone, Copy)]
 pub struct DetourMetadata(i32);
 
+// Register-sized metadata passed to the detour handler, encodes a callback reference and reserved bits
+// In the future, we can use these for flags or other data, but for now they are unused.
 impl DetourMetadata {
     pub fn new(callback_ref: i32, reserved: i32) -> Self {
         let packed = ((callback_ref & ((1 << CALLBACK_REF_BITS) - 1)) << RESERVED_BITS)
@@ -44,94 +43,43 @@ type RetourHandlerType = extern "C-unwind" fn(state: *mut LuaState, detour: *con
 
 const TRAMPOLINE_SIZE: usize = 64;
 
-pub struct CallbackTrampoline {
-    allocation: Allocation,
-    // Used to send a function pointer to a C function that will call the original function via indirection
-    // to break a circular dependency
-    original_function_indirection: Allocation
+pub fn make_detour_trampoline(lua: &LuaApi, callback_ref: i32, original_function_ptr: *const usize, handler: HandlerType) -> anyhow::Result<Function> {
+    let mut trampoline = Function::allocate(TRAMPOLINE_SIZE);
+    let metadata = DetourMetadata::new(callback_ref, 0).0;
+    let lua_ptr = lua as *const LuaApi as usize;
+
+    CALLING_CONVENTION.emit_call(
+        &mut trampoline.mcode,
+        &vec![
+            None, // don't overwrite the lua_State pointer
+            Some(Arg::Imm32(metadata as u32)), // metadata
+            Some(Arg::Imm64(lua_ptr as u64)), // lua api pointer
+            Some(Arg::Imm64(original_function_ptr as u64)), // original function pointer
+        ]
+    );
+
+    let jmp = Jump::Absolute(handler as u64);
+    jmp.write_to_mcode(&mut trampoline.mcode);
+
+    trampoline.make_executable().map_err(|_| anyhow::anyhow!("Failed to make detour trampoline executable"))?;
+    Ok(trampoline)
 }
 
-impl CallbackTrampoline {
-    pub fn allocate() -> anyhow::Result<Self> {
-        let trampoline = region::alloc(TRAMPOLINE_SIZE, region::Protection::READ_WRITE);
-        let original_function_indirection = region::alloc(std::mem::size_of::<usize>(), region::Protection::READ_WRITE);
+pub fn make_retour_lua_trampoline(detour_ptr: *const retour::GenericDetour<LuaFunction>, handler: RetourHandlerType) -> anyhow::Result<Function> {
+    let mut trampoline = Function::allocate(TRAMPOLINE_SIZE);
+    let detour_ptr_usize = detour_ptr as usize;
 
-        if let Ok(allocation) = trampoline && let Ok(original_function_indirection) = original_function_indirection {
-            Ok(Self { allocation, original_function_indirection } )
-        } else {
-            Err(anyhow::anyhow!("Failed to allocate trampoline"))
-        }
-    }
+    CALLING_CONVENTION.emit_call(
+        &mut trampoline.mcode,
+        &vec![
+            None, // don't overwrite the lua_State pointer
+            Some(Arg::Imm64(detour_ptr_usize as u64)), // detour pointer
+        ]
+    );
 
-    pub unsafe fn make_executable(&mut self) -> anyhow::Result<()> {
-        unsafe {
-            region::protect(self.allocation.as_ptr::<c_void>(), TRAMPOLINE_SIZE, region::Protection::READ_EXECUTE)
-                .map_err(|_| anyhow::anyhow!("Failed to set trampoline as executable"))
-        }
-    }
+    let jmp = Jump::Absolute(handler as u64);
+    jmp.write_to_mcode(&mut trampoline.mcode);
 
-    pub fn generate_code(&mut self, callback_ref: i32, lua: &LuaApi, handler: HandlerType) {
-        let lua_ptr = lua as *const LuaApi as usize;
-        let trampoline_ptr = self.allocation.as_mut_ptr::<u8>();
-        let metadata = DetourMetadata::new(callback_ref, 0).0;
-        let mut mcode = MCode::new(trampoline_ptr, TRAMPOLINE_SIZE);
-
-        CALLING_CONVENTION.write_args(&mut mcode, ArgumentValue::Imm32(metadata as u32), Some(lua_ptr as u64), Some(self.original_function_indirection.as_ptr::<u8>() as u64));
-
-        mcode.write_mov_rax_imm64(handler as u64);
-        mcode.write_jmp_rax();
-    }
-
-    pub fn write_original_function_pointer(&mut self, func: LuaFunction) {
-        unsafe {
-            let func_ptr = func as usize;
-            std::ptr::copy_nonoverlapping(&func_ptr as *const usize as *const u8, self.original_function_indirection.as_mut_ptr::<u8>(), std::mem::size_of::<usize>());
-        }
-    }
-}
-
-impl Into<LuaFunction> for &CallbackTrampoline {
-    fn into(self) -> LuaFunction {
-        unsafe { std::mem::transmute(self.allocation.as_ptr::<c_void>()) }
-    }
-}
-
-// A JIT-ed trampoline to call an original C function as a Lua C function
-// Requires a retour detour at a specific location to jump to this trampoline
-pub struct RetourLuaTrampoline {
-    allocation: Allocation,
-}
-
-impl RetourLuaTrampoline {
-    pub fn allocate() -> anyhow::Result<Self> {
-        let trampoline = region::alloc(TRAMPOLINE_SIZE, region::Protection::READ_WRITE);
-
-        if let Ok(allocation) = trampoline {
-            Ok(Self { allocation } )
-        } else {
-            Err(anyhow::anyhow!("Failed to allocate retour trampoline"))
-        }
-    }
-
-    pub unsafe fn make_executable(&mut self) -> anyhow::Result<()> {
-        unsafe {
-            region::protect(self.allocation.as_ptr::<c_void>(), TRAMPOLINE_SIZE, region::Protection::READ_EXECUTE)
-                .map_err(|_| anyhow::anyhow!("Failed to set retour trampoline as executable"))
-        }
-    }
-
-    pub unsafe fn generate_code(&mut self, detour_ptr: *const retour::GenericDetour<LuaFunction>, handler: RetourHandlerType) {
-        let trampoline_ptr = self.allocation.as_mut_ptr::<u8>();
-        let detour_ptr_usize = detour_ptr as usize;
-        let mut mcode = MCode::new(trampoline_ptr, TRAMPOLINE_SIZE);
-
-        CALLING_CONVENTION.write_args(&mut mcode, ArgumentValue::Imm64(detour_ptr_usize as u64), None, None);
-
-        mcode.write_mov_rax_imm64(handler as u64);
-        mcode.write_jmp_rax();
-    }
-
-    pub fn as_function(&self) -> LuaFunction {
-        unsafe { std::mem::transmute(self.allocation.as_ptr::<c_void>()) }
-    }
+    trampoline.make_executable().map_err(|_| anyhow::anyhow!("Failed to make retour trampoline executable"))?;
+    Ok(trampoline)
 }

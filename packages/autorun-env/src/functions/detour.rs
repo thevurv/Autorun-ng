@@ -7,10 +7,11 @@ mod userdata;
 use retour::GenericDetour;
 use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle, LUA_MULTRET};
 use autorun_types::LuaState;
-use crate::functions::detour::raw::{CallbackTrampoline, RetourLuaTrampoline};
 use crate::functions::detour::userdata::Detour;
 
 pub use userdata::{detour_enable, detour_disable};
+use crate::functions::detour::handlers::{detour_handler, retour_handler};
+use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_trampoline};
 
 pub fn detour(
     lua: &LuaApi,
@@ -34,54 +35,38 @@ pub fn detour(
     }
 
     let detour_callback = detour_callback.unwrap();
+    let mut original_function_ptr = Box::new(0usize);
 
     // create the trampoline
-    let callback_trampoline = CallbackTrampoline::allocate();
-    if callback_trampoline.is_err() {
-        anyhow::bail!("Failed to allocate callback trampoline.");
-    }
-
-    let mut callback_trampoline = callback_trampoline.unwrap();
-    unsafe {
-        callback_trampoline.generate_code(detour_callback.get_id(), lua, handlers::detour_handler);
-        if callback_trampoline.make_executable().is_err() {
-            anyhow::bail!("Failed to make callback trampoline executable.");
-        }
-    }
+    let detour_trampoline = make_detour_trampoline(
+        lua,
+        detour_callback.get_id(),
+        original_function_ptr.as_ref() as *const usize,
+        detour_handler
+    )?;
 
     let detour = unsafe {
-        Box::new(retour::GenericDetour::new(
+        Box::new(GenericDetour::new(
             target_function,
-            (&callback_trampoline).into()
+            std::mem::transmute(detour_trampoline.as_ptr()),
         )?)
     };
 
     unsafe {
-        if detour.enable().is_err() {
-            anyhow::bail!("Failed to enable detour.");
-        }
+        detour.enable().map_err(|e| anyhow::anyhow!("Failed to enable detour: {}", e))?;
     }
 
     // create retour trampoline
-    let mut retour_trampoline = RetourLuaTrampoline::allocate();
-    if retour_trampoline.is_err() {
-        anyhow::bail!("Failed to allocate retour trampoline.");
-    }
+    let retour_trampoline = make_retour_lua_trampoline(detour.as_ref() as *const GenericDetour<LuaFunction>, retour_handler)?;
 
-    let mut retour_trampoline = retour_trampoline.unwrap();
-    unsafe {
-        retour_trampoline.generate_code(detour.as_ref() as *const GenericDetour<LuaFunction>, handlers::retour_handler);
-        if retour_trampoline.make_executable().is_err() {
-            anyhow::bail!("Failed to make retour trampoline executable.");
-        }
-    }
-
-    callback_trampoline.write_original_function_pointer(retour_trampoline.as_function());
+    // link the original function pointer
+    *original_function_ptr = retour_trampoline.as_ptr() as usize;
 
     Ok(Detour {
         detour,
         detour_callback,
-        callback_trampoline,
+        detour_trampoline,
         retour_trampoline,
+        original_function_ptr,
     })
 }

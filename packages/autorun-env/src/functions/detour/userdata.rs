@@ -1,14 +1,15 @@
 use std::ffi::CStr;
+use autorun_jit::Function;
 use autorun_lua::{IntoLua, LuaApi, LuaFunction, RawHandle};
 use autorun_types::LuaState;
-use crate::functions::detour::raw::{CallbackTrampoline, RetourLuaTrampoline};
 
 
 pub struct Detour {
     pub detour: Box<retour::GenericDetour<LuaFunction>>,
     pub detour_callback: RawHandle,
-    pub callback_trampoline: CallbackTrampoline,
-    pub retour_trampoline: RetourLuaTrampoline,
+    pub detour_trampoline: Function,
+    pub retour_trampoline: Function,
+    pub original_function_ptr: Box<usize>,
 }
 
 impl IntoLua for Detour {
