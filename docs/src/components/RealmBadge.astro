@@ -1,0 +1,63 @@
+---
+interface Props {
+  realm: string;
+}
+
+const { realm } = Astro.props;
+---
+
+{realm === 'client' && (
+  <span class="realm-badge realm-client"></span>
+)}
+
+{realm === 'menu' && (
+  <span class="realm-badge realm-menu"></span>
+)}
+
+{realm === 'shared' && (
+  <span class="realm-badge realm-shared">
+    <span class="realm-shared-half realm-shared-menu"></span>
+    <span class="realm-shared-half realm-shared-client"></span>
+  </span>
+)}
+
+<style>
+  .realm-badge {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.375rem;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .realm-client {
+    background-color: #ff8800;
+  }
+
+  .realm-menu {
+    background-color: #22c55e;
+  }
+
+  .realm-shared {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .realm-shared-half {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+  }
+
+  .realm-shared-menu {
+    background: linear-gradient(135deg, #22c55e 0%, #22c55e 50%, transparent 50%);
+    left: 0;
+  }
+
+  .realm-shared-client {
+    background: linear-gradient(135deg, transparent 0%, transparent 50%, #ff8800 50%, #ff8800 100%);
+    right: 0;
+  }
+</style>

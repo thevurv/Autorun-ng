@@ -3,27 +3,32 @@
 		{
 			"name": "Autorun",
 			"description": "Main Autorun-ng namespace",
+			"realm": "shared",
 			"fields": [
 				{
 					"name": "PLUGIN",
 					"type": "userdata",
-					"description": "Currently running plugin pointer. Don't touch this."
+					"description": "Currently running plugin pointer. Don't touch this.",
+					"realm": "shared"
 				},
 				{
 					"name": "VERSION",
 					"type": "string",
-					"description": "Version of Autorun-ng using semver format"
+					"description": "Version of Autorun-ng using semver format",
+					"realm": "shared"
 				},
 				{
 					"name": "EVENTS",
 					"type": "table<string, table<integer, function>>",
-					"description": "Internal event registry. Don't modify this directly, use Autorun.on() instead."
+					"description": "Internal event registry. Don't modify this directly, use Autorun.on() instead.",
+					"realm": "shared"
 				}
 			],
 			"functions": [
 				{
 					"name": "print",
 					"description": "Prints to the Autorun console in the format of [Lua]: ...",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "values",
@@ -36,6 +41,7 @@
 				{
 					"name": "read",
 					"description": "Reads a path relative to the active plugin's directory.",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "path",
@@ -52,6 +58,7 @@
 				{
 					"name": "write",
 					"description": "Writes to a path relative to the active plugin's /data/ directory. Cannot write outside /data/ for security reasons.",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "path",
@@ -67,6 +74,7 @@
 				{
 					"name": "append",
 					"description": "Appends content to a file at the given path relative to the active plugin's /data/ directory. Cannot write outside /data/ for security reasons.",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "path",
@@ -82,6 +90,7 @@
 				{
 					"name": "writeAsync",
 					"description": "ASYNCHRONOUSLY writes to a path relative to the active plugin's /data/ directory. Cannot write outside /data/ for security reasons. This is important to avoid blocking the main thread on large writes to avoid detection.",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "path",
@@ -97,6 +106,7 @@
 				{
 					"name": "include",
 					"description": "Reads and executes a Lua file from the given path. This doesn't do any caching.",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "path",
@@ -112,6 +122,7 @@
 				{
 					"name": "require",
 					"description": "Reads and executes a Lua file from the given path. This caches the output of the include so subsequent calls return the same values.",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "path",
@@ -127,6 +138,7 @@
 				{
 					"name": "mkdir",
 					"description": "Makes a directory recursively. This runs relative to the plugin's /data/ directory",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "path",
@@ -143,6 +155,7 @@
 				{
 					"name": "on",
 					"description": "Registers an event handler for the specified event. Returns an EventHandler object that can be used to remove the handler.",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "eventName",
@@ -165,6 +178,7 @@
 				{
 					"name": "trigger",
 					"description": "Triggers all registered handlers for the specified event. Used internally by Autorun.",
+					"realm": "shared",
 					"parameters": [
 						{
 							"name": "eventName",
@@ -191,22 +205,26 @@
 		{
 			"name": "EventHandler",
 			"description": "Object returned by Autorun.on() to manage event subscriptions",
+			"realm": "shared",
 			"fields": [
 				{
 					"name": "event",
 					"type": "string",
-					"description": "Name of the event this handler is registered for"
+					"description": "Name of the event this handler is registered for",
+					"realm": "shared"
 				},
 				{
 					"name": "id",
 					"type": "integer",
-					"description": "Unique identifier for this handler"
+					"description": "Unique identifier for this handler",
+					"realm": "shared"
 				}
 			],
 			"methods": [
 				{
 					"name": "remove",
 					"description": "Removes this event handler from the event registry",
+					"realm": "shared",
 					"parameters": [],
 					"returns": []
 				}

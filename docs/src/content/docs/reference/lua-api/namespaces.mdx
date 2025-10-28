@@ -1,41 +1,42 @@
 ---
 title: Namespaces
 description: Namespaces in Autorun's Lua API
+tableOfContents: false
 ---
 
 import { Aside, Card, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import RealmBadge from '../../../../components/RealmBadge.astro';
 import apiData from '../../../../../../packages/autorun-env/api.json';
 import { formatParameters, formatReturns } from '../../../../utils/api-formatter';
 
 {apiData.namespaces.map(namespace => (
   <div key={namespace.name}>
-    <h2><code>{namespace.name}</code></h2>
+    <h2><RealmBadge realm={namespace.realm} /> <code>{namespace.name}</code></h2>
     <p>{namespace.description}</p>
 
     {namespace.fields && namespace.fields.length > 0 && (
       <>
         <h3>Fields</h3>
-        {namespace.fields.map((field, index) => (
-          <div key={field.name}>
-            <h4><code>{namespace.name}.{field.name}</code></h4>
-            <Code code={`${namespace.name}.${field.name}: ${field.type}`} lang="lua" />
-            <p>{field.description}</p>
-            {index < namespace.fields.length - 1 && <hr style={{ margin: '2rem 0' }} />}
-          </div>
-        ))}
+        <hr/>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {namespace.fields.map((field, index) => (
+            <div key={field.name}>
+                <h4><RealmBadge realm={field.realm} /> <code>{namespace.name}.{field.name}</code></h4>
+                <p>{field.description}</p>
+            </div>
+            ))}
+        </div>
       </>
     )}
 
     {namespace.functions && namespace.functions.length > 0 && (
       <>
         <h3>Functions</h3>
+        <hr/>
+        <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
         {namespace.functions.map(func => (
           <div key={func.name}>
-            <h4><code>{func.name}</code></h4>
-            <Code
-              code={`${namespace.name}.${func.name}(${formatParameters(func.parameters)}): ${formatReturns(func.returns)}`}
-              lang="lua"
-            />
+            <h4><RealmBadge realm={func.realm} /> <code>{namespace.name}.{func.name}({formatParameters(func.parameters)}): {formatReturns(func.returns)}</code></h4>
             <p>{func.description}</p>
 
             {func.parameters && func.parameters.length > 0 && (
@@ -65,10 +66,9 @@ import { formatParameters, formatReturns } from '../../../../utils/api-formatter
                 </ul>
               </>
             )}
-
-            <hr style={{ margin: '2rem 0' }} />
           </div>
         ))}
+        </div>
       </>
     )}
   </div>
