@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = { workspace = true }
 libloading = { workspace = true }
-retour = { git = "https://github.com/thevurv/retour-rs" }
+retour = { workspace = true }
 
 autorun-ipc = { path = "../../packages/autorun-ipc" }
 autorun-types = { path = "../../packages/autorun-types" }

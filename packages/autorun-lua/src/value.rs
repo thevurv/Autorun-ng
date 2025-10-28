@@ -97,7 +97,8 @@ impl IntoLua for LuaFunction {
 	}
 }
 
-impl FromLua for LuaFunction {
+// Some seemingly "C" functions are actually LuaJIT fast-functions and return NULL despite being valid C functions
+impl FromLua for Option<LuaFunction> {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
 		lua.to_function(state, stack_idx)
 	}

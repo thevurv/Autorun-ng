@@ -197,6 +197,86 @@
 							"description": "First non-nil return value from event handlers, or nil"
 						}
 					]
+				},
+				{
+					"name": "detour",
+					"description": "Creates a detour (hook) on a target Lua function, redirecting calls to a replacement function. The detour is automatically enabled upon creation. The original function is passed as the first argument to the detour callback, followed by the original arguments.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "targetFunction",
+							"type": "function",
+							"description": "The function to detour/hook"
+						},
+						{
+							"name": "detourCallback",
+							"type": "function",
+							"description": "The function to call instead of the target. Receives the original function as the first argument, followed by all arguments passed to the hooked function. Example: function(original, ...) return original(...) end"
+						}
+					],
+					"returns": [
+						{
+							"type": "Detour",
+							"description": "Detour userdata object that can be used to manage the detour"
+						}
+					]
+				},
+				{
+					"name": "enableDetour",
+					"description": "Enables a previously disabled detour, causing calls to the target function to be redirected again.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "detour",
+							"type": "Detour",
+							"description": "The detour userdata to enable"
+						}
+					],
+					"returns": []
+				},
+				{
+					"name": "disableDetour",
+					"description": "Disables a detour, restoring the original function behavior. The detour can be re-enabled later with enableDetour().",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "detour",
+							"type": "Detour",
+							"description": "The detour userdata to disable"
+						}
+					],
+					"returns": []
+				},
+				{
+					"name": "removeDetour",
+					"description": "Permanently removes a detour, disabling it and cleaning up all associated resources. The detour cannot be used after this.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "detour",
+							"type": "Detour",
+							"description": "The detour userdata to remove"
+						}
+					],
+					"returns": []
+				},
+				{
+					"name": "getOriginalFunction",
+					"description": "Retrieves the original function pointer from a detour. This is rarely needed since the original function is automatically passed as the first argument to the detour callback. Useful for code outside the detour callback that needs to call the original function.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "detour",
+							"type": "Detour",
+							"description": "The detour userdata to get the original function from"
+						}
+					],
+					"returns": [
+						{
+							"type": "function",
+							"description": "The original function that was detoured"
+						}
+					]
 				}
 			]
 		}
@@ -229,6 +309,13 @@
 					"returns": []
 				}
 			]
+		},
+		{
+			"name": "Detour",
+			"description": "Userdata object representing a function detour/hook. Contains internal state for managing the detour, trampoline functions, and the original function pointer. Created by Autorun.detour().",
+			"realm": "shared",
+			"fields": [],
+			"methods": []
 		}
 	],
 	"events": [

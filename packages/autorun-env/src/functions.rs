@@ -15,3 +15,6 @@ pub use mkdir::*;
 
 mod append;
 pub use append::*;
+
+mod detour;
+pub use detour::*;

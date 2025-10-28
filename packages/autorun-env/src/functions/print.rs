@@ -22,7 +22,11 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyh
 
 			autorun_lua::LuaTypeId::Function => {
 				let ptr = lua.to_function(state, i);
-				args.push(format!("function: {:p}", ptr));
+				if let Some(func) = ptr {
+					args.push(format!("function: {:p}", func));
+				} else {
+					args.push(String::from("function: <null>"));
+				}
 			}
 
 			autorun_lua::LuaTypeId::Thread => {
