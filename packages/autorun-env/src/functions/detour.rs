@@ -3,6 +3,7 @@ mod raw;
 mod userdata;
 
 use crate::functions::detour::userdata::Detour;
+use anyhow::Context;
 use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle};
 use autorun_types::LuaState;
 use retour::GenericDetour;
@@ -12,23 +13,15 @@ use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_tram
 pub use userdata::{detour_disable, detour_enable, detour_get_original, detour_remove};
 
 pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Detour> {
-	let target_function = lua.to_function(state, 1);
-	if target_function.is_none() {
-		anyhow::bail!("First argument must be a function to detour.");
-	}
-
-	let target_function = target_function.unwrap();
+	let target_function = lua
+		.to_function(state, 1)
+		.context("Failed to get target function from stack.")?;
 
 	if lua.type_id(state, 2) != LuaTypeId::Function {
 		anyhow::bail!("Second argument must be a function to use as detour.");
 	}
 
-	let detour_callback = RawHandle::from_stack(lua, state);
-	if detour_callback.is_none() {
-		anyhow::bail!("Failed to ref detour callback from stack.");
-	}
-
-	let detour_callback = detour_callback.unwrap();
+	let detour_callback = RawHandle::from_stack(lua, state).context("Failed to create raw handle for detour callback.")?;
 	let mut original_function_ptr = Box::new(0usize);
 
 	// create the trampoline
