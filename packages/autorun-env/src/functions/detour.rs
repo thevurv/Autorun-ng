@@ -2,14 +2,14 @@ mod handlers;
 mod raw;
 mod userdata;
 
+use crate::functions::detour::handlers::{detour_handler, retour_handler};
+use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_trampoline};
 use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
 use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle};
+use autorun_luajit::{GCfunc, index2adr, lua_State};
 use autorun_types::LuaState;
 use retour::GenericDetour;
-
-use crate::functions::detour::handlers::{detour_handler, retour_handler};
-use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_trampoline};
 pub use userdata::{detour_disable, detour_enable, detour_get_original, detour_remove};
 
 pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Detour> {
@@ -58,4 +58,21 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyh
 		retour_trampoline,
 		original_function_ptr,
 	})
+}
+
+pub fn get_function_ffid(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<i32> {
+	if lua.is_c_function(state, 1) == 0 {
+		anyhow::bail!("First argument must be a C function.");
+	}
+
+	unsafe {
+		let L = state as *mut lua_State;
+		let L_ref = L.as_ref().context("Failed to dereference lua_State pointer.")?;
+
+		let tv = index2adr(L_ref, 1).context("Failed to get TValue for function at index 1.")?;
+		let gcfunc = (*tv).as_ref::<GCfunc>();
+		let ffid = gcfunc.c.header.ffid;
+
+		Ok(ffid as i32)
+	}
 }
