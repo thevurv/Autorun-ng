@@ -18,4 +18,3 @@ pub use append::*;
 
 mod detour;
 pub use detour::*;
-

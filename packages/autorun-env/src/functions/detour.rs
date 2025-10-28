@@ -9,7 +9,7 @@ use retour::GenericDetour;
 
 use crate::functions::detour::handlers::{detour_handler, retour_handler};
 use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_trampoline};
-pub use userdata::{detour_disable, detour_enable, detour_remove, detour_get_original};
+pub use userdata::{detour_disable, detour_enable, detour_get_original, detour_remove};
 
 pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Detour> {
 	let target_function = lua.to_function(state, 1);
