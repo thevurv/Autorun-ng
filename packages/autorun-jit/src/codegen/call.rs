@@ -85,7 +85,7 @@ impl CallingConvention {
 		}
 	}
 
-	pub fn emit_call(&self, mcode: &mut MCode, args: &ArgList) {
+	pub fn setup_arguments(&self, mcode: &mut MCode, args: &ArgList) {
 		match self {
 			CallingConvention::Win64 => {
 				self.write_args_with_registers(mcode, args, &WIN64_ARG_REGISTERS);

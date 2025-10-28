@@ -57,7 +57,7 @@ pub fn make_detour_trampoline(
 	let metadata = DetourMetadata::new(callback_ref, 0).0;
 	let lua_ptr = lua as *const LuaApi as usize;
 
-	CALLING_CONVENTION.emit_call(
+	CALLING_CONVENTION.setup_arguments(
 		&mut trampoline.mcode,
 		&vec![
 			None,                                           // don't overwrite the lua_State pointer
@@ -83,7 +83,7 @@ pub fn make_retour_lua_trampoline(
 	let mut trampoline = Function::allocate(TRAMPOLINE_SIZE);
 	let detour_ptr_usize = detour_ptr as usize;
 
-	CALLING_CONVENTION.emit_call(
+	CALLING_CONVENTION.setup_arguments(
 		&mut trampoline.mcode,
 		&vec![
 			None,                                      // don't overwrite the lua_State pointer

@@ -3,7 +3,7 @@ mod raw;
 mod userdata;
 
 use crate::functions::detour::userdata::Detour;
-use autorun_lua::{IntoLua, LUA_MULTRET, LuaApi, LuaFunction, LuaTypeId, RawHandle};
+use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle};
 use autorun_types::LuaState;
 use retour::GenericDetour;
 
