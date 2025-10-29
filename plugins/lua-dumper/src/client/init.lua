@@ -14,13 +14,3 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.mkdir(hostName .. "/" .. parentDir)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
-
-local realRawGet = _G.rawget
-_G.rawget = Autorun.copyFastFunction(realRawGet, function(t, s)
-    _G.print("Detoured rawget called for key:", s)
-    _G.print("Table:", t)
-    return realRawGet(t, s)
-end)
-
-
-Autorun.print("Put getfenv in a FFID for compatibility.")
