@@ -5,24 +5,10 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	let realm = autorun_env::global::get_realm(state);
 	let env = autorun_env::global::get_realm_env(realm).expect("env should exist here");
 
-	env.push(lua, state);
-	lua.get_field(state, -1, c"Autorun".as_ptr());
-	lua.remove(state, -2); // remove env
-	lua.get_field(state, -1, c"trigger".as_ptr());
-	lua.remove(state, -2); // remove Autorun table
-
-	if lua.type_id(state, -1) != autorun_lua::LuaTypeId::Function {
-		lua.pop(state, 1);
-		return Err(anyhow::anyhow!("don't remove Autorun.trigger lil bro."));
-	}
-
-	lua.push(state, "loadbuffer");
 	lua.push(state, name);
 	lua.push(state, buffer);
 	lua.push(state, mode);
-
-	// todo: handle returns
-	lua.pcall(state, 4, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
+	env.trigger(lua, state, c"loadbuffer", 3)?;
 
 	// let n_returns = lua.get_top(state);
 	// match n_returns {

@@ -14,12 +14,14 @@ Autorun-ng's file structure is relative to the client UI executable's location.
 - autorun This is the main autorun executable.
 - autorun/ This will be created upon first start.
   - plugins/
-    - foo-plugin/
+    - my-plugin/
       - src/
         - client/
           - init.lua Runs a single time upon server join
         - menu/
           - init.lua Runs a single time upon game start
+        - shared/
+          - init.lua Runs on both client and menu
       - plugin.toml
   - settings.toml
 

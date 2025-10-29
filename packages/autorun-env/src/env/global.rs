@@ -1,5 +1,4 @@
-use autorun_core::plugins::Plugin;
-use autorun_lua::{LuaApi, LuaState};
+use autorun_lua::LuaState;
 
 mod client {
 	use crate::EnvHandle;

@@ -1,17 +1,20 @@
+use autorun_types::Realm;
+
 /// Function that triggers all plugins init (server start) scripts.
 pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
 
-	let env = autorun_env::EnvHandle::create(&lua, state)?;
+	let env = autorun_env::EnvHandle::create(&lua, state, Realm::Client)?;
 	let realm = autorun_env::global::get_realm(state);
 	autorun_env::global::set_realm_env(realm, env);
 
-	let (plugins, _errors) = workspace.get_plugins()?;
+	let (mut plugins, _errors) = workspace.get_plugins()?;
 	if plugins.is_empty() {
 		return Ok(());
 	}
 
+	plugins.sort_by_key(|p| p.config().plugin.ordering.unwrap_or(9999));
 	for plugin in &plugins {
 		env.set_plugin(lua, state, plugin)?;
 		run_entrypoint(lua, state, plugin, &env)?;
@@ -26,15 +29,17 @@ fn run_entrypoint(
 	plugin: &autorun_core::plugins::Plugin,
 	env: &autorun_env::EnvHandle,
 ) -> anyhow::Result<()> {
-	let config = plugin.get_config()?;
+	let config = plugin.config();
 
 	match config.plugin.language {
 		autorun_core::plugins::ConfigPluginLanguage::Lua => {
-			let Ok(init_content) = plugin.read_client_init() else {
-				return Ok(());
+			if let Ok(client_init) = plugin.read_client_init() {
+				env.execute(lua, state, c"client/init.lua", &client_init)?;
 			};
 
-			env.execute(lua, state, c"client/init.lua", &init_content)
+			if let Ok(shared_init) = plugin.read_shared_init() {
+				env.execute(lua, state, c"shared/init.lua", &shared_init)?;
+			}
 		}
 
 		autorun_core::plugins::ConfigPluginLanguage::Native => {
@@ -63,10 +68,10 @@ fn run_entrypoint(
 			{
 				autorun_client_init(&raw const *plugin as _);
 			}
-
-			Ok(())
 		}
 
-		_ => Err(anyhow::anyhow!("Unsupported language: {:?}", config.plugin.language)),
+		_ => anyhow::bail!("Unsupported language: {:?}", config.plugin.language),
 	}
+
+	Ok(())
 }

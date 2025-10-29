@@ -104,6 +104,16 @@ impl FromLua for Option<LuaFunction> {
 	}
 }
 
+impl<T: FromLua> FromLua for Option<T> {
+	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
+		if lua.type_id(state, stack_idx) == crate::LuaTypeId::Nil {
+			None
+		} else {
+			Some(T::from_lua(lua, state, stack_idx))
+		}
+	}
+}
+
 impl IntoLua for &std::borrow::Cow<'_, str> {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
 		lua.push_lstring(state, self.as_ptr() as _, self.len());
