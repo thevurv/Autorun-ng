@@ -10,11 +10,11 @@ function Autorun.on(eventName, callback)
 
     local idx = (eventCounters[eventName] or 0) + 1
 
-    events[eventName][idx] = function(v)
+    events[eventName][idx] = function(a, b, c, d, e, f)
         local previousPlugin = Autorun.PLUGIN
 
         Autorun.PLUGIN = currentPlugin
-        local fnReturn = callback(v)
+        local fnReturn = callback(a, b, c, d, e, f)
         Autorun.PLUGIN = previousPlugin
 
         return fnReturn
