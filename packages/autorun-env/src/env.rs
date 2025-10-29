@@ -1,20 +1,22 @@
 pub mod global;
 
-use std::ffi::CStr;
+use std::ffi::{CStr, c_int};
 
 use autorun_core::plugins::Plugin;
 use autorun_lua::{LuaApi, RawHandle};
-use autorun_types::LuaState;
+use autorun_types::{LuaState, Realm};
 
-#[repr(transparent)]
 #[derive(Debug, Clone, Copy)]
-pub struct EnvHandle(RawHandle);
+pub struct EnvHandle {
+	realm: Realm,
+	handle: RawHandle,
+}
 
 impl core::ops::Deref for EnvHandle {
 	type Target = RawHandle;
 
 	fn deref(&self) -> &Self::Target {
-		&self.0
+		&self.handle
 	}
 }
 
@@ -42,6 +44,10 @@ macro_rules! as_env_lua_function {
 }
 
 impl EnvHandle {
+	pub fn realm(&self) -> Realm {
+		self.realm
+	}
+
 	pub fn is_active(&self, lua: &LuaApi, state: *mut LuaState) -> bool {
 		if lua.get_info(state, 1, c"f").is_none() {
 			// No function info available
@@ -126,6 +132,10 @@ impl EnvHandle {
 		lua.push(state, as_env_lua_function!(crate::functions::load));
 		lua.set_table(state, -3);
 
+		lua.push(state, c"triggerRemote");
+		lua.push(state, as_env_lua_function!(crate::functions::trigger_remote));
+		lua.set_table(state, -3);
+
 		lua.push(state, c"VERSION");
 		lua.push(state, env!("CARGO_PKG_VERSION").to_string());
 		lua.set_table(state, -3);
@@ -148,7 +158,7 @@ impl EnvHandle {
 		Ok(())
 	}
 
-	pub fn create(lua: &LuaApi, state: *mut LuaState) -> anyhow::Result<Self> {
+	pub fn create(lua: &LuaApi, state: *mut LuaState, realm: Realm) -> anyhow::Result<Self> {
 		// Create autorun environment
 		lua.create_table(state, 0, 2);
 
@@ -162,11 +172,11 @@ impl EnvHandle {
 
 		// Can unwrap since we are sure there is something on the stack
 		let handle = RawHandle::from_stack(lua, state).unwrap();
-		Ok(Self(handle))
+		Ok(Self { realm, handle })
 	}
 
 	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
-		self.0.push(lua, state);
+		self.push(lua, state);
 		lua.get_field(state, -1, c"Autorun".as_ptr());
 		lua.remove(state, -2);
 	}
@@ -179,6 +189,50 @@ impl EnvHandle {
 		lua.set_table(state, -3);
 
 		lua.pop(state, 1);
+		Ok(())
+	}
+
+	pub fn trigger(&self, lua: &LuaApi, state: *mut LuaState, event_name: &CStr, n_args: c_int) -> anyhow::Result<()> {
+		lua.push(state, event_name);
+		lua.insert(state, -(n_args + 1));
+
+		self.push_autorun_table(lua, state);
+		lua.get_field(state, -1, c"trigger".as_ptr());
+		lua.remove(state, -2); // remove Autorun table
+
+		if lua.type_id(state, -1) != autorun_lua::LuaTypeId::Function {
+			lua.pop(state, 1);
+			anyhow::bail!("don't remove Autorun.trigger lil bro.");
+		}
+
+		lua.insert(state, -(n_args + 2));
+		lua.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
+
+		Ok(())
+	}
+
+	pub fn run_remote_callbacks(
+		&self,
+		lua: &LuaApi,
+		state: *mut LuaState,
+		event_name: &CStr,
+		n_args: c_int,
+	) -> anyhow::Result<()> {
+		lua.push(state, event_name);
+		lua.insert(state, -(n_args + 1));
+
+		self.push_autorun_table(lua, state);
+		lua.get_field(state, -1, c"runRemoteCallbacks".as_ptr());
+		lua.remove(state, -2); // remove Autorun table
+
+		if lua.type_id(state, -1) != autorun_lua::LuaTypeId::Function {
+			lua.pop(state, 1);
+			anyhow::bail!("don't remove Autorun.runRemoteCallbacks lil bro.");
+		}
+
+		lua.insert(state, -(n_args + 2));
+		lua.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
+
 		Ok(())
 	}
 }

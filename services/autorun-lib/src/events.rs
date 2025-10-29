@@ -17,6 +17,6 @@ pub fn set_workspace_path(path: &str) -> anyhow::Result<()> {
 	Ok(())
 }
 
+pub mod client_init;
 pub mod hook;
-pub mod init;
-pub mod menu;
+pub mod menu_init;

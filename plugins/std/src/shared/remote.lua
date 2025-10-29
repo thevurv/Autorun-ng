@@ -4,7 +4,7 @@ local events = {}
 ---@type table<string, integer>
 local eventCounters = {}
 
-function Autorun.on(eventName, callback)
+function Autorun.onRemote(eventName, callback)
     local currentPlugin = Autorun.PLUGIN
     events[eventName] = events[eventName] or {}
 
@@ -26,7 +26,7 @@ end
 ---@type table<string, boolean>
 local currentlyTriggering = {}
 
-function Autorun.trigger(eventName, a, b, c, d, e, f)
+function Autorun.runRemoteCallbacks(eventName, v)
     if not events[eventName] then return end
 
     assert(not currentlyTriggering[eventName], "Recursive remote event triggering detected for event: " .. eventName)
@@ -34,7 +34,7 @@ function Autorun.trigger(eventName, a, b, c, d, e, f)
 
     local success, err = pcall(function()
         for _, callback in ipairs(events[eventName]) do
-            local result = callback(a, b, c, d, e, f)
+            local result = callback(v)
 
             if result ~= nil then
                 currentlyTriggering[eventName] = nil

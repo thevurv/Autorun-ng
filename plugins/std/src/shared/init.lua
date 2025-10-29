@@ -24,3 +24,4 @@ end
 Autorun.include("shared/builtins.lua")
 Autorun.include("shared/require.lua")
 Autorun.include("shared/event.lua")
+Autorun.include("shared/remote.lua")

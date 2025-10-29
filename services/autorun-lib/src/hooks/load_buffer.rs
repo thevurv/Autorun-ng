@@ -28,7 +28,7 @@ extern "C-unwind" fn load_buffer_h(
 		*PREVIOUS_LUA_STATE.lock().unwrap() = state as usize;
 
 		disable();
-		if let Err(why) = crate::events::init::run(state) {
+		if let Err(why) = crate::events::client_init::run(state) {
 			let name = unsafe { std::ffi::CStr::from_ptr(name) };
 			autorun_log::error!("Failed to run init for {}: {why}", name.to_string_lossy());
 		}

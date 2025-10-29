@@ -65,3 +65,47 @@ You can create and trigger your own custom events using `Autorun.trigger()`.
 <Aside type="tip">
 Custom events are useful for communication between different parts of your plugin or between multiple plugins.
 </Aside>
+
+## Remote Events
+
+Remote events can be created that will be sent to the opposite realm (client \<\-\> menu).
+
+Listen to them with `Autorun.onRemote(eventName, callback)` and trigger them with `Autorun.triggerRemote(eventName, value)`.
+
+Note that, unlike traditional events, since this runs across states, you cannot send state-sensitive values, ie functions, userdata, etc.
+
+The current supported types are:
+- nil
+- boolean
+- number
+- string
+
+In the future basic tables will be supported.
+
+### Example
+
+<Tabs>
+<TabItem label="client/init.lua">
+```lua
+-- Send a message to the menu when client initializes
+Autorun.triggerRemote("clientGreeting", "hi")
+
+-- Optional: Listen for responses from menu
+Autorun.onRemote("menuResponse", function(message)
+    print("Menu says: " .. message)
+end)
+```
+</TabItem>
+
+<TabItem label="menu/init.lua">
+```lua
+-- Listen for messages from the client
+Autorun.onRemote("clientGreeting", function(message)
+    print("Client says: " .. message)
+
+    -- Optional: Send a response back
+    Autorun.triggerRemote("menuResponse", "hello from menu!")
+end)
+```
+</TabItem>
+</Tabs>

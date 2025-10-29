@@ -154,7 +154,7 @@
 				},
 				{
 					"name": "on",
-					"description": "Registers an event handler for the specified event. Returns an EventHandler object that can be used to remove the handler.",
+					"description": "Registers an event handler for the specified event.",
 					"realm": "shared",
 					"parameters": [
 						{
@@ -167,11 +167,22 @@
 							"type": "function",
 							"description": "Function to call when the event is triggered. Return value can modify event behavior."
 						}
-					],
-					"returns": [
+					]
+				},
+				{
+					"name": "onRemote",
+					"description": "Registers an event handler for the specified remote event.",
+					"realm": "shared",
+					"parameters": [
 						{
-							"type": "EventHandler",
-							"description": "Handler object with remove() method to unregister the event"
+							"name": "eventName",
+							"type": "string",
+							"description": "Name of the event to listen for (e.g., 'loadbuffer')"
+						},
+						{
+							"name": "callback",
+							"type": "function",
+							"description": "Function to call when the event is received. It will be passed the single serializable value"
 						}
 					]
 				},
@@ -195,6 +206,23 @@
 						{
 							"type": "any?",
 							"description": "First non-nil return value from event handlers, or nil"
+						}
+					]
+				},
+				{
+					"name": "triggerRemote",
+					"description": "Triggers an event registered with Autorun.onRemote on the other state. AKA, if you're on the menu and call this, it will send an event to the client, and vice versa.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "eventName",
+							"type": "string",
+							"description": "Name of the event to trigger"
+						},
+						{
+							"name": "value",
+							"type": "string | number | boolean",
+							"description": "Serializable value to pass to the event handlers"
 						}
 					]
 				},
@@ -304,34 +332,6 @@
 		}
 	],
 	"classes": [
-		{
-			"name": "EventHandler",
-			"description": "Object returned by Autorun.on() to manage event subscriptions",
-			"realm": "shared",
-			"fields": [
-				{
-					"name": "event",
-					"type": "string",
-					"description": "Name of the event this handler is registered for",
-					"realm": "shared"
-				},
-				{
-					"name": "id",
-					"type": "integer",
-					"description": "Unique identifier for this handler",
-					"realm": "shared"
-				}
-			],
-			"methods": [
-				{
-					"name": "remove",
-					"description": "Removes this event handler from the event registry",
-					"realm": "shared",
-					"parameters": [],
-					"returns": []
-				}
-			]
-		},
 		{
 			"name": "Detour",
 			"description": "Userdata object representing a function detour/hook. Contains internal state for managing the detour, trampoline functions, and the original function pointer. Created by Autorun.detour().",
