@@ -269,6 +269,10 @@ pub struct GCstr {
 	pub align1: u32,
 }
 
+impl IntoLJType for GCstr {
+	const LJ_TYPE: u32 = LJ_TSTR;
+}
+
 #[repr(C)]
 pub struct Node {
 	pub val: TValue,
@@ -297,6 +301,10 @@ pub struct GCupval {
 	pub uv: GCupval_uv,
 	pub v: MRef,
 	pub dhash: u32,
+}
+
+impl IntoLJType for GCupval {
+	const LJ_TYPE: u32 = LJ_TUPVAL;
 }
 
 pub type BCIns = u32;
