@@ -14,9 +14,3 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.mkdir(hostName .. "/" .. parentDir)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
-
-local oldnewproxy = _G.newproxy
-_G.newproxy = Autorun.copyFastFunction(oldnewproxy, function(a)
-    _G.print("newproxy called!", a)
-    return oldnewproxy(a)
-end)
