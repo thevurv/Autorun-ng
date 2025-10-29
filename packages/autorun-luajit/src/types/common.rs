@@ -131,6 +131,7 @@ pub struct GCfuncL {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union GCfunc {
 	pub c: GCfuncC,
 	pub l: GCfuncL,

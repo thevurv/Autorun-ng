@@ -12,11 +12,43 @@ use autorun_types::LuaState;
 use retour::GenericDetour;
 pub use userdata::{detour_disable, detour_enable, detour_get_original, detour_remove};
 
-pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Detour> {
-	let target_function = lua
-		.to_function(state, 1)
-		.context("Failed to get target function from stack.")?;
+fn get_gcfunc(state: *mut LuaState, index: i32) -> anyhow::Result<GCfunc> {
+	unsafe {
+		let L = state as *mut lua_State;
+		let L_ref = L.as_ref().context("Failed to dereference lua_State pointer.")?;
 
+		let tv = index2adr(L_ref, index).context("Failed to get TValue for function at given index.")?;
+		let gcfunc = (*tv).as_ref::<GCfunc>();
+		Ok(*gcfunc) // copying the GCfunc is fine as we don't intend to modify it
+	}
+}
+
+fn get_gcfunc_mut(state: *mut LuaState, index: i32) -> anyhow::Result<*mut GCfunc> {
+	unsafe {
+		let L = state as *mut lua_State;
+		let L_ref = L.as_ref().context("Failed to dereference lua_State pointer.")?;
+
+		let tv = index2adr(L_ref, index).context("Failed to get TValue for function at given index.")?;
+		let gcfunc = (*tv).as_mut::<GCfunc>();
+		Ok(gcfunc)
+	}
+}
+
+pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Detour> {
+	if lua.is_c_function(state, 1) == 0 {
+		anyhow::bail!("First argument must be a C function to detour.");
+	}
+
+	let gcfunc = get_gcfunc(state, 1).context("Failed to get GCfunc for target function.")?;
+
+	// For fast-functions, this will be a pointer to the fast-function handler, which will detour as expected
+	// in most cases.
+	let target_function: LuaFunction = unsafe { std::mem::transmute(gcfunc.c.c) };
+	if target_function as usize == 0 {
+		anyhow::bail!("Target function pointer is null.");
+	}
+
+	dbg!(target_function);
 	if lua.type_id(state, 2) != LuaTypeId::Function {
 		anyhow::bail!("Second argument must be a function to use as detour.");
 	}
@@ -60,19 +92,36 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyh
 	})
 }
 
-pub fn get_function_ffid(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<i32> {
+pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<LuaFunction> {
 	if lua.is_c_function(state, 1) == 0 {
-		anyhow::bail!("First argument must be a C function.");
+		anyhow::bail!("First argument must be a C function to copy.");
 	}
 
+	if lua.type_id(state, 2) != LuaTypeId::Function {
+		anyhow::bail!("Second argument must be a function to use.");
+	}
+
+	let gcfunc = get_gcfunc(state, 1).context("Failed to get GCfunc for target function.")?;
+
+	if !gcfunc.is_fast_function() {
+		anyhow::bail!("Function is not a fast-function.");
+	}
+
+	let original_ffid = gcfunc.as_c().header.ffid;
+	let function_handle = RawHandle::from_stack(lua, state).context("Failed to create raw handle for function.")?;
+
+	let trampoline = make_detour_trampoline(lua, function_handle.get_id(), std::ptr::null(), detour_handler)?;
+	// Not a detour, but we can reuse the trampoline maker to create a fast-function trampoline
+
+	// Push it as a closure to call
 	unsafe {
-		let L = state as *mut lua_State;
-		let L_ref = L.as_ref().context("Failed to dereference lua_State pointer.")?;
-
-		let tv = index2adr(L_ref, 1).context("Failed to get TValue for function at index 1.")?;
-		let gcfunc = (*tv).as_ref::<GCfunc>();
-		let ffid = gcfunc.c.header.ffid;
-
-		Ok(ffid as i32)
+		lua.push_function(state, std::mem::transmute(trampoline.as_ptr()));
 	}
+
+	let new_gcfunc = get_gcfunc_mut(state, -1).context("Failed to get GCfunc for copied function.")?;
+	unsafe {
+		(*new_gcfunc).as_c_mut().header.ffid = original_ffid;
+	}
+
+	Ok(unsafe { std::mem::transmute(*new_gcfunc) })
 }

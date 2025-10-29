@@ -15,4 +15,9 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
 
-Autorun.print("Function ffid: " .. Autorun.getFunctionFFID(_G.getfenv))
+test = Autorun.detour(_G.EffectData, function(orig, a)
+    print("FFID override test: " .. tostring(orig))
+    return orig, a
+end)
+
+Autorun.print("Put getfenv in a FFID for compatibility.")
