@@ -7,39 +7,20 @@ use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_tram
 use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
 use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle, RawLuaReturn};
-use autorun_luajit::{GCfunc, index2adr, lua_State};
+use autorun_luajit::{GCfunc, get_gcobj, get_gcobj_mut, index2adr, lua_State};
 use autorun_types::LuaState;
 use retour::GenericDetour;
 pub use userdata::{detour_disable, detour_enable, detour_get_original, detour_remove};
-
-fn get_gcfunc(state: *mut LuaState, index: i32) -> anyhow::Result<GCfunc> {
-	unsafe {
-		let L = state as *mut lua_State;
-		let L_ref = L.as_ref().context("Failed to dereference lua_State pointer.")?;
-
-		let tv = index2adr(L_ref, index).context("Failed to get TValue for function at given index.")?;
-		let gcfunc = (*tv).as_ref::<GCfunc>();
-		Ok(*gcfunc) // copying the GCfunc is fine as we don't intend to modify it
-	}
-}
-
-fn get_gcfunc_mut(state: *mut LuaState, index: i32) -> anyhow::Result<*mut GCfunc> {
-	unsafe {
-		let L = state as *mut lua_State;
-		let L_ref = L.as_ref().context("Failed to dereference lua_State pointer.")?;
-
-		let tv = index2adr(L_ref, index).context("Failed to get TValue for function at given index.")?;
-		let gcfunc = (*tv).as_mut::<GCfunc>();
-		Ok(gcfunc)
-	}
-}
 
 pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Detour> {
 	if lua.is_c_function(state, 1) == 0 {
 		anyhow::bail!("First argument must be a C function to detour.");
 	}
 
-	let gcfunc = get_gcfunc(state, 1).context("Failed to get GCfunc for target function.")?;
+	let L = state as *mut lua_State;
+	let L_ref = unsafe { L.as_ref().context("Failed to dereference lua_State.")? };
+
+	let gcfunc = get_gcobj::<GCfunc>(L_ref, 1).context("Failed to get GCfunc for target function.")?;
 
 	// For fast-functions, this will be a pointer to the fast-function handler, which will detour as expected
 	// in most cases.
@@ -101,7 +82,9 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		anyhow::bail!("Second argument must be a function to use.");
 	}
 
-	let gcfunc = get_gcfunc(state, 1).context("Failed to get GCfunc for target function.")?;
+	let L = state as *mut lua_State;
+	let L_ref = unsafe { L.as_ref().context("Failed to dereference lua_State.")? };
+	let gcfunc = get_gcobj::<GCfunc>(L_ref, 1).context("Failed to get GCfunc for target function.")?;
 
 	if !gcfunc.is_fast_function() {
 		anyhow::bail!("Function is not a fast-function.");
@@ -118,10 +101,8 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		lua.push_function(state, std::mem::transmute(trampoline.as_ptr()));
 	}
 
-	let new_gcfunc = get_gcfunc_mut(state, -1).context("Failed to get GCfunc for copied function.")?;
-	unsafe {
-		(*new_gcfunc).as_c_mut().header.ffid = original_ffid;
-	}
+	let new_gcfunc = get_gcobj_mut::<GCfunc>(L_ref, -1).context("Failed to get GCfunc for copied function.")?;
+	new_gcfunc.as_c_mut().header.ffid = original_ffid;
 
 	// TODO: Handle garbage collection of the trampoline function?
 	std::mem::forget(trampoline);
