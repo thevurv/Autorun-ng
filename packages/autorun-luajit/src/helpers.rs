@@ -28,28 +28,28 @@ pub fn index2adr(L: &lua_State, idx: i32) -> Option<*mut TValue> {
 	None
 }
 
-pub fn curr_func(L: &lua_State) -> &GCfunc {
+pub fn curr_func(L: &lua_State) -> anyhow::Result<&GCfunc> {
 	// #define curr_func(L)		(&gcval(L->base-2)->fn)
 
 	unsafe {
 		let func_tv = L.base.offset(-2);
-		let gcfunc = (*func_tv).as_ref::<GCfunc>();
-		gcfunc
+		let gcfunc = (*func_tv).as_ref::<GCfunc>()?;
+		Ok(gcfunc)
 	}
 }
 
-pub fn get_gcobj<T: Clone>(L: &lua_State, idx: i32) -> anyhow::Result<T> {
+pub fn get_gcobj<T: Clone + IntoLJType>(L: &lua_State, idx: i32) -> anyhow::Result<T> {
 	unsafe {
 		let tv = index2adr(L, idx).context("Failed to get TValue for given index.")?;
-		let gcobj = (*tv).as_ref::<T>();
+		let gcobj = (*tv).as_ref::<T>()?;
 		Ok(gcobj.clone()) // Cloning is fine as we don't intend to modify it
 	}
 }
 
-pub fn get_gcobj_mut<T>(L: &lua_State, idx: i32) -> anyhow::Result<&mut T> {
+pub fn get_gcobj_mut<T: IntoLJType>(L: &lua_State, idx: i32) -> anyhow::Result<&mut T> {
 	unsafe {
 		let tv = index2adr(L, idx).context("Failed to get TValue for given index.")?;
-		let gcobj = (*tv).as_mut::<T>();
+		let gcobj = (*tv).as_mut::<T>()?;
 		Ok(gcobj)
 	}
 }

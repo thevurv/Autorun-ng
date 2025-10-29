@@ -2,6 +2,25 @@
 
 // IMPORTANT: GMod's LUA_IDSIZE was randomly changed to 128 instead of 60 like in vanilla LuaJIT
 pub const LUA_IDSIZE: i32 = 128;
+pub const LJ_TNIL: u32 = !0u32;
+pub const LJ_TFALSE: u32 = !1u32;
+pub const LJ_TTRUE: u32 = !2u32;
+pub const LJ_TLIGHTUD: u32 = !3u32;
+pub const LJ_TSTR: u32 = !4u32;
+pub const LJ_TUPVAL: u32 = !5u32;
+pub const LJ_TTHREAD: u32 = !6u32;
+pub const LJ_TPROTO: u32 = !7u32;
+pub const LJ_TFUNC: u32 = !8u32;
+pub const LJ_TTRACE: u32 = !9u32;
+pub const LJ_TCDATA: u32 = !10u32;
+pub const LJ_TTAB: u32 = !11u32;
+pub const LJ_TUDATA: u32 = !12u32;
+pub const LJ_TNUMX: u32 = !13u32;
+
+pub trait IntoLJType {
+	const LJ_TYPE: u32;
+}
+
 pub type MSize = u64;
 pub type GCSize = u64;
 
@@ -80,23 +99,24 @@ pub union TValue {
 }
 
 impl TValue {
-	pub fn as_ptr<T>(&self) -> *mut T {
-		dbg!("TValue::as_ptr called");
-		unsafe {
-			dbg!(self.u64);
-			dbg!(self.gcr.gcptr64);
-			dbg!(self.itype());
+	pub fn as_ptr<T: IntoLJType>(&self) -> anyhow::Result<*mut T> {
+		if self.itype() != T::LJ_TYPE {
+			return Err(anyhow::anyhow!(
+				"TValue type mismatch: expected {}, got {}",
+				T::LJ_TYPE,
+				self.itype()
+			));
 		}
 
-		unsafe { (self.gcr.gcptr64 & LJ_GCVMASK) as *mut T }
+		Ok(unsafe { (self.gcr.gcptr64 & LJ_GCVMASK) as *mut T })
 	}
 
-	pub fn as_ref<T>(&self) -> &T {
-		unsafe { &*self.as_ptr::<T>() }
+	pub fn as_ref<T: IntoLJType>(&self) -> anyhow::Result<&T> {
+		Ok(unsafe { &*self.as_ptr::<T>()? })
 	}
 
-	pub fn as_mut<T>(&mut self) -> &mut T {
-		unsafe { &mut *self.as_ptr::<T>() }
+	pub fn as_mut<T: IntoLJType>(&mut self) -> anyhow::Result<&mut T> {
+		Ok(unsafe { &mut *self.as_ptr::<T>()? })
 	}
 
 	pub fn itype(&self) -> u32 {
@@ -135,6 +155,10 @@ pub struct GCfuncL {
 pub union GCfunc {
 	pub c: GCfuncC,
 	pub l: GCfuncL,
+}
+
+impl IntoLJType for GCfunc {
+	const LJ_TYPE: u32 = LJ_TFUNC;
 }
 
 pub const FF_LUA: u8 = 0;
