@@ -3,14 +3,13 @@ title: Requirements
 description: A reference to necessary requirements to run Autorun.
 ---
 
+import { Image } from 'astro:assets';
+import myImage from '../../../../assets/chromium.png';
+
+**Only 64 bit is supported**. Use the x86-64 branch of GMod.
+
+<Image src={myImage} alt="How to opt-in to the beta branch" />
+
 ## Linux
 
 You're gonna need [GModPatchTool](https://github.com/solsticegamestudios/GModPatchTool) to even run the game.
-
-Beyond that, that's it.
-
-## Windows
-
-Currently only 64 bit builds are provided. Meaning you must use the x86-64 branch of GMod.
-
-There's no particular reason for this, other than that 32 bit is untested and that you really should move to 64 bit.
