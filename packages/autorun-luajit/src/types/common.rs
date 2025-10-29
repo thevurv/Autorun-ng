@@ -101,11 +101,7 @@ pub union TValue {
 impl TValue {
 	pub fn as_ptr<T: IntoLJType>(&self) -> anyhow::Result<*mut T> {
 		if self.itype() != T::LJ_TYPE {
-			return Err(anyhow::anyhow!(
-				"TValue type mismatch: expected {}, got {}",
-				T::LJ_TYPE,
-				self.itype()
-			));
+			anyhow::bail!("TValue type mismatch: expected {}, got {}", T::LJ_TYPE, self.itype());
 		}
 
 		Ok(unsafe { (self.gcr.gcptr64 & LJ_GCVMASK) as *mut T })

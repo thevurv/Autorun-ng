@@ -29,7 +29,6 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyh
 		anyhow::bail!("Target function pointer is null.");
 	}
 
-	dbg!(target_function);
 	if lua.type_id(state, 2) != LuaTypeId::Function {
 		anyhow::bail!("Second argument must be a function to use as detour.");
 	}
