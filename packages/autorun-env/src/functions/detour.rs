@@ -10,6 +10,7 @@ use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle, RawLuaRetu
 use autorun_luajit::{GCfunc, get_gcobj, get_gcobj_mut, index2adr, lua_State};
 use autorun_types::LuaState;
 use retour::GenericDetour;
+use std::ffi::c_int;
 pub use userdata::{detour_disable, detour_enable, detour_get_original, detour_remove};
 
 pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Detour> {
@@ -90,6 +91,8 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 	}
 
 	let original_ffid = gcfunc.as_c().header.ffid;
+	let original_upvalues = gcfunc.as_c().header.nupvalues;
+
 	let function_handle = RawHandle::from_stack(lua, state).context("Failed to create raw handle for function.")?;
 
 	let trampoline = make_detour_trampoline(lua, function_handle.get_id(), std::ptr::null(), detour_handler)?;
@@ -97,11 +100,12 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 
 	// Push it as a closure to call
 	unsafe {
-		lua.push_function(state, std::mem::transmute(trampoline.as_ptr()));
+		lua.push_closure(state, std::mem::transmute(trampoline.as_ptr()), original_upvalues as c_int);
 	}
 
 	let new_gcfunc = get_gcobj_mut::<GCfunc>(L_ref, -1).context("Failed to get GCfunc for copied function.")?;
 	new_gcfunc.as_c_mut().header.ffid = original_ffid;
+	new_gcfunc.as_c_mut().header.nupvalues = original_upvalues;
 
 	// TODO: Handle garbage collection of the trampoline function?
 	std::mem::forget(trampoline);
