@@ -1,0 +1,7 @@
+[plugin]
+name = "std"
+author = "vurv"
+version = "0.1.0"
+description = "Standard library for Autorun-ng"
+language = "lua"
+ordering = 0

@@ -277,6 +277,28 @@
 							"description": "The original function that was detoured"
 						}
 					]
+				},
+				{
+					"name": "load",
+					"description": "Compiles a Lua string into a callable function without executing it. Similar to Lua's loadstring/load function. Use this to dynamically compile code at runtime. NOTE: The environment inside defaults to the global environment, NOT Autorun's environment.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "code",
+							"type": "string",
+							"description": "The Lua code to compile"
+						}
+					],
+					"returns": [
+						{
+							"type": "function?",
+							"description": "The compiled function, or nil if compilation failed"
+						},
+						{
+							"type": "string?",
+							"description": "Error message if compilation failed"
+						}
+					]
 				}
 			]
 		}

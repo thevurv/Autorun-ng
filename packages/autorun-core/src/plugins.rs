@@ -8,15 +8,13 @@ pub struct Plugin {
 	/// Directory for mutable data.
 	data_dir: Dir,
 
-	config: std::sync::OnceLock<Config>,
+	config: Config,
 }
 
 impl core::fmt::Display for Plugin {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		match self.get_config() {
-			Ok(cfg) => write!(f, "{} v{} by {}", cfg.plugin.name, cfg.plugin.version, cfg.plugin.author),
-			Err(_) => write!(f, "Invalid Plugin"),
-		}
+		let cfg = &self.config;
+		write!(f, "{} v{} by {}", cfg.plugin.name, cfg.plugin.version, cfg.plugin.author)
 	}
 }
 
@@ -48,11 +46,15 @@ impl Plugin {
 		self.src()?.open_dir("menu")
 	}
 
+	pub fn shared(&self) -> std::io::Result<Dir> {
+		self.src()?.open_dir("shared")
+	}
+
 	pub fn try_clone(&self) -> std::io::Result<Self> {
 		Ok(Self {
 			dir: self.dir.try_clone()?,
 			data_dir: self.data_dir.try_clone()?,
-			config: std::sync::OnceLock::new(),
+			config: self.config.clone(),
 		})
 	}
 
@@ -60,16 +62,12 @@ impl Plugin {
 		self.client()?.read(Self::INIT_FILE)
 	}
 
-	pub fn client_exists(&self) -> std::io::Result<bool> {
-		self.client()?.try_exists(Self::INIT_FILE)
-	}
-
 	pub fn read_menu_init(&self) -> std::io::Result<Vec<u8>> {
-		self.menu()?.read("init.lua")
+		self.menu()?.read(Self::INIT_FILE)
 	}
 
-	pub fn menu_exists(&self) -> std::io::Result<bool> {
-		self.menu()?.try_exists(Self::INIT_FILE)
+	pub fn read_shared_init(&self) -> std::io::Result<Vec<u8>> {
+		self.shared()?.read(Self::INIT_FILE)
 	}
 
 	pub fn from_dir(dir: Dir) -> anyhow::Result<Self> {
@@ -85,34 +83,26 @@ impl Plugin {
 			}
 		};
 
-		Ok(Self {
-			dir,
-			data_dir,
-			config: std::sync::OnceLock::new(),
-		})
+		let config_data = dir.read_to_string(Self::PLUGIN_CONFIG)?;
+		let config: Config = toml::from_str(&config_data)?;
+
+		Ok(Self { dir, data_dir, config })
 	}
 
-	pub fn get_config(&self) -> anyhow::Result<&Config> {
-		if let Some(cfg) = self.config.get() {
-			return Ok(cfg);
-		}
-
-		let config_data = self.dir.read_to_string(Self::PLUGIN_CONFIG)?;
-		let config: Config = toml::from_str(&config_data)?;
-		self.config.set(config).expect("Shouldn't be set");
-
-		Ok(self.config.get().expect("Should be set"))
+	pub fn config(&self) -> &Config {
+		&self.config
 	}
 }
 
 nestify::nest! {
-	#[derive(Debug, Serialize, Deserialize)]*
+	#[derive(Debug, Clone, Serialize, Deserialize)]*
 	pub struct Config {
 		pub plugin: pub struct ConfigPlugin {
 			pub name: String,
 			pub author: String,
 			pub version: String,
 			pub description: String,
+			pub ordering: Option<u32>,
 
 			pub language: #[serde(rename_all = "lowercase")] #[non_exhaustive] pub enum ConfigPluginLanguage {
 				Lua,

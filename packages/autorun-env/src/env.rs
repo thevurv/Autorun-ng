@@ -122,6 +122,10 @@ impl EnvHandle {
 		lua.push(state, as_env_lua_function!(crate::functions::detour_get_original));
 		lua.set_table(state, -3);
 
+		lua.push(state, c"load");
+		lua.push(state, as_env_lua_function!(crate::functions::load));
+		lua.set_table(state, -3);
+
 		lua.push(state, c"VERSION");
 		lua.push(state, env!("CARGO_PKG_VERSION").to_string());
 		lua.set_table(state, -3);
@@ -158,15 +162,7 @@ impl EnvHandle {
 
 		// Can unwrap since we are sure there is something on the stack
 		let handle = RawHandle::from_stack(lua, state).unwrap();
-
-		// Create lua standard library
-		let this = Self(handle);
-		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/builtins.lua"))?;
-		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/include.lua"))?;
-		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/require.lua"))?;
-		this.execute(lua, state, c"@stdlib", include_bytes!("./lua/event.lua"))?;
-
-		Ok(this)
+		Ok(Self(handle))
 	}
 
 	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {

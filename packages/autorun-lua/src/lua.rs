@@ -403,16 +403,10 @@ impl LuaApi {
 			LUA_OK | LUA_YIELD => Ok(()),
 
 			_ => {
-				let err_msg = self.to_lstring(state, -1, std::ptr::null_mut());
+				let err = self.check_string(state, -1);
 				self.pop(state, 1);
 
-				let err_str = if !err_msg.is_null() {
-					unsafe { std::ffi::CStr::from_ptr(err_msg) }.to_string_lossy()
-				} else {
-					std::borrow::Cow::Borrowed("Unknown error")
-				};
-
-				Err(err_str)
+				Err(err)
 			}
 		}
 	}
@@ -428,16 +422,10 @@ impl LuaApi {
 			LUA_OK | LUA_YIELD => Ok(()),
 
 			_ => {
-				let err_msg = self.to_lstring(state, -1, std::ptr::null_mut());
+				let err = self.check_string(state, -1);
 				self.pop(state, 1);
 
-				let err_str = if !err_msg.is_null() {
-					unsafe { std::ffi::CStr::from_ptr(err_msg) }.to_string_lossy()
-				} else {
-					std::borrow::Cow::Borrowed("Unknown error")
-				};
-
-				Err(err_str)
+				Err(err)
 			}
 		}
 	}
@@ -477,6 +465,15 @@ impl<T: IntoLua> LuaReturn for T {
 	fn into_lua_return(self, lua: &LuaApi, state: *mut LuaState) -> i32 {
 		self.into_lua(lua, state);
 		1
+	}
+}
+
+#[repr(transparent)]
+pub struct RawLuaReturn(pub i32);
+
+impl LuaReturn for RawLuaReturn {
+	fn into_lua_return(self, _lua: &LuaApi, _state: *mut LuaState) -> i32 {
+		self.0
 	}
 }
 

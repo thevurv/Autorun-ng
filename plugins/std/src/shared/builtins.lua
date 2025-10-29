@@ -107,3 +107,5 @@ tostring = _G.tostring
 type = _G.type
 xpcall = _G.xpcall
 _VERSION = _G._VERSION
+getfenv = _G.getfenv
+setfenv = _G.setfenv
