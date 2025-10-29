@@ -15,9 +15,12 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
 
-test = Autorun.detour(_G.EffectData, function(orig, a)
-    print("FFID override test: " .. tostring(orig))
-    return orig, a
+local realRawGet = _G.rawget
+_G.rawget = Autorun.copyFastFunction(realRawGet, function(t, s)
+    _G.print("Detoured rawget called for key:", s)
+    _G.print("Table:", t)
+    return realRawGet(t, s)
 end)
+
 
 Autorun.print("Put getfenv in a FFID for compatibility.")

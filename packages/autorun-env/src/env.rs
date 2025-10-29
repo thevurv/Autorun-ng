@@ -128,6 +128,10 @@ impl EnvHandle {
 		lua.push(state, as_env_lua_function!(crate::functions::detour_get_original));
 		lua.set_table(state, -3);
 
+		lua.push(state, c"copyFastFunction");
+		lua.push(state, as_env_lua_function!(crate::functions::copy_fast_function));
+		lua.set_table(state, -3);
+
 		lua.push(state, c"load");
 		lua.push(state, as_env_lua_function!(crate::functions::load));
 		lua.set_table(state, -3);

@@ -23,7 +23,7 @@ pub extern "C-unwind" fn detour_handler(
 
 	let num_arguments = lua.get_top(state) - 1;
 
-	let original_function_included = if original_function as usize == 0 {
+	let original_function_included = if original_function as usize != 0 {
 		// add the original function as the first argument
 		unsafe {
 			lua.push_function(state, *original_function);

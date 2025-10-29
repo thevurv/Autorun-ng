@@ -6,7 +6,7 @@ use crate::functions::detour::handlers::{detour_handler, retour_handler};
 use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_trampoline};
 use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
-use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle};
+use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle, RawLuaReturn};
 use autorun_luajit::{GCfunc, index2adr, lua_State};
 use autorun_types::LuaState;
 use retour::GenericDetour;
@@ -92,7 +92,7 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyh
 	})
 }
 
-pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<LuaFunction> {
+pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
 	if lua.is_c_function(state, 1) == 0 {
 		anyhow::bail!("First argument must be a C function to copy.");
 	}
@@ -123,5 +123,8 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		(*new_gcfunc).as_c_mut().header.ffid = original_ffid;
 	}
 
-	Ok(unsafe { std::mem::transmute(*new_gcfunc) })
+	// TODO: Handle garbage collection of the trampoline function?
+	std::mem::forget(trampoline);
+
+	Ok(RawLuaReturn(1))
 }
