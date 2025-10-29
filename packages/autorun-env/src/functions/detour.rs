@@ -23,8 +23,10 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyh
 
 	let gcfunc = get_gcobj::<GCfunc>(L_ref, 1).context("Failed to get GCfunc for target function.")?;
 
-	// For fast-functions, this will be a pointer to the fast-function handler, which will detour as expected
-	// in most cases.
+	if gcfunc.is_fast_function() {
+		anyhow::bail!("Cannot detour a fast-function. Use copyFastFunction instead.");
+	}
+
 	let target_function: LuaFunction = unsafe { std::mem::transmute(gcfunc.c.c) };
 	if target_function as usize == 0 {
 		anyhow::bail!("Target function pointer is null.");
