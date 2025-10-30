@@ -6,14 +6,14 @@ use crate::functions::detour::handlers::{detour_handler, retour_handler};
 use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_trampoline};
 use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
-use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle, RawLuaReturn};
-use autorun_luajit::{GCfunc, LJState, get_gcobj, get_gcobj_mut, index2adr};
+use autorun_lua::{LuaApi, LuaFunction, LuaTypeId, RawHandle, RawLuaReturn};
+use autorun_luajit::{GCfunc, LJState, get_gcobj, get_gcobj_mut};
 use autorun_types::LuaState;
 use retour::GenericDetour;
 use std::ffi::c_int;
 pub use userdata::{detour_disable, detour_enable, detour_get_original, detour_remove};
 
-pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<Detour> {
+pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<Detour> {
 	if lua.is_c_function(state, 1) == 0 {
 		anyhow::bail!("First argument must be a C function to detour.");
 	}
@@ -68,14 +68,14 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyh
 
 	Ok(Detour {
 		detour,
-		detour_callback,
-		detour_trampoline,
-		retour_trampoline,
+		_detour_callback: detour_callback,
+		_detour_trampoline: detour_trampoline,
+		_retour_trampoline: retour_trampoline,
 		original_function_ptr,
 	})
 }
 
-pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
 	if lua.is_c_function(state, 1) == 0 {
 		anyhow::bail!("First argument must be a C function to copy.");
 	}
@@ -84,9 +84,9 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		anyhow::bail!("Second argument must be a function to use.");
 	}
 
-	let l = state as *mut LJState;
-	let l_ref = unsafe { l.as_ref().context("Failed to dereference lua_State.")? };
-	let gcfunc = get_gcobj::<GCfunc>(l_ref, 1).context("Failed to get GCfunc for target function.")?;
+	let lj_state = state as *mut LJState;
+	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
+	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
 
 	if !gcfunc.is_fast_function() {
 		anyhow::bail!("Function is not a fast-function.");
@@ -105,7 +105,7 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		lua.push_closure(state, std::mem::transmute(trampoline.as_ptr()), original_upvalues as c_int);
 	}
 
-	let new_gcfunc = get_gcobj_mut::<GCfunc>(l_ref, -1).context("Failed to get GCfunc for copied function.")?;
+	let new_gcfunc = get_gcobj_mut::<GCfunc>(lj_state, -1).context("Failed to get GCfunc for copied function.")?;
 	new_gcfunc.header_mut().ffid = original_ffid;
 	new_gcfunc.header_mut().nupvalues = original_upvalues;
 

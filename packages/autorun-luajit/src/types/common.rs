@@ -45,9 +45,9 @@ pub struct LJDebug {
 	pub i_ci: i32,
 }
 
-pub type lua_Hook = extern "C-unwind" fn(L: *mut LJState, ar: *mut LJDebug);
-pub type lua_CFunction = extern "C-unwind" fn(L: *mut LJState) -> i32;
-pub type lua_Alloc = extern "C-unwind" fn(
+pub type LuaHookFn = extern "C-unwind" fn(l: *mut LJState, ar: *mut LJDebug);
+pub type LuaCFunction = extern "C-unwind" fn(l: *mut LJState) -> i32;
+pub type LuaAllocFn = extern "C-unwind" fn(
 	ud: *mut core::ffi::c_void,
 	ptr: *mut core::ffi::c_void,
 	osize: usize,
@@ -93,7 +93,7 @@ pub struct GCHeader {
 }
 
 // #define LJ_GCVMASK		(((uint64_t)1 << 47) - 1)
-pub const LJ_GCVMASK: u64 = ((1u64 << 47) - 1);
+pub const LJ_GCVMASK: u64 = (1u64 << 47) - 1;
 
 #[repr(C, align(8))]
 #[derive(Clone, Copy)]
@@ -141,7 +141,7 @@ pub struct GCFuncHeader {
 #[derive(Clone, Copy)]
 pub struct GCfuncC {
 	pub header: GCFuncHeader,
-	pub c: lua_CFunction,
+	pub c: LuaCFunction,
 	pub upvalue: [TValue; 1],
 }
 
@@ -373,7 +373,7 @@ pub struct GlobalState {
 	pub strhash: *mut GCRef,
 	pub strmask: MSize,
 	pub strnum: MSize,
-	pub allocf: lua_Alloc,
+	pub allocf: LuaAllocFn,
 	pub allocd: *mut c_void,
 	pub gc: GCState,
 	pub vmstate: c_int,
@@ -391,9 +391,9 @@ pub struct GlobalState {
 	pub uvhead: GCUpval,
 	pub hookcount: c_int,
 	pub hookcstart: c_int,
-	pub hookf: lua_Hook,
-	pub wrapf: lua_CFunction,
-	pub panic: lua_CFunction,
+	pub hookf: LuaHookFn,
+	pub wrapf: LuaCFunction,
+	pub panic: LuaCFunction,
 	pub bc_cfunc_int: BCIns,
 	pub bc_cfunc_ext: BCIns,
 	pub cur_l: GCRef,

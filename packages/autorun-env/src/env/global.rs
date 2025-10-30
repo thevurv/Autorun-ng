@@ -10,7 +10,7 @@ mod client {
 	}
 
 	pub fn get_env() -> Option<EnvHandle> {
-		ENV.lock().unwrap().clone()
+		*ENV.lock().unwrap()
 	}
 }
 
@@ -24,7 +24,7 @@ mod menu {
 	}
 
 	pub fn get_env() -> Option<EnvHandle> {
-		ENV.lock().unwrap().clone()
+		*ENV.lock().unwrap()
 	}
 }
 

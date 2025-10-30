@@ -32,6 +32,7 @@ impl DetourMetadata {
 		(self.0 >> RESERVED_BITS) & ((1 << CALLBACK_REF_BITS) - 1)
 	}
 
+	#[allow(unused)]
 	pub fn reserved(&self) -> i32 {
 		self.0 & ((1 << RESERVED_BITS) - 1)
 	}
@@ -67,7 +68,7 @@ pub fn make_detour_trampoline(
 		],
 	);
 
-	let jmp = Jump::Absolute(handler as u64);
+	let jmp = Jump::Absolute(handler as usize as u64);
 	jmp.write_to_mcode(&mut trampoline.mcode);
 
 	trampoline
@@ -91,7 +92,7 @@ pub fn make_retour_lua_trampoline(
 		],
 	);
 
-	let jmp = Jump::Absolute(handler as u64);
+	let jmp = Jump::Absolute(handler as usize as u64);
 	jmp.write_to_mcode(&mut trampoline.mcode);
 
 	trampoline

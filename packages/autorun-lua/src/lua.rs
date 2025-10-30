@@ -430,12 +430,12 @@ impl LuaApi {
 		}
 	}
 
-	pub fn new_userdata<T: Sized>(&self, state: *mut LuaState, init: T) -> &mut T {
+	pub fn new_userdata<T: Sized>(&self, state: *mut LuaState, init: T) -> *mut T {
 		let ptr = self._new_userdata(state, core::mem::size_of::<T>()) as *mut T;
 		unsafe {
 			ptr.write(init);
-			&mut *ptr
 		}
+		ptr
 	}
 
 	pub fn pop(&self, state: *mut LuaState, n: c_int) {

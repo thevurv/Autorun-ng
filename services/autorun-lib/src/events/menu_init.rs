@@ -5,7 +5,7 @@ pub fn run(state: *mut autorun_types::LuaState) -> anyhow::Result<()> {
 	let workspace = super::get_workspace()?;
 	let lua = autorun_lua::get_api()?;
 
-	let env = autorun_env::EnvHandle::create(&lua, state, Realm::Menu)?;
+	let env = autorun_env::EnvHandle::create(lua, state, Realm::Menu)?;
 	autorun_env::global::set_realm_env(Realm::Menu, env);
 
 	let (mut plugins, _errors) = workspace.get_plugins()?;

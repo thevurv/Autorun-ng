@@ -169,9 +169,3 @@ macro_rules! autorun_menu_entrypoint {
 pub mod prelude {
 	pub use crate::{AutorunApi, AutorunError, AutorunResult, autorun_client_entrypoint, autorun_menu_entrypoint};
 }
-
-fn test(v: &AutorunApi) -> Result<(), Box<dyn core::error::Error>> {
-	Ok(())
-}
-
-autorun_client_entrypoint!(test);

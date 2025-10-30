@@ -12,8 +12,11 @@ pub extern "C" fn autorun_version() -> *const c_char {
 	concat!(env!("CARGO_PKG_VERSION"), "\0").as_ptr() as *const c_char
 }
 
+/// # Safety
+/// `path` must be a valid null-terminated C string.
+/// `content` must be a valid pointer to a buffer of `content_len` bytes.
 #[unsafe(no_mangle)]
-pub extern "C" fn autorun_write(
+pub unsafe extern "C" fn autorun_write(
 	plugin_handle: *mut autorun_core::plugins::Plugin,
 	path: *const c_char,
 	content: *const u8,
@@ -33,8 +36,11 @@ pub extern "C" fn autorun_write(
 		.unwrap_or(PluginResult::ErrWriteFailed)
 }
 
+/// # Safety
+/// `path` must be a valid null-terminated C string.
+/// `buffer` must be a valid pointer to a buffer of at least `buffer_size` bytes.
 #[unsafe(no_mangle)]
-pub extern "C" fn autorun_read(
+pub unsafe extern "C" fn autorun_read(
 	plugin_handle: *mut autorun_core::plugins::Plugin,
 	path: *const c_char,
 	buffer: *mut u8,
@@ -58,8 +64,10 @@ pub extern "C" fn autorun_read(
 	read_size as c_int
 }
 
+/// # Safety
+/// `path` must be a valid null-terminated C string.
 #[unsafe(no_mangle)]
-pub extern "C" fn autorun_read_size(plugin_handle: *mut autorun_core::plugins::Plugin, path: *const c_char) -> c_int {
+pub unsafe extern "C" fn autorun_read_size(plugin_handle: *mut autorun_core::plugins::Plugin, path: *const c_char) -> c_int {
 	let Some(plugin) = (unsafe { plugin_handle.as_ref() }) else {
 		return -1;
 	};
@@ -71,8 +79,10 @@ pub extern "C" fn autorun_read_size(plugin_handle: *mut autorun_core::plugins::P
 	}
 }
 
+/// # Safety
+/// `path` must be a valid null-terminated C string.
 #[unsafe(no_mangle)]
-pub extern "C" fn autorun_mkdir(plugin_handle: *mut autorun_core::plugins::Plugin, path: *const c_char) -> PluginResult {
+pub unsafe extern "C" fn autorun_mkdir(plugin_handle: *mut autorun_core::plugins::Plugin, path: *const c_char) -> PluginResult {
 	let Some(plugin) = (unsafe { plugin_handle.as_ref() }) else {
 		return PluginResult::ErrNullHandle;
 	};
@@ -86,8 +96,10 @@ pub extern "C" fn autorun_mkdir(plugin_handle: *mut autorun_core::plugins::Plugi
 		.unwrap_or(PluginResult::ErrWriteFailed)
 }
 
+/// # Safety
+/// `message` must be a valid null-terminated C string.
 #[unsafe(no_mangle)]
-pub extern "C" fn autorun_print(message: *const c_char) {
+pub unsafe extern "C" fn autorun_print(message: *const c_char) {
 	let message = unsafe { std::ffi::CStr::from_ptr(message) };
 
 	if let Ok(message_str) = message.to_str() {
