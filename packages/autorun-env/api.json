@@ -307,6 +307,29 @@
 					]
 				},
 				{
+					"name": "copyFastFunction",
+					"description": "Creates a copy of a specific LuaJIT fast function, with the internals replaced by running the given lua closure. Basically, allows you to 'detour' certain functions like getfenv or getmetatable which LuaJIT JIT compiles.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "originalFunction",
+							"type": "function",
+							"description": "The original fast function to copy. Must be a C function obviously."
+						},
+						{
+							"name": "replacementFunction",
+							"type": "function",
+							"description": "The Lua function to run instead of the original."
+						}
+					],
+					"returns": [
+						{
+							"type": "function",
+							"description": "The copied function that looks like the original but runs the replacement code. To lua, this will look like just another C function. Note that anything that gets a stack trace will still see your Lua function and detect you if you do anything that'll give you away."
+						}
+					]
+				},
+				{
 					"name": "load",
 					"description": "Compiles a Lua string into a callable function without executing it. Similar to Lua's loadstring/load function. Use this to dynamically compile code at runtime. NOTE: The environment inside defaults to the global environment, NOT Autorun's environment.",
 					"realm": "shared",
