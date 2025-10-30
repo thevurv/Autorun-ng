@@ -153,6 +153,23 @@
 					]
 				},
 				{
+					"name": "exists",
+					"description": "Checks if a file or directory exists at the given path relative to the active plugin's directory.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "path",
+							"type": "string"
+						}
+					],
+					"returns": [
+						{
+							"type": "boolean",
+							"description": "True if the file/directory exists, false otherwise"
+						}
+					]
+				},
+				{
 					"name": "on",
 					"description": "Registers an event handler for the specified event.",
 					"realm": "shared",
