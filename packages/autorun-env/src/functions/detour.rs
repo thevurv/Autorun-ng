@@ -50,7 +50,7 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> any
 	let detour = unsafe {
 		Box::new(GenericDetour::new(
 			target_function,
-			std::mem::transmute(detour_trampoline.as_ptr()),
+			std::mem::transmute::<*const u8, LuaFunction>(detour_trampoline.as_ptr()),
 		)?)
 	};
 
@@ -102,7 +102,11 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHa
 
 	// Push it as a closure to call
 	unsafe {
-		lua.push_closure(state, std::mem::transmute(trampoline.as_ptr()), original_upvalues as c_int);
+		lua.push_closure(
+			state,
+			std::mem::transmute::<*const u8, LuaFunction>(trampoline.as_ptr()),
+			original_upvalues as c_int,
+		);
 	}
 
 	let new_gcfunc = get_gcobj_mut::<GCfunc>(lj_state, -1).context("Failed to get GCfunc for copied function.")?;

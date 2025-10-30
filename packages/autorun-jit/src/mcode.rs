@@ -6,7 +6,7 @@ pub struct MCode {
 
 macro_rules! write_byte {
 	($mcode:expr, $byte:expr) => {
-		assert!($mcode.offset + 1 <= $mcode.size, "Not enough space to write byte");
+		assert!($mcode.offset < $mcode.size, "Not enough space to write byte");
 		unsafe {
 			std::ptr::write($mcode.ptr.add($mcode.offset), $byte);
 		}

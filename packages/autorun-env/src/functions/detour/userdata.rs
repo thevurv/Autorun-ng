@@ -52,7 +52,7 @@ pub fn detour_get_original(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvH
 
 	let detour = unsafe { &mut *detour_userdata };
 
-	Ok(unsafe { std::mem::transmute(*detour.original_function_ptr) })
+	Ok(unsafe { std::mem::transmute::<usize, LuaFunction>(*detour.original_function_ptr) })
 }
 
 pub fn detour_remove(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<()> {
