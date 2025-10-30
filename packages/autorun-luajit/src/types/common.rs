@@ -245,7 +245,7 @@ pub struct Sbuf {
 	pub p: MRef,
 	pub e: MRef,
 	pub b: MRef,
-	pub L: MRef,
+	pub l: MRef,
 }
 
 #[repr(C)]
@@ -396,7 +396,7 @@ pub struct GlobalState {
 	pub panic: lua_CFunction,
 	pub bc_cfunc_int: BCIns,
 	pub bc_cfunc_ext: BCIns,
-	pub cur_L: GCRef,
+	pub cur_l: GCRef,
 	pub jit_base: MRef,
 	pub ctype_state: MRef,
 	pub gcroot: [GCRef; GCROOT_MAX],

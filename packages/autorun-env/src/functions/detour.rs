@@ -18,10 +18,10 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyh
 		anyhow::bail!("First argument must be a C function to detour.");
 	}
 
-	let L = state as *mut LJState;
-	let L_ref = unsafe { L.as_ref().context("Failed to dereference lua_State.")? };
+	let l = state as *mut LJState;
+	let l_ref = unsafe { l.as_ref().context("Failed to dereference lua_State.")? };
 
-	let gcfunc = get_gcobj::<GCfunc>(L_ref, 1).context("Failed to get GCfunc for target function.")?;
+	let gcfunc = get_gcobj::<GCfunc>(l_ref, 1).context("Failed to get GCfunc for target function.")?;
 
 	if gcfunc.is_fast_function() {
 		anyhow::bail!("Cannot detour a fast-function. Use copyFastFunction instead.");
@@ -84,9 +84,9 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		anyhow::bail!("Second argument must be a function to use.");
 	}
 
-	let L = state as *mut LJState;
-	let L_ref = unsafe { L.as_ref().context("Failed to dereference lua_State.")? };
-	let gcfunc = get_gcobj::<GCfunc>(L_ref, 1).context("Failed to get GCfunc for target function.")?;
+	let l = state as *mut LJState;
+	let l_ref = unsafe { l.as_ref().context("Failed to dereference lua_State.")? };
+	let gcfunc = get_gcobj::<GCfunc>(l_ref, 1).context("Failed to get GCfunc for target function.")?;
 
 	if !gcfunc.is_fast_function() {
 		anyhow::bail!("Function is not a fast-function.");
@@ -105,7 +105,7 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		lua.push_closure(state, std::mem::transmute(trampoline.as_ptr()), original_upvalues as c_int);
 	}
 
-	let new_gcfunc = get_gcobj_mut::<GCfunc>(L_ref, -1).context("Failed to get GCfunc for copied function.")?;
+	let new_gcfunc = get_gcobj_mut::<GCfunc>(l_ref, -1).context("Failed to get GCfunc for copied function.")?;
 	new_gcfunc.header_mut().ffid = original_ffid;
 	new_gcfunc.header_mut().nupvalues = original_upvalues;
 
