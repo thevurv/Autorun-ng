@@ -14,3 +14,6 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.mkdir(hostName .. "/" .. parentDir)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
+
+_G.print("Is GetHostName authorized: " .. tostring(Autorun.isFunctionAuthorized(_G.GetHostName)))
+_G.print("Is an Autorun closure authorized: " .. tostring(Autorun.isFunctionAuthorized(function() return true end)))
