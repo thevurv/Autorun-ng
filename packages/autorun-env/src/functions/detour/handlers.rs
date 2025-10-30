@@ -1,6 +1,5 @@
 use crate::functions::detour::raw;
 use autorun_lua::{LUA_MULTRET, LuaApi, LuaFunction, RawHandle};
-use autorun_luajit::lua_State;
 use autorun_types::LuaState;
 
 pub extern "C-unwind" fn retour_handler(state: *mut LuaState, detour: *const retour::GenericDetour<LuaFunction>) -> i32 {

@@ -7,7 +7,7 @@ use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_tram
 use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
 use autorun_lua::{IntoLua, LuaApi, LuaFunction, LuaTypeId, RawHandle, RawLuaReturn};
-use autorun_luajit::{GCfunc, get_gcobj, get_gcobj_mut, index2adr, lua_State};
+use autorun_luajit::{GCfunc, LJState, get_gcobj, get_gcobj_mut, index2adr};
 use autorun_types::LuaState;
 use retour::GenericDetour;
 use std::ffi::c_int;
@@ -18,7 +18,7 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyh
 		anyhow::bail!("First argument must be a C function to detour.");
 	}
 
-	let L = state as *mut lua_State;
+	let L = state as *mut LJState;
 	let L_ref = unsafe { L.as_ref().context("Failed to dereference lua_State.")? };
 
 	let gcfunc = get_gcobj::<GCfunc>(L_ref, 1).context("Failed to get GCfunc for target function.")?;
@@ -84,7 +84,7 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		anyhow::bail!("Second argument must be a function to use.");
 	}
 
-	let L = state as *mut lua_State;
+	let L = state as *mut LJState;
 	let L_ref = unsafe { L.as_ref().context("Failed to dereference lua_State.")? };
 	let gcfunc = get_gcobj::<GCfunc>(L_ref, 1).context("Failed to get GCfunc for target function.")?;
 
@@ -92,8 +92,8 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 		anyhow::bail!("Function is not a fast-function.");
 	}
 
-	let original_ffid = gcfunc.as_c().header.ffid;
-	let original_upvalues = gcfunc.as_c().header.nupvalues;
+	let original_ffid = gcfunc.header().ffid;
+	let original_upvalues = gcfunc.header().nupvalues;
 
 	let function_handle = RawHandle::from_stack(lua, state).context("Failed to create raw handle for function.")?;
 
@@ -106,8 +106,8 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHan
 	}
 
 	let new_gcfunc = get_gcobj_mut::<GCfunc>(L_ref, -1).context("Failed to get GCfunc for copied function.")?;
-	new_gcfunc.as_c_mut().header.ffid = original_ffid;
-	new_gcfunc.as_c_mut().header.nupvalues = original_upvalues;
+	new_gcfunc.header_mut().ffid = original_ffid;
+	new_gcfunc.header_mut().nupvalues = original_upvalues;
 
 	// TODO: Handle garbage collection of the trampoline function?
 	std::mem::forget(trampoline);

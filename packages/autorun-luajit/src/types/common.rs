@@ -1,7 +1,13 @@
 // Subset of lj_obj.h
 
+use std::ffi::{c_int, c_void};
+
 // IMPORTANT: GMod's LUA_IDSIZE was randomly changed to 128 instead of 60 like in vanilla LuaJIT
+#[cfg(feature = "gmod")]
 pub const LUA_IDSIZE: i32 = 128;
+#[cfg(not(feature = "gmod"))]
+pub const LUA_IDSIZE: i32 = 60;
+
 pub const LJ_TNIL: u32 = !0u32;
 pub const LJ_TFALSE: u32 = !1u32;
 pub const LJ_TTRUE: u32 = !2u32;
@@ -25,7 +31,7 @@ pub type MSize = u64;
 pub type GCSize = u64;
 
 #[repr(C)]
-pub struct lua_Debug {
+pub struct LJDebug {
 	pub event: i32,
 	pub name: *const u8,
 	pub namewhat: *const u8,
@@ -39,8 +45,8 @@ pub struct lua_Debug {
 	pub i_ci: i32,
 }
 
-pub type lua_Hook = extern "C-unwind" fn(L: *mut lua_State, ar: *mut lua_Debug);
-pub type lua_CFunction = extern "C-unwind" fn(L: *mut lua_State) -> i32;
+pub type lua_Hook = extern "C-unwind" fn(L: *mut LJState, ar: *mut LJDebug);
+pub type lua_CFunction = extern "C-unwind" fn(L: *mut LJState) -> i32;
 pub type lua_Alloc = extern "C-unwind" fn(
 	ud: *mut core::ffi::c_void,
 	ptr: *mut core::ffi::c_void,
@@ -161,59 +167,64 @@ pub const FF_LUA: u8 = 0;
 pub const FF_C: u8 = 1;
 
 impl GCfunc {
-	pub fn as_l(&self) -> &GCfuncL {
-		unsafe { &self.l }
+	pub fn header(&self) -> &GCFuncHeader {
+		unsafe { &self.c.header }
 	}
 
-	pub fn as_c(&self) -> &GCfuncC {
-		unsafe { &self.c }
+	pub fn header_mut(&mut self) -> &mut GCFuncHeader {
+		unsafe { &mut self.c.header }
 	}
 
-	pub fn as_l_mut(&mut self) -> &mut GCfuncL {
-		unsafe { &mut self.l }
+	pub fn as_l(&self) -> Option<&GCfuncL> {
+		if !self.is_lua() {
+			return None;
+		}
+
+		Some(unsafe { &self.l })
 	}
 
-	pub fn as_c_mut(&mut self) -> &mut GCfuncC {
-		unsafe { &mut self.c }
+	pub fn as_c(&self) -> Option<&GCfuncC> {
+		if self.is_lua() {
+			return None;
+		}
+
+		Some(unsafe { &self.c })
+	}
+
+	pub fn as_l_mut(&mut self) -> Option<&mut GCfuncL> {
+		if !self.is_lua() {
+			return None;
+		}
+
+		Some(unsafe { &mut self.l })
+	}
+
+	pub fn as_c_mut(&mut self) -> Option<&mut GCfuncC> {
+		if self.is_lua() {
+			return None;
+		}
+
+		Some(unsafe { &mut self.c })
 	}
 
 	pub fn is_lua(&self) -> bool {
-		let ffid = self.as_c().header.ffid;
+		let ffid = self.header().ffid;
 		ffid == FF_LUA
 	}
 
 	pub fn is_c(&self) -> bool {
-		let ffid = self.as_c().header.ffid;
+		let ffid = self.header().ffid;
 		ffid == FF_C
 	}
 
 	pub fn is_fast_function(&self) -> bool {
-		let ffid = self.as_c().header.ffid;
+		let ffid = self.header().ffid;
 		ffid > FF_C
 	}
 }
 
-/*
-/* Per-thread state object. */
-struct lua_State {
-  GCHeader;
-  uint8_t dummy_ffid;	/* Fake FF_C for curr_funcisL() on dummy frames. */
-  uint8_t status;	/* Thread status. */
-  MRef glref;		/* Link to global state. */
-  GCRef gclist;		/* GC chain. */
-  TValue *base;		/* Base of currently executing function. */
-  TValue *top;		/* First free slot in the stack. */
-  MRef maxstack;	/* Last free slot in the stack. */
-  MRef stack;		/* Stack base. */
-  GCRef openupval;	/* List of open upvalues in the stack. */
-  GCRef env;		/* Thread environment (table of globals). */
-  void *cframe;		/* End of C stack frame chain. */
-  MSize stacksize;	/* True stack size (incl. LJ_STACK_EXTRA). */
-};
- */
-
 #[repr(C)]
-pub struct lua_State {
+pub struct LJState {
 	pub header: GCHeader,
 	pub dummy_ffid: u8,
 	pub status: u8,
@@ -225,7 +236,7 @@ pub struct lua_State {
 	pub stack: MRef,
 	pub openupval: GCRef,
 	pub env: GCRef,
-	pub cframe: *mut core::ffi::c_void,
+	pub cframe: *mut c_void,
 	pub stacksize: MSize,
 }
 
@@ -282,28 +293,28 @@ pub struct Node {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub struct GCupval_uv_link {
+pub struct GCUpvalUVLink {
 	pub next: GCRef,
 	pub prev: GCRef,
 }
 
 #[repr(C)]
-pub union GCupval_uv {
+pub union GCUpvalUV {
 	pub tv: TValue,
-	pub link: GCupval_uv_link,
+	pub link: GCUpvalUVLink,
 }
 
 #[repr(C)]
-pub struct GCupval {
+pub struct GCUpval {
 	pub header: GCHeader,
 	pub closed: u8,
 	pub immutable: u8,
-	pub uv: GCupval_uv,
+	pub uv: GCUpvalUV,
 	pub v: MRef,
 	pub dhash: u32,
 }
 
-impl IntoLJType for GCupval {
+impl IntoLJType for GCUpval {
 	const LJ_TYPE: u32 = LJ_TUPVAL;
 }
 
@@ -357,50 +368,15 @@ pub enum GCRootID {
 
 pub const GCROOT_MAX: usize = MetaMethod::MAX + 16;
 
-/*
-/* Global state, shared by all threads of a Lua universe. */
-typedef struct global_State {
-  GCRef *strhash;	/* String hash table (hash chain anchors). */
-  MSize strmask;	/* String hash mask (size of hash table - 1). */
-  MSize strnum;		/* Number of strings in hash table. */
-  lua_Alloc allocf;	/* Memory allocator. */
-  void *allocd;		/* Memory allocator data. */
-  GCState gc;		/* Garbage collector. */
-  volatile int32_t vmstate;  /* VM state or current JIT code trace number. */
-  SBuf tmpbuf;		/* Temporary string buffer. */
-  GCstr strempty;	/* Empty string. */
-  uint8_t stremptyz;	/* Zero terminator of empty string. */
-  uint8_t hookmask;	/* Hook mask. */
-  uint8_t dispatchmode;	/* Dispatch mode. */
-  uint8_t vmevmask;	/* VM event mask. */
-  GCRef mainthref;	/* Link to main thread. */
-  TValue registrytv;	/* Anchor for registry. */
-  TValue tmptv, tmptv2;	/* Temporary TValues. */
-  Node nilnode;		/* Fallback 1-element hash part (nil key and value). */
-  GCupval uvhead;	/* Head of double-linked list of all open upvalues. */
-  int32_t hookcount;	/* Instruction hook countdown. */
-  int32_t hookcstart;	/* Start count for instruction hook counter. */
-  lua_Hook hookf;	/* Hook function. */
-  lua_CFunction wrapf;	/* Wrapper for C function calls. */
-  lua_CFunction panic;	/* Called as a last resort for errors. */
-  BCIns bc_cfunc_int;	/* Bytecode for internal C function calls. */
-  BCIns bc_cfunc_ext;	/* Bytecode for external C function calls. */
-  GCRef cur_L;		/* Currently executing lua_State. */
-  MRef jit_base;	/* Current JIT code L->base or NULL. */
-  MRef ctype_state;	/* Pointer to C type state. */
-  GCRef gcroot[GCROOT_MAX];  /* GC roots. */
-} global_State;
- */
-
 #[repr(C)]
-pub struct global_State {
+pub struct GlobalState {
 	pub strhash: *mut GCRef,
 	pub strmask: MSize,
 	pub strnum: MSize,
 	pub allocf: lua_Alloc,
-	pub allocd: *mut core::ffi::c_void,
+	pub allocd: *mut c_void,
 	pub gc: GCState,
-	pub vmstate: core::ffi::c_int,
+	pub vmstate: c_int,
 	pub tmpbuf: Sbuf,
 	pub strempty: GCstr,
 	pub stremptyz: u8,
@@ -412,9 +388,9 @@ pub struct global_State {
 	pub tmptv: TValue,
 	pub tmptv2: TValue,
 	pub nilnode: Node,
-	pub uvhead: GCupval,
-	pub hookcount: core::ffi::c_int,
-	pub hookcstart: core::ffi::c_int,
+	pub uvhead: GCUpval,
+	pub hookcount: c_int,
+	pub hookcstart: c_int,
 	pub hookf: lua_Hook,
 	pub wrapf: lua_CFunction,
 	pub panic: lua_CFunction,

@@ -1,15 +1,15 @@
 use crate::*;
 use anyhow::Context;
 
-pub fn global_state(L: &lua_State) -> *mut global_State {
+pub fn global_state(L: &LJState) -> *mut GlobalState {
 	L.glref.as_ptr()
 }
 
-pub fn registry(L: &lua_State) -> *mut TValue {
+pub fn registry(L: &LJState) -> *mut TValue {
 	unsafe { &mut (*global_state(L)).registrytv as *mut TValue }
 }
 
-pub fn index2adr(L: &lua_State, idx: i32) -> Option<*mut TValue> {
+pub fn index2adr(L: &LJState, idx: i32) -> Option<*mut TValue> {
 	// for now, support only positive indices
 	if idx > 0 {
 		let tv = unsafe { L.base.add((idx - 1) as usize) };
@@ -28,7 +28,7 @@ pub fn index2adr(L: &lua_State, idx: i32) -> Option<*mut TValue> {
 	None
 }
 
-pub fn curr_func(L: &lua_State) -> anyhow::Result<&GCfunc> {
+pub fn curr_func(L: &LJState) -> anyhow::Result<&GCfunc> {
 	// #define curr_func(L)		(&gcval(L->base-2)->fn)
 
 	unsafe {
@@ -38,7 +38,7 @@ pub fn curr_func(L: &lua_State) -> anyhow::Result<&GCfunc> {
 	}
 }
 
-pub fn get_gcobj<T: Clone + IntoLJType>(L: &lua_State, idx: i32) -> anyhow::Result<T> {
+pub fn get_gcobj<T: Clone + IntoLJType>(L: &LJState, idx: i32) -> anyhow::Result<T> {
 	unsafe {
 		let tv = index2adr(L, idx).context("Failed to get TValue for given index.")?;
 		let gcobj = (*tv).as_ref::<T>()?;
@@ -46,7 +46,7 @@ pub fn get_gcobj<T: Clone + IntoLJType>(L: &lua_State, idx: i32) -> anyhow::Resu
 	}
 }
 
-pub fn get_gcobj_mut<T: IntoLJType>(L: &lua_State, idx: i32) -> anyhow::Result<&mut T> {
+pub fn get_gcobj_mut<T: IntoLJType>(L: &LJState, idx: i32) -> anyhow::Result<&mut T> {
 	unsafe {
 		let tv = index2adr(L, idx).context("Failed to get TValue for given index.")?;
 		let gcobj = (*tv).as_mut::<T>()?;
