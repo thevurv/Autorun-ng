@@ -17,4 +17,5 @@ autorun-types = { path = "../autorun-types" }
 autorun-lua = { path = "../autorun-lua" }
 autorun-log = { path = "../autorun-log" }
 autorun-jit = { path = "../autorun-jit" }
+autorun-luajit = { path = "../autorun-luajit" }
 autorun-interfaces = { path = "../autorun-interfaces" }

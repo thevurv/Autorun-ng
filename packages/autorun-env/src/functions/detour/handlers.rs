@@ -22,14 +22,27 @@ pub extern "C-unwind" fn detour_handler(
 
 	let num_arguments = lua.get_top(state) - 1;
 
-	// add the original function as the first argument
-	unsafe {
-		lua.push_function(state, *original_function);
-		lua.insert(state, 2);
-	}
+	let original_function_included = if original_function as usize != 0 {
+		// add the original function as the first argument
+		unsafe {
+			lua.push_function(state, *original_function);
+			lua.insert(state, 2);
+		}
 
-	let base = lua.get_top(state) - num_arguments - 1;
-	if let Err(why) = lua.pcall(state, num_arguments + 1, LUA_MULTRET, 0) {
+		true
+	} else {
+		false
+	};
+
+	let num_arguments = if original_function_included {
+		num_arguments + 1
+	} else {
+		num_arguments
+	};
+
+	let base = lua.get_top(state) - num_arguments;
+
+	if let Err(why) = lua.pcall(state, num_arguments, LUA_MULTRET, 0) {
 		dbg!("Error calling detour callback: {}", why);
 		return 0;
 	}
