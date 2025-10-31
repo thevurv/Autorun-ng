@@ -22,7 +22,7 @@ pub struct DebugInfo {
 	pub linedefined: c_int,              // S
 	pub lastlinedefined: c_int,          // S
 	pub short_src: [c_char; LUA_IDSIZE], // S
-	pub i_ci: i32,
+	pub i_ci: c_int,
 }
 
 pub const GLOBALS_INDEX: c_int = -10002;
