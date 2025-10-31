@@ -1,14 +1,16 @@
 pub mod global;
 
-use std::ffi::{CStr, c_int};
-
+use anyhow::Context;
 use autorun_core::plugins::Plugin;
 use autorun_lua::{LuaApi, RawHandle};
+use autorun_luajit::{GCRef, GCfunc, LJState, get_gcobj, index2adr};
 use autorun_types::{LuaState, Realm};
+use std::ffi::{CStr, c_int};
 
 #[derive(Debug, Clone, Copy)]
 pub struct EnvHandle {
 	realm: Realm,
+	env_gcr: GCRef,
 	handle: RawHandle,
 }
 
@@ -46,6 +48,20 @@ macro_rules! as_env_lua_function {
 impl EnvHandle {
 	pub fn realm(&self) -> Realm {
 		self.realm
+	}
+
+	pub fn is_function_authorized(&self, lua: &LuaApi, state: *mut LuaState, func_index: Option<i32>) -> anyhow::Result<bool> {
+		let func_index = func_index.unwrap_or(-1);
+
+		let lj_state = state as *mut LJState;
+		let lj_state = unsafe { lj_state.as_ref().context("Failed to dereference LJState")? };
+
+		lua.get_fenv(state, func_index);
+		let function_env_tvalue = index2adr(lj_state, -1).context("Failed to get TValue for function environment")?;
+		let function_env_gcr = unsafe { (*function_env_tvalue).gcr };
+
+		lua.pop(state, 1);
+		Ok(function_env_gcr == self.env_gcr)
 	}
 
 	pub fn is_active(&self, lua: &LuaApi, state: *mut LuaState) -> bool {
@@ -144,6 +160,10 @@ impl EnvHandle {
 		lua.push(state, as_env_lua_function!(crate::functions::trigger_remote));
 		lua.set_table(state, -3);
 
+		lua.push(state, c"isFunctionAuthorized");
+		lua.push(state, as_env_lua_function!(crate::functions::is_function_authorized));
+		lua.set_table(state, -3);
+
 		lua.push(state, c"VERSION");
 		lua.push(state, env!("CARGO_PKG_VERSION").to_string());
 		lua.set_table(state, -3);
@@ -179,8 +199,13 @@ impl EnvHandle {
 		lua.set_table(state, -3);
 
 		// Can unwrap since we are sure there is something on the stack
+		let lj_state = state as *mut LJState;
+		let lj_state = unsafe { lj_state.as_ref().context("Failed to dereference LJState")? };
+		let env_tvalue = index2adr(lj_state, -1).context("Failed to get TValue for environment")?;
+		let env_gcr = unsafe { (*env_tvalue).gcr };
+
 		let handle = RawHandle::from_stack(lua, state).unwrap();
-		Ok(Self { realm, handle })
+		Ok(Self { realm, env_gcr, handle })
 	}
 
 	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {

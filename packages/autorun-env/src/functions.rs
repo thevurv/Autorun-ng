@@ -27,3 +27,6 @@ pub use remote::*;
 
 mod exists;
 pub use exists::*;
+
+mod auth;
+pub use auth::*;

@@ -53,3 +53,10 @@ pub fn get_gcobj_mut<T: IntoLJType>(state: &mut LJState, idx: i32) -> anyhow::Re
 		Ok(gcobj)
 	}
 }
+
+pub fn push_tvalue(state: &mut LJState, tvalue: &TValue) {
+	unsafe {
+		std::ptr::write(state.top, *tvalue);
+		state.top = state.top.add(1);
+	}
+}

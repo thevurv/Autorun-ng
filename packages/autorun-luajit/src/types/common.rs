@@ -84,6 +84,12 @@ impl GCRef {
 	}
 }
 
+impl PartialEq<Self> for GCRef {
+	fn eq(&self, other: &Self) -> bool {
+		(self.gcptr64 & LJ_GCVMASK) == (other.gcptr64 & LJ_GCVMASK)
+	}
+}
+
 #[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct GCHeader {
@@ -102,6 +108,7 @@ pub union TValue {
 	pub f64: f64,
 	pub gcr: GCRef,
 	pub it64: i64,
+	pub ftsz: u64,
 }
 
 impl TValue {

@@ -3,6 +3,10 @@ use core::ffi::{CStr, c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void}
 
 use crate::{FromLua, IntoLua, LuaFunction, LuaTypeId, types::LuaState};
 
+#[cfg(feature = "gmod")]
+const LUA_IDSIZE: usize = 128;
+
+#[cfg(not(feature = "gmod"))]
 const LUA_IDSIZE: usize = 60;
 
 #[repr(C)]
@@ -14,10 +18,11 @@ pub struct DebugInfo {
 	pub what: *const c_char,             // S
 	pub source: *const c_char,           // S
 	pub currentline: c_int,              // l
-	pub nups: c_uchar,                   // u
+	pub nups: c_int,                     // u
 	pub linedefined: c_int,              // S
 	pub lastlinedefined: c_int,          // S
 	pub short_src: [c_char; LUA_IDSIZE], // S
+	pub i_ci: c_int,
 }
 
 pub const GLOBALS_INDEX: c_int = -10002;
