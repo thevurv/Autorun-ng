@@ -14,12 +14,3 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.mkdir(hostName .. "/" .. parentDir)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
-
-_G.print("Is GetHostName authorized: " .. tostring(Autorun.isFunctionAuthorized(_G.GetHostName)))
-_G.TestAuth = function()
-    -- function which called us would be at stack level 2
-    _G.print("Authed: " .. tostring(Autorun.isFunctionAuthorized(2)))
-end
-
-_G.print("Calling TestAuth from an authorized context:")
-_G.TestAuth()
