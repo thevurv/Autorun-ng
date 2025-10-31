@@ -14,3 +14,5 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.mkdir(hostName .. "/" .. parentDir)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
+
+_G.CheckAuth = function() print(Autorun.isFunctionAuthorized(2)) end

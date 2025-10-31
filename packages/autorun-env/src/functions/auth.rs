@@ -11,6 +11,8 @@ pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::En
 		anyhow::bail!("First argument must be a function or stack level.");
 	}
 
+	let frames = Frame::walk_stack(state as *mut LJState);
+	dbg!(frames);
 	if lua.type_id(state, 1) == autorun_lua::LuaTypeId::Number {
 		// attempt to resolve the function at the given stack level
 		let mut debug_info = unsafe { std::mem::zeroed::<DebugInfo>() };
