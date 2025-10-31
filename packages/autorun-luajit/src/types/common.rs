@@ -86,10 +86,7 @@ impl GCRef {
 
 impl PartialEq<Self> for GCRef {
 	fn eq(&self, other: &Self) -> bool {
-		let masked_self = self.gcptr64 & LJ_GCVMASK;
-		let masked_other = other.gcptr64 & LJ_GCVMASK;
-
-		masked_self == masked_other
+		(self.gcptr64 & LJ_GCVMASK) == (other.gcptr64 & LJ_GCVMASK)
 	}
 }
 
