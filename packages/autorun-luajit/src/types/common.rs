@@ -114,6 +114,7 @@ pub union TValue {
 	pub f64: f64,
 	pub gcr: GCRef,
 	pub it64: i64,
+	pub ftsz: u64,
 }
 
 impl TValue {
