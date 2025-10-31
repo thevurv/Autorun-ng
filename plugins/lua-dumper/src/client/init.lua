@@ -15,4 +15,16 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
 
-_G.CheckAuth = function() print(Autorun.isFunctionAuthorized(2)) end
+local orig = _G.debug.traceback
+_G.debug.traceback = Autorun.copyFastFunction(orig, function(override)
+    if override then
+        return orig()
+    end
+
+    return Autorun.safeCall(orig)
+end)
+
+_G.RunInAutorun = function(cb)
+    _G.print("Hi from autorun. Running the callback now:")
+    cb()
+end
