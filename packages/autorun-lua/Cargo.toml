@@ -7,3 +7,7 @@ authors.workspace = true
 
 [dependencies]
 libloading = { workspace = true }
+
+[features]
+default = ["gmod"]
+gmod = []

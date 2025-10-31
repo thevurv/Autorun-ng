@@ -3,7 +3,11 @@ use core::ffi::{CStr, c_char, c_double, c_float, c_int, c_uchar, c_uint, c_void}
 
 use crate::{FromLua, IntoLua, LuaFunction, LuaTypeId, types::LuaState};
 
+#[cfg(feature = "gmod")]
 const LUA_IDSIZE: usize = 128;
+
+#[cfg(not(feature = "gmod"))]
+const LUA_IDSIZE: usize = 60;
 
 #[repr(C)]
 #[derive(Debug)]
