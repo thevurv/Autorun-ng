@@ -103,7 +103,7 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 
 	if let Err(err) = result {
 		// Push the error message onto the stack
-		lua.push(state, format!("Error during safe_call: {}", err));
+		lua.push(state, format!("{}", err));
 		return Ok(RawLuaReturn(1)); // Return 1 result (the error message)
 	}
 
