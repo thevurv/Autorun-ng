@@ -27,6 +27,7 @@ pub enum FrameType {
 	FfPcallWithHook = 7,
 }
 
+#[derive(Debug)]
 pub struct Frame {
 	// All frames are TValues.
 	pub tvalue: *mut TValue,
@@ -86,5 +87,9 @@ impl Frame {
 			let gcfunc = (*func_tv).as_mut::<GCfunc>()?;
 			Ok(gcfunc)
 		}
+	}
+
+	pub fn get_func_tv(&self) -> *mut TValue {
+		unsafe { self.tvalue.offset(-1) }
 	}
 }

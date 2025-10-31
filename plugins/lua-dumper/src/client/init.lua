@@ -16,4 +16,10 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
 end)
 
 _G.print("Is GetHostName authorized: " .. tostring(Autorun.isFunctionAuthorized(_G.GetHostName)))
-_G.print("Is an Autorun closure authorized: " .. tostring(Autorun.isFunctionAuthorized(function() return true end)))
+_G.TestAuth = function()
+    -- function which called us would be at stack level 2
+    _G.print("Authed: " .. tostring(Autorun.isFunctionAuthorized(2)))
+end
+
+_G.print("Calling TestAuth from an authorized context:")
+_G.TestAuth()
