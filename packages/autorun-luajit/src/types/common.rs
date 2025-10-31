@@ -2,6 +2,7 @@
 
 use anyhow::Context;
 use std::ffi::{c_int, c_void};
+use std::fmt::Debug;
 
 // IMPORTANT: GMod's LUA_IDSIZE was randomly changed to 128 instead of 60 like in vanilla LuaJIT
 #[cfg(feature = "gmod")]
@@ -81,6 +82,10 @@ pub struct GCRef {
 }
 
 impl GCRef {
+	pub fn from_ptr<T>(ptr: *mut T) -> Self {
+		Self { gcptr64: ptr as u64 }
+	}
+
 	// equivalent to the gcref macro in LuaJIT
 	pub fn as_ptr<T>(&self) -> *mut T {
 		self.gcptr64 as *mut T
@@ -112,6 +117,14 @@ pub union TValue {
 	pub gcr: GCRef,
 	pub it64: i64,
 	pub ftsz: u64,
+}
+
+impl Debug for TValue {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "TValue {{ itype: {}, gcr: {:x} }}", self.itype(), unsafe {
+			self.gcr.gcptr64
+		})
+	}
 }
 
 impl TValue {

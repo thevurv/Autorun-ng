@@ -1,5 +1,5 @@
 // Helper module for managing the frame stack in LuaJIT, which is highly complicated and fragile.
-use crate::{BCIns, GCfunc, LJ_FR2, LJState, TValue};
+use crate::{BCIns, GCRef, GCfunc, LJ_FR2, LJState, TValue};
 
 pub const FRAME_TYPE: u8 = 3;
 pub const FRAME_P: u8 = 4;
@@ -20,11 +20,16 @@ pub enum FrameType {
 pub struct Frame {
 	pub tvalue: *mut TValue,
 	pub size: u32,
+	payload_copy: TValue,
 }
 
 impl Frame {
 	pub fn new(tvalue: *mut TValue, size: u32) -> Self {
-		Self { tvalue, size }
+		Self {
+			tvalue,
+			size,
+			payload_copy: unsafe { *tvalue.offset(-1) },
+		}
 	}
 
 	pub fn from_debug_ci(state: &mut LJState, i_ci: i32) -> Self {
@@ -38,38 +43,12 @@ impl Frame {
 
 	pub fn walk_stack(state: *mut LJState) -> Vec<Frame> {
 		let mut frames = Vec::new();
-		// We are going to copy this function, just without the levels so we walk every frame
-		/*
-				cTValue *lj_debug_frame(lua_State *L, int level, int *size)
-		{
-		  cTValue *frame, *nextframe, *bot = tvref(L->stack)+LJ_FR2;
-		  /* Traverse frames backwards. */
-		  for (nextframe = frame = L->base-1; frame > bot; ) {
-			if (frame_gc(frame) == obj2gco(L))
-			  level++;  /* Skip dummy frames. See lj_err_optype_call(). */
-			if (level-- == 0) {
-			  *size = (int)(nextframe - frame);
-			  return frame;  /* Level found. */
-			}
-			nextframe = frame;
-			if (frame_islua(frame)) {
-			  frame = frame_prevl(frame);
-			} else {
-			  if (frame_isvarg(frame))
-			level++;  /* Skip vararg pseudo-frame. */
-			  frame = frame_prevd(frame);
-			}
-		  }
-		  *size = level;
-		  return NULL;  /* Level not found. */
-		}
 
-				 */
-
-		let bot = unsafe { (*state).stack.as_ptr::<TValue>().add(LJ_FR2 as usize) };
+		// traversal is in backwards order
+		let start = unsafe { (*state).stack.as_ptr::<TValue>().add(LJ_FR2 as usize) };
 		let mut frame = unsafe { (*state).base.offset(-1) };
 
-		while frame > bot {
+		while frame > start {
 			let current_frame = Frame::new(frame, 0); // size is not relevant here
 			frames.push(current_frame);
 
@@ -85,7 +64,6 @@ impl Frame {
 
 	pub fn get_type(&self) -> FrameType {
 		let frame_type = unsafe { (*self.tvalue).ftsz & (FRAME_TYPE as u64) } as u8;
-		dbg!(&frame_type);
 		match frame_type {
 			0 => FrameType::Lua,
 			1 => FrameType::C,
@@ -118,42 +96,47 @@ impl Frame {
 		unsafe { self.tvalue.offset(-1) }
 	}
 
-	pub fn replace_func_tv(&mut self, new_func_tv: *mut TValue) {
+	fn overwrite_payload_gcr(&mut self, new_gcr: GCRef) {
 		unsafe {
-			std::ptr::copy_nonoverlapping(new_func_tv, self.tvalue.offset(-1), 1);
+			(*self.tvalue.offset(-1)).gcr = new_gcr;
 		}
 	}
 
-	pub fn get_pc(&self) -> *const BCIns {
-		// #define frame_pc(f)		((const BCIns *)frame_ftsz(f))
+	fn restore_payload(&mut self) {
+		unsafe {
+			*self.tvalue.offset(-1) = self.payload_copy;
+		}
+	}
 
+	pub fn mark_as_dummy_frame(&mut self, state: *mut LJState) {
+		// We can overwrite the payload to point to the Lua state,
+		// which is a special GCRef that indicates a dummy frame.
+		self.overwrite_payload_gcr(GCRef::from_ptr(state));
+	}
+
+	pub fn restore_from_dummy_frame(&mut self) {
+		self.restore_payload();
+	}
+
+	pub fn get_pc(&self) -> *const BCIns {
 		unsafe { (*self.tvalue).ftsz as *const BCIns }
 	}
 
-	// #define frame_prevl(f)		((f) - (1+LJ_FR2+bc_a(frame_pc(f)[-1])))
 	pub fn get_previous_lua_frame(&self) -> Self {
-		dbg!(&self);
 		let bc_ins_ptr = self.get_pc();
-		dbg!(&bc_ins_ptr);
 		let bc_ins = unsafe { bc_ins_ptr.offset(-1).read_unaligned() };
-		dbg!(&bc_ins);
 		let bc_a = bc_ins.a();
-		dbg!(&bc_a);
 		let offset = (1 + LJ_FR2 + (bc_a as u32)) as isize;
-		dbg!(&offset);
 
 		Frame::new(unsafe { self.tvalue.offset(-offset) }, 0) // size is not relevant here
 	}
 
-	pub fn get_sized(&self) -> u64 {
-		// #define frame_sized(f)		(frame_ftsz(f) & ~FRAME_TYPEP)
+	pub fn get_delta_size(&self) -> u64 {
 		unsafe { (*self.tvalue).ftsz & !(FRAME_TYPEP as u64) }
 	}
 
 	pub fn get_previous_delta_frame(&self) -> Self {
-		// #define frame_prevd(f)		((TValue *)((char *)(f) - frame_sized(f)))
-		let size = self.get_sized() as usize;
-		dbg!(&size);
+		let size = self.get_delta_size() as usize;
 		Frame::new(unsafe { self.tvalue.byte_sub(size) }, size as u32)
 	}
 }
