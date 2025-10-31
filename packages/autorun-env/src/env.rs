@@ -60,7 +60,7 @@ impl EnvHandle {
 		let function_env_tvalue = index2adr(lj_state, -1).context("Failed to get TValue for function environment")?;
 		let function_env_gcobj = unsafe { (*function_env_tvalue).gcr };
 
-		lua.pop(state, 1); // pop envs
+		lua.pop(state, 1);
 		Ok(function_env_gcobj == self.env_gcr)
 	}
 
