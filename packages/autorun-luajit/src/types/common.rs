@@ -86,11 +86,8 @@ impl GCRef {
 
 impl PartialEq<Self> for GCRef {
 	fn eq(&self, other: &Self) -> bool {
-		// some GCRefs don't have encoded TV information, so strip them
 		let masked_self = self.gcptr64 & LJ_GCVMASK;
 		let masked_other = other.gcptr64 & LJ_GCVMASK;
-		dbg!(masked_self);
-		dbg!(masked_other);
 
 		masked_self == masked_other
 	}
