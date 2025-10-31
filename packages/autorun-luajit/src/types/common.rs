@@ -8,6 +8,8 @@ pub const LUA_IDSIZE: i32 = 128;
 #[cfg(not(feature = "gmod"))]
 pub const LUA_IDSIZE: i32 = 60;
 
+pub const LJ_FR2: u32 = 1;
+
 pub const LJ_TNIL: u32 = !0u32;
 pub const LJ_TFALSE: u32 = !1u32;
 pub const LJ_TTRUE: u32 = !2u32;
@@ -325,7 +327,15 @@ impl IntoLJType for GCUpval {
 	const LJ_TYPE: u32 = LJ_TUPVAL;
 }
 
-pub type BCIns = u32;
+#[derive(Debug, Clone, Copy)]
+pub struct BCIns(u32);
+
+impl BCIns {
+	pub fn a(&self) -> u8 {
+		//#define bc_a(i)		((BCReg)(((i)>>8)&0xff))
+		((self.0 >> 8) & 0xff) as u8
+	}
+}
 
 // Metamethod enum
 #[repr(u8)]
