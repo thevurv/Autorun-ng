@@ -7,9 +7,8 @@ pub fn start_waiting_for_menu() {
 			std::thread::sleep(std::time::Duration::from_millis(500));
 
 			if let Some(menu) = autorun_interfaces::lua::get_state(autorun_types::Realm::Menu).unwrap() {
-				if let Err(why) = crate::events::menu_init::run(menu) {
-					autorun_log::error!("Failed to run menu event: {why}");
-				}
+				let menu = menu as usize;
+				crate::lua_queue::push(move |_| crate::events::menu_init::run(menu as *mut core::ffi::c_void));
 
 				break;
 			}
