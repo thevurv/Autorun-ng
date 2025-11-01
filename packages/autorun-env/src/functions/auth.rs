@@ -52,8 +52,6 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	let nargs = lua.get_top(state) - 1; // exclude the function itself
 
 	let frames = Frame::walk_stack(state as *mut LJState);
-	dbg!(&frames);
-
 	let lj_state = state as *mut LJState;
 	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState")? };
 
@@ -61,8 +59,24 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		.into_iter()
 		.enumerate()
 		.filter(|(index, frame)| {
-			if *index == 0 {
-				return true; // always mark the current frame, cause we dont want it to show up
+			if *index == 0 && frame.is_c_frame() {
+				let gc_func = match frame.get_gc_func() {
+					Ok(func) => func,
+					Err(_) => return false,
+				};
+
+				if gc_func.is_c() {
+					let cfunc = gc_func.as_c().unwrap();
+					let func_ptr = cfunc.c as usize;
+
+					// check if it's safe_call, although we need to push safe call since its not directly accessible here
+					env.push_autorun_table(lua, state);
+					lua.get_field(state, -1, c"safeCall".as_ptr());
+					let safe_call_ptr = lua.to_function(state, -1).unwrap() as usize;
+					lua.pop(state, 2); // pop both the function and the env table
+
+					return func_ptr == safe_call_ptr;
+				}
 			}
 
 			// Push frame's function onto the stack
@@ -84,12 +98,8 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		.map(|(_index, frame)| frame)
 		.collect();
 
-	// push the first frame too, because thats *this* frame and we also dont want it to show up
-	dbg!(&autorun_frames);
-
 	// mark each autorun frame as a dummy
 	for frame in autorun_frames.iter_mut() {
-		dbg!("Marking frame as dummy: {:?}", &frame);
 		frame.mark_as_dummy_frame(state as *mut LJState);
 	}
 
@@ -97,7 +107,6 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 
 	// restore the frames
 	for frame in autorun_frames.iter_mut() {
-		dbg!("Restoring frame from dummy: {:?}", &frame);
 		frame.restore_from_dummy_frame();
 	}
 
@@ -108,8 +117,5 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	}
 
 	let nresults = lua.get_top(state); // number of results on the stack
-	dbg!("safe_call succeeded");
-	dbg!(&nresults);
-
 	Ok(RawLuaReturn(nresults))
 }

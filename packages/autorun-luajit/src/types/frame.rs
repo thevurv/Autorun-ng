@@ -98,16 +98,12 @@ impl Frame {
 
 	fn overwrite_payload_gcr(&mut self, new_gcr: GCRef) {
 		unsafe {
-			dbg!((*self.tvalue.offset(-1)).gcr);
-			dbg!(new_gcr);
 			(*self.tvalue.offset(-1)).gcr = new_gcr;
 		}
 	}
 
 	fn restore_payload(&mut self) {
 		unsafe {
-			dbg!((*self.tvalue.offset(-1)));
-			dbg!(self.payload_copy);
 			*self.tvalue.offset(-1) = self.payload_copy;
 		}
 	}

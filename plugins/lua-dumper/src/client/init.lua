@@ -24,17 +24,19 @@ _G.debug.traceback = Autorun.copyFastFunction(orig, function(override)
     return Autorun.safeCall(orig)
 end)
 
+local orig2 = _G.getfenv
+_G.origGetfenv = orig2
+_G.getfenv = Autorun.copyFastFunction(orig2, function(func, _)
+    if func == "override" then
+        return orig2(func, _)
+    end
 
-local orig2 = _G.error
-_G.error = Autorun.copyFastFunction(orig2, function(message, level)
-    return Autorun.safeCall(orig2, message, level)
+    return Autorun.safeCall(orig2, func)
 end)
 
--- Purposely vulnerable Autorun detour that might be exploited by malicious ACs:
--- tostring can be specified by any table, so if an AC passes a table with a malicious tostring,
--- it could execute arbitrary code in the context of this plugin.
-
-detour = Autorun.detour(_G.render.Capture, function(orig, tbl)
-    _G.print("AUTORUN: Detoured render.Capture called with argument: " .. tostring(tbl)) -- Vulnerable tostring call
-    return "poop"
-end)
+_G.RunInAutorun = function(cb)
+    _G.print("[Autorun] Running function in Autorun context...")
+    local result = cb()
+    _G.print("[Autorun] Function completed.")
+    return result
+end

@@ -212,7 +212,7 @@ impl EnvHandle {
 		Ok(Self { realm, env_gcr, handle })
 	}
 
-	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
+	pub fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
 		self.push(lua, state);
 		lua.get_field(state, -1, c"Autorun".as_ptr());
 		lua.remove(state, -2);
