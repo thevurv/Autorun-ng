@@ -548,7 +548,11 @@ impl App {
 			.inner_margin(Margin::symmetric(12.0, 6.0))
 			.show(ui, |ui| {
 				ui.horizontal(|ui| {
-					ui.label(concat!("v", env!("CARGO_PKG_VERSION")));
+					ui.label(format!(
+						"v{} - {}",
+						env!("CARGO_PKG_VERSION"),
+						if cfg!(debug_assertions) { "Debug" } else { "Release" }
+					));
 
 					ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
 						if ui.link("Discord").clicked() {

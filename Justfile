@@ -15,5 +15,5 @@ build-egui target="debug": setup-release
     cargo build -p autorun-egui {{ if target == "release" {"--release"} else {""} }}
     {{mv}} target/{{target}}/autorun-egui{{exe_suffix}} release/ {{ignore_fail}}
 
-run-egui: build-egui
+run-egui target="debug": (build-egui target)
     ./release/autorun-egui{{exe_suffix}}
