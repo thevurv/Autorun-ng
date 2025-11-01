@@ -3,7 +3,7 @@ pub mod global;
 use anyhow::Context;
 use autorun_core::plugins::Plugin;
 use autorun_lua::{LuaApi, RawHandle};
-use autorun_luajit::{GCRef, GCfunc, LJState, get_gcobj, index2adr};
+use autorun_luajit::{GCRef, LJState, index2adr};
 use autorun_types::{LuaState, Realm};
 use std::ffi::{CStr, c_int};
 
@@ -89,10 +89,10 @@ impl EnvHandle {
 
 		let dir = lua.to_userdata(state, -1) as *mut Plugin;
 		if dir.is_null() {
-			lua.pop(state, 3);
+			lua.pop(state, 2);
 			return None;
 		}
-		lua.pop(state, 3);
+		lua.pop(state, 2);
 
 		unsafe { dir.as_ref() }
 	}

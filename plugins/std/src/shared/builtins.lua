@@ -87,6 +87,17 @@ coroutine = {
     yield = _G.coroutine.yield,
 }
 
+bit = {
+    band = _G.bit.band,
+    bor = _G.bit.bor,
+    bxor = _G.bit.bxor,
+    bnot = _G.bit.bnot,
+    lshift = _G.bit.lshift,
+    rshift = _G.bit.rshift,
+    rol = _G.bit.rol,
+    ror = _G.bit.ror,
+}
+
 assert = _G.assert
 collectgarbage = _G.collectgarbage
 dofile = _G.dofile

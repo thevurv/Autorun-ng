@@ -1,7 +1,7 @@
 -- Store it once for those weird servers that change hostnames mid-session.
 local hostName = string.match(_G.GetHostName(), "^([%w_%-][%w _%-']*)$") or "unknown_host"
 
-Autorun.print("Started Lua dumping plugin.")
+Autorun.print(Autorun.color("green") .. "Started!" .. Autorun.color("reset"))
 
 Autorun.on("loadbuffer", function(scriptName, scriptCode)
     if string.sub(scriptName, 1, 1) == "@" then

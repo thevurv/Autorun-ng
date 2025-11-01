@@ -27,7 +27,7 @@
 			"functions": [
 				{
 					"name": "print",
-					"description": "Prints to the Autorun console in the format of [Lua]: ...",
+					"description": "Prints to the Autorun console in the format of '[plugin-name] ...'. Note you can print ANSI to get colors, see Autorun.color",
 					"realm": "shared",
 					"parameters": [
 						{
@@ -365,6 +365,29 @@
 						{
 							"type": "string?",
 							"description": "Error message if compilation failed"
+						}
+					]
+				},
+				{
+					"name": "color",
+					"description": "This allows you to format a range of input colors (hex strings, hex numbers, rgb tables, color names) into a variety of outputs. For example, you can convert 'red' to '#FF0000' by calling Autorun.color('red', 'hex'). Most useful output is probably 'ansi' which is the default and can be used in conjunction with Autorun.print to print colors to the console.\nList of output formats:\n- ansi\n- hex\n- number\n- [rgb]\n- {rgb}\n",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "input",
+							"type": "string | number | table",
+							"description": "Input color in various formats (e.g., '#FF0000', 0xFF0000, {r=255,g=0,b=0}, 'red')"
+						},
+						{
+							"name": "outputFormat",
+							"type": "string?",
+							"description": "Desired output format ('hex', 'rgb', 'ansi'). Defaults to 'ansi'."
+						}
+					],
+					"returns": [
+						{
+							"type": "string | number | table",
+							"description": "Formatted color in the requested output format"
 						}
 					]
 				}

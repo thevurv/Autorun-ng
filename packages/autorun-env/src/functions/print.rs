@@ -1,7 +1,9 @@
 use autorun_lua::LuaApi;
 use autorun_types::LuaState;
 
-pub fn print(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<()> {
+pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<()> {
+	let plugin_name = env.get_active_plugin(lua, state).map(|p| p.config().plugin.name.as_str());
+
 	let nargs = lua.get_top(state);
 	let mut args = Vec::with_capacity(nargs as usize);
 	for i in 1..=nargs {
@@ -41,8 +43,8 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyh
 		}
 	}
 
-	let msg = args.join("\t");
-	println!("[Lua] {msg}");
+	let msg = args.join(" ");
+	println!("[{}] {msg}", plugin_name.unwrap_or(&"Lua"));
 
 	Ok(())
 }
