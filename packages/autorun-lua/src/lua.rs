@@ -435,6 +435,14 @@ impl LuaApi {
 		}
 	}
 
+	pub fn pcall_forward(&self, state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> Result<(), i32> {
+		match self._pcall(state, n_args, n_results, err_func) {
+			LUA_OK | LUA_YIELD => Ok(()),
+
+			err_code => Err(self.error(state)),
+		}
+	}
+
 	pub fn new_userdata<T: Sized>(&self, state: *mut LuaState, init: T) -> *mut T {
 		let ptr = self._new_userdata(state, core::mem::size_of::<T>()) as *mut T;
 		unsafe {

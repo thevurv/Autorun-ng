@@ -103,17 +103,11 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		frame.mark_as_dummy_frame(state as *mut LJState);
 	}
 
-	let result = lua.pcall(state, nargs, LUA_MULTRET, 0);
+	let result = lua.pcall_forward(state, nargs, LUA_MULTRET, 0);
 
 	// restore the frames
 	for frame in autorun_frames.iter_mut() {
 		frame.restore_from_dummy_frame();
-	}
-
-	if let Err(err) = result {
-		// Push the error message onto the stack
-		lua.push(state, format!("{}", err));
-		return Ok(RawLuaReturn(1)); // Return 1 result (the error message)
 	}
 
 	let nresults = lua.get_top(state); // number of results on the stack

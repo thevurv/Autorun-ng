@@ -24,14 +24,18 @@ _G.debug.traceback = Autorun.copyFastFunction(orig, function(override)
     return Autorun.safeCall(orig)
 end)
 
+
 local orig2 = _G.getfenv
 _G.origGetfenv = orig2
-_G.getfenv = Autorun.copyFastFunction(orig2, function(func, _)
-    if func == "override" then
-        return orig2(func, _)
-    end
-
+_G.getfenv = Autorun.copyFastFunction(orig2, function(func)
     return Autorun.safeCall(orig2, func)
+end)
+
+local orig3 = _G.error
+_G.origError = orig3
+
+_G.error = Autorun.copyFastFunction(orig3, function(message, level)
+    return Autorun.safeCall(orig3, message, level)
 end)
 
 _G.RunInAutorun = function(cb)
