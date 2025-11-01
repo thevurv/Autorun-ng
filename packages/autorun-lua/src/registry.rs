@@ -16,9 +16,9 @@ impl RawHandle {
 		lua.reference(state).map(Self)
 	}
 
-    pub fn from_id(id: i32) -> Self {
-        Self(id)
-    }
+	pub fn from_id(id: i32) -> Self {
+		Self(id)
+	}
 
 	pub fn push(&self, lua: &crate::LuaApi, state: *mut LuaState) {
 		lua.get_registry(state, self.0);
@@ -28,7 +28,7 @@ impl RawHandle {
 		lua.dereference(state, self.0)
 	}
 
-    pub fn get_id(&self) -> i32 {
-        self.0
-    }
+	pub fn id(&self) -> i32 {
+		self.0
+	}
 }
