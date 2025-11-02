@@ -85,7 +85,7 @@ impl Plugin {
 
 	pub fn from_dir(dir: Dir) -> anyhow::Result<Self> {
 		if !dir.exists(Self::PLUGIN_CONFIG) {
-			return Err(anyhow::anyhow!("Plugin config not found"));
+			anyhow::bail!("Plugin config not found");
 		}
 
 		let data_dir = match dir.exists(Self::PLUGIN_DATA) {

@@ -127,7 +127,7 @@ impl Autorun {
 			if let Ok(mut client) = client.try_lock() {
 				client.send(message)?;
 			} else {
-				return Err(anyhow::anyhow!("Client is busy"));
+				anyhow::bail!("Client is busy");
 			}
 		}
 		Ok(())

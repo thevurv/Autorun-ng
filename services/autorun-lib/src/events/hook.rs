@@ -24,7 +24,7 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	// 			lua.pop(state, 1);
 
 	// 			// Replace buffer
-	// 			return Err(anyhow::anyhow!("Replacing buffer in loadbuffer event"));
+	// 			anyhow::bail!("Replacing buffer in loadbuffer event"));
 	// 		}
 
 	// 		autorun_lua::LuaTypeId::Boolean => {
@@ -32,18 +32,18 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	// 			lua.pop(state, 1);
 
 	// 			if bool {
-	// 				return Err(anyhow::anyhow!("Blocking loadbuffer in loadbuffer event"));
+	// 				anyhow::bail!("Blocking loadbuffer in loadbuffer event"));
 	// 			}
 	// 		}
 
 	// 		_ => {
 	// 			lua.pop(state, 1);
-	// 			return Err(anyhow::anyhow!("loadbuffer event returned invalid type"));
+	// 			anyhow::bail!("loadbuffer event returned invalid type"));
 	// 		}
 	// 	},
 
 	// 	_ => {
-	// 		return Err(anyhow::anyhow!("loadbuffer event returned too many values: {}", n_returns));
+	// 		anyhow::bail!("loadbuffer event returned too many values: {}", n_returns));
 	// 	}
 	// }
 

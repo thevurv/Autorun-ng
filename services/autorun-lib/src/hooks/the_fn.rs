@@ -37,7 +37,7 @@ pub fn init() -> anyhow::Result<()> {
 					fn_start_addr, expected_bytes, actual_bytes
 				);
 
-				return Err(anyhow::anyhow!("Function start verification failed"));
+				anyhow::bail!("Function start verification failed");
 			}
 
 			info!("Function start verification passed at 0x{:x}", fn_start_addr);

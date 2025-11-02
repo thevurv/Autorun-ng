@@ -11,10 +11,7 @@ pub fn mkdir(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 	let target_path = target_path.to_string();
 
 	if data_dir.is_file(&target_path) {
-		return Err(anyhow::anyhow!(
-			"Cannot create directory '{}': A file with the same name already exists",
-			target_path
-		));
+		anyhow::bail!("Cannot create directory '{target_path}': A file with the same name already exists");
 	}
 
 	if !data_dir.exists(&target_path) {

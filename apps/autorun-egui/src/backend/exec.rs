@@ -6,7 +6,7 @@ impl Autorun {
 		let code = code.into();
 
 		if self.client.is_none() {
-			return Err(anyhow::anyhow!("Not connected to autorun server"));
+			anyhow::bail!("Not connected to autorun server");
 		}
 
 		self.send_message(Message::RunCode(realm, code))?;
