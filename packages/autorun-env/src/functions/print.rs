@@ -36,6 +36,11 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 				args.push(format!("thread: {:p}", ptr));
 			}
 
+			autorun_lua::LuaTypeId::Boolean => {
+				let val = lua.to::<bool>(state, i);
+				args.push(String::from(if val { "true" } else { "false" }));
+			}
+
 			_ => {
 				let arg = lua.to::<String>(state, i);
 				args.push(arg);
