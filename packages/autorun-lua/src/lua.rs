@@ -435,11 +435,11 @@ impl LuaApi {
 		}
 	}
 
-	pub fn pcall_forward(&self, state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> Result<(), i32> {
+	pub fn pcall_forward(&self, state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> Result<(), ()> {
 		match self._pcall(state, n_args, n_results, err_func) {
 			LUA_OK | LUA_YIELD => Ok(()),
 
-			err_code => Err(self.error(state)),
+			err_code => Err(()),
 		}
 	}
 

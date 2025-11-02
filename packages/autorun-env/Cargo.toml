@@ -19,3 +19,4 @@ autorun-log = { path = "../autorun-log" }
 autorun-jit = { path = "../autorun-jit" }
 autorun-luajit = { path = "../autorun-luajit" }
 autorun-interfaces = { path = "../autorun-interfaces" }
+autorun-scan = { path = "../autorun-scan" }

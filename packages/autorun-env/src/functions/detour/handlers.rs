@@ -43,7 +43,9 @@ pub extern "C-unwind" fn detour_handler(
 
 	let base = lua.get_top(state) - num_arguments;
 
-	lua.pcall_forward(state, num_arguments, LUA_MULTRET, 0);
+	if let Err(()) = lua.pcall_forward(state, num_arguments, LUA_MULTRET, 0) {
+		return lua.error(state);
+	}
 
 	lua.get_top(state) - base + 1
 }

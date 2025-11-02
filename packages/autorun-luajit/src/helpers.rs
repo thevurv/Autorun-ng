@@ -60,3 +60,8 @@ pub fn push_tvalue(state: &mut LJState, tvalue: &TValue) {
 		state.top = state.top.add(1);
 	}
 }
+
+pub fn push_frame_func(state: &mut LJState, frame: &Frame) -> anyhow::Result<()> {
+	push_tvalue(state, unsafe { &*frame.get_func_tv() });
+	Ok(())
+}

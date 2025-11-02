@@ -1,3 +1,5 @@
+pub mod hooks;
+
 use anyhow::Context;
 use autorun_lua::{DebugInfo, LUA_MULTRET, LuaApi, RawLuaReturn};
 use autorun_luajit::{Frame, LJState, push_tvalue};
@@ -103,6 +105,12 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	}
 
 	let result = lua.pcall_forward(state, nargs, LUA_MULTRET, 0);
+	if result.is_err() {
+		// enable error hook to get proper stack trace
+		hooks::lj_debug_funcname::enable()?;
+		// bye
+		return lua.error(state);
+	}
 
 	// restore the frames
 	for frame in autorun_frames.iter_mut() {
