@@ -15,6 +15,7 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
 
+
 local orig = _G.debug.traceback
 _G.debug.traceback = Autorun.copyFastFunction(orig, function(override)
     if override then

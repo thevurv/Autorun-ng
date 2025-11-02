@@ -140,7 +140,7 @@ define_lua_api! {
 	#[name = "lua_equal"]
 	fn _equal(state: *mut LuaState, index1: c_int, index2: c_int) -> c_int;
 	#[name = "lua_error"]
-	pub fn error(state: *mut LuaState) -> !;
+	pub fn _error(state: *mut LuaState) -> !;
 	#[name = "lua_gc"]
 	pub fn gc(state: *mut LuaState, what: c_int, data: c_int) -> c_int;
 	#[name = "lua_settop"]
@@ -220,6 +220,12 @@ define_lua_api! {
 	pub fn get_metatable(state: *mut LuaState, index: c_int) -> c_int;
 	#[name = "lua_setmetatable"]
 	pub fn set_metatable(state: *mut LuaState, index: c_int) -> c_int;
+
+	#[name = "luaL_where"]
+	pub fn where_(state: *mut LuaState, level: c_int);
+
+	#[name = "lua_concat"]
+	pub fn concat(state: *mut LuaState, n: c_int);
 
 	#[name = "lua_newuserdata"]
 	fn _new_userdata(state: *mut LuaState, size: usize) -> *mut c_void;
@@ -443,6 +449,35 @@ impl LuaApi {
 		}
 	}
 
+	pub fn error(&self, state: *mut LuaState) -> ! {
+		// GMod concatenates the source info to the error message automatically.
+		// If we do not mimic this behavior, the error messages will be different from
+		// the ones by GMod, which leads to easy detection.
+
+		#[cfg(feature = "gmod")]
+		{
+			// Error message is already on top of the stack
+			self.where_(state, 1);
+			// check if we're duplicating the error message (common if error is also detoured)
+			let where_string = self.to_string(state, -1).unwrap_or_default();
+			let error_string = self.to_string(state, -2).unwrap_or_default();
+
+			if error_string.starts_with(where_string.as_ref()) {
+				self.remove(state, -1); // remove where info and keep original error message
+				return self._error(state);
+			}
+
+			self.push_value(state, -2); // where + ": " + error message
+			self.remove(state, -3); // remove original error message
+			self.concat(state, 2); // concatenate
+			self._error(state)
+		}
+
+		#[cfg(not(feature = "gmod"))]
+		{
+			self._error(state)
+		}
+	}
 	pub fn new_userdata<T: Sized>(&self, state: *mut LuaState, init: T) -> *mut T {
 		let ptr = self._new_userdata(state, core::mem::size_of::<T>()) as *mut T;
 		unsafe {
