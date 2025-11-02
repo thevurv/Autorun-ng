@@ -37,7 +37,7 @@ pub fn scan(signature: &[Option<u8>], target_module: Option<&str>) -> Result<Opt
 		let _inode = entries[4];
 		let path = entries.get(5); // Optional
 
-		if Some(target_module) = target_module {
+		if let Some(target_module) = target_module {
 			let module_path = path.unwrap_or(&"");
 			let module_name = module_path.rsplit('/').next().unwrap_or("");
 			if module_name != target_module {
