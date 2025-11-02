@@ -32,10 +32,6 @@ fn handle_message(messenger: &mut autorun_ipc::Messenger, message: Message) -> a
 			messenger.send(Message::Pong)?;
 		}
 
-		Message::Print(..) => {
-			commands::print::handle(messenger, message)?;
-		}
-
 		Message::RunCode(..) => {
 			commands::execute::handle(messenger, message)?;
 		}
