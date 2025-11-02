@@ -18,3 +18,23 @@ macro_rules! error {
         eprintln!("\x1b[101m\x1b[97m\x1b[1m ERROR \x1b[0m {}", format_args!($($arg)*));
     }}
 }
+
+#[macro_export]
+macro_rules! debug {
+	($($arg:tt)*) => {{
+		#[cfg(debug_assertions)]
+		{
+			eprintln!("\x1b[102m\x1b[30m\x1b[1m DEBUG \x1b[0m {}", format_args!($($arg)*));
+		}
+	}}
+}
+
+#[macro_export]
+macro_rules! trace {
+	($($arg:tt)*) => {{
+		#[cfg(debug_assertions)]
+		{
+			eprintln!("\x1b[105m\x1b[97m\x1b[1m TRACE \x1b[0m {}", format_args!($($arg)*));
+		}
+	}}
+}

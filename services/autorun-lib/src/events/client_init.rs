@@ -1,3 +1,4 @@
+use autorun_log::*;
 use autorun_types::Realm;
 
 /// Function that triggers all plugins init (server start) scripts.
@@ -53,7 +54,7 @@ fn run_entrypoint(
 			let path = autorun_fs::get_path(autorun_fs::ambient_authority(), dir)?;
 			let lib_path = path.join(PLUGIN_PATH);
 			if !lib_path.exists() {
-				autorun_log::warn!(
+				warn!(
 					"Native init plugin library not found for plugin '{plugin}': {}",
 					lib_path.display()
 				);

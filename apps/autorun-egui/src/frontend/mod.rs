@@ -4,6 +4,7 @@ use std::{
 };
 
 mod commands;
+use autorun_log::*;
 use commands::{CommandContext, CommandRegistry};
 
 use eframe::{
@@ -107,10 +108,10 @@ impl App {
 	fn validate_plugins(autorun: &Autorun) -> anyhow::Result<()> {
 		let (plugins, errors) = autorun.workspace().get_plugins()?;
 
-		autorun_log::info!("Loaded {} plugins successfully.", plugins.len());
+		info!("Loaded {} plugins successfully.", plugins.len());
 
 		for error in &errors {
-			autorun_log::error!("Failed to load plugin: {error}");
+			error!("Failed to load plugin: {error}");
 		}
 
 		Ok(())
@@ -176,7 +177,7 @@ impl App {
 		});
 
 		if let Err(why) = Self::validate_plugins(&autorun) {
-			autorun_log::error!("Failed to validate plugins: {why}");
+			error!("Failed to validate plugins: {why}");
 		}
 
 		let command_registry = CommandRegistry::new();
@@ -598,7 +599,7 @@ impl App {
 		}
 
 		if let Err(e) = self.autorun.run_code(self.realm_state, &self.code) {
-			autorun_log::error!("Failed to execute code: {e}");
+			error!("Failed to execute code: {e}");
 		}
 	}
 

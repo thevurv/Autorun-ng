@@ -1,11 +1,11 @@
 use core::ffi::{c_char, c_int};
 
+use autorun_log::*;
 use autorun_types::{LuaState, Realm};
 
 type LoadBufferFn = extern "C-unwind" fn(*mut LuaState, *const c_char, usize, *const c_char, *const c_char) -> c_int;
 
 static LOAD_BUFFER_H: std::sync::OnceLock<retour::GenericDetour<LoadBufferFn>> = std::sync::OnceLock::new();
-// static WAS_PREVIOUSLY_DRAWING_LOADING_IMAGE: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
 
 // Holds a usize but really holding *mut LuaState
 // This stores the previous Lua state acquired upon init's run.
@@ -30,7 +30,8 @@ extern "C-unwind" fn load_buffer_h(
 		disable();
 		if let Err(why) = crate::events::client_init::run(state) {
 			let name = unsafe { std::ffi::CStr::from_ptr(name) };
-			autorun_log::error!("Failed to run init for {}: {why}", name.to_string_lossy());
+			let name = name.to_string_lossy();
+			error!("Failed to run init for {name}: {why}");
 		}
 		enable();
 	} else {
@@ -46,7 +47,8 @@ extern "C-unwind" fn load_buffer_h(
 				size = x.len();
 			}
 			Err(why) => {
-				autorun_log::error!("Failed to run hook for {}: {why}", name_cstr.to_string_lossy());
+				let name_cstr = name_cstr.to_string_lossy();
+				error!("Failed to run hook for {name_cstr}: {why}");
 			}
 			_ => (),
 		}

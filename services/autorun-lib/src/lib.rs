@@ -4,6 +4,7 @@ mod lua_queue;
 mod menu;
 mod server;
 
+use autorun_log::*;
 pub use autorun_plugin_api::*;
 
 pub fn main() -> anyhow::Result<()> {
@@ -34,7 +35,7 @@ extern "C" fn autorun_entrypoint() {
 	}
 
 	if let Err(why) = main() {
-		autorun_log::error!("{why}");
+		error!("{why}");
 	}
 }
 
@@ -53,7 +54,7 @@ ctor::declarative::ctor! {
 						unsafe { std::env::remove_var("LD_PRELOAD") };
 
 						if let Err(why) = main() {
-							autorun_log::error!("{why}");
+							error!("{why}");
 						}
 					}
 				}

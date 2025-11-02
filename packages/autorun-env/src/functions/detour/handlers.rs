@@ -1,4 +1,5 @@
 use crate::functions::detour::raw;
+use autorun_log::*;
 use autorun_lua::{LUA_MULTRET, LuaApi, LuaFunction, RawHandle};
 use autorun_types::LuaState;
 
@@ -43,7 +44,7 @@ pub extern "C-unwind" fn detour_handler(
 	let base = lua.get_top(state) - num_arguments;
 
 	if let Err(why) = lua.pcall(state, num_arguments, LUA_MULTRET, 0) {
-		autorun_log::error!("Error calling detour callback: {}", why);
+		error!("Error calling detour callback: {why}");
 		return 0;
 	}
 

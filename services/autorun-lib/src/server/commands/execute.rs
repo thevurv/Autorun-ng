@@ -1,4 +1,5 @@
 use autorun_ipc::Message;
+use autorun_log::*;
 
 pub fn handle(_messenger: &mut autorun_ipc::Messenger, message: Message) -> anyhow::Result<()> {
 	let Message::RunCode(realm, code) = message else {
@@ -6,7 +7,7 @@ pub fn handle(_messenger: &mut autorun_ipc::Messenger, message: Message) -> anyh
 	};
 
 	if autorun_interfaces::lua::get_state(realm)?.is_none() {
-		autorun_log::error!("Lua state for realm {realm:?} is not ready");
+		error!("Lua state for realm {realm:?} is not ready");
 		return Ok(());
 	}
 

@@ -3,6 +3,7 @@
 mod commands;
 
 use autorun_ipc::{Message, Server};
+use autorun_log::*;
 
 pub fn start() -> anyhow::Result<()> {
 	let server = Server::start()?;
@@ -12,7 +13,7 @@ pub fn start() -> anyhow::Result<()> {
 			Ok(mut messenger) => {
 				std::thread::spawn(move || {
 					if let Err(e) = handle_client(&mut messenger) {
-						autorun_log::error!("{e}");
+						error!("{e}");
 					}
 				});
 			}

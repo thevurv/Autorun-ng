@@ -22,7 +22,6 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	// 			let str = lua.to::<&[u8]>(state, -1);
 	// 			let str = std::str::from_utf8(str).unwrap_or("<invalid utf8>");
 	// 			lua.pop(state, 1);
-	// 			autorun_log::info!("Hmm?? {str:?}");
 
 	// 			// Replace buffer
 	// 			return Err(anyhow::anyhow!("Replacing buffer in loadbuffer event"));
