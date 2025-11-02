@@ -25,6 +25,8 @@ pub fn main() -> anyhow::Result<()> {
 #[cfg(target_os = "windows")]
 #[unsafe(no_mangle)]
 extern "C" fn autorun_entrypoint() {
+	// Yield to allow gmod to initialize properly
+	std::thread::sleep(std::time::Duration::from_secs(1));
 	// Redirect stdout to stderr.
 	// This is a hack because for some reason stdout isn't intercepted on windows?
 	// Might be gmod's fault. I don't care.

@@ -165,6 +165,10 @@ impl EnvHandle {
 		lua.push(state, as_env_lua_function!(crate::functions::is_function_authorized));
 		lua.set_table(state, -3);
 
+		lua.push(state, c"safeCall");
+		lua.push(state, as_env_lua_function!(crate::functions::safe_call));
+		lua.set_table(state, -3);
+
 		lua.push(state, c"VERSION");
 		lua.push(state, env!("CARGO_PKG_VERSION").to_string());
 		lua.set_table(state, -3);
@@ -209,7 +213,7 @@ impl EnvHandle {
 		Ok(Self { realm, env_gcr, handle })
 	}
 
-	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
+	pub fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
 		self.push(lua, state);
 		lua.get_field(state, -1, c"Autorun".as_ptr());
 		lua.remove(state, -2);

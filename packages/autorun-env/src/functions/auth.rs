@@ -1,5 +1,5 @@
 use anyhow::Context;
-use autorun_lua::{DebugInfo, LuaApi};
+use autorun_lua::{DebugInfo, LUA_MULTRET, LuaApi, RawLuaReturn};
 use autorun_luajit::{Frame, LJState, push_tvalue};
 use autorun_types::LuaState;
 
@@ -11,6 +11,8 @@ pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::En
 		anyhow::bail!("First argument must be a function or stack level.");
 	}
 
+	let frames = Frame::walk_stack(state as *mut LJState);
+	dbg!(frames);
 	if lua.type_id(state, 1) == autorun_lua::LuaTypeId::Number {
 		// attempt to resolve the function at the given stack level
 		let mut debug_info = unsafe { std::mem::zeroed::<DebugInfo>() };
@@ -33,4 +35,80 @@ pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::En
 
 	env.is_function_authorized(lua, state, None)
 		.context("Failed to check function authorization.")
+}
+
+/// Like pcall, but spoofs the frames so that Autorun is no where to be seen in the call stack.
+pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+	let nargs = lua.get_top(state);
+	if nargs < 1 {
+		anyhow::bail!("At least one argument (the function to call) is required.");
+	}
+
+	if lua.type_id(state, 1) != autorun_lua::LuaTypeId::Function {
+		anyhow::bail!("First argument must be a function to call.");
+	}
+
+	let nargs = lua.get_top(state) - 1; // exclude the function itself
+
+	let frames = Frame::walk_stack(state as *mut LJState);
+	let lj_state = state as *mut LJState;
+	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState")? };
+
+	let mut autorun_frames: Vec<Frame> = frames
+		.into_iter()
+		.enumerate()
+		.filter(|(index, frame)| {
+			if *index == 0 && frame.is_c_frame() {
+				let gc_func = match frame.get_gc_func() {
+					Ok(func) => func,
+					Err(_) => return false,
+				};
+
+				if gc_func.is_c() {
+					let cfunc = gc_func.as_c().unwrap();
+					let func_ptr = cfunc.c as usize;
+
+					// check if it's safe_call, although we need to push safe call since its not directly accessible here
+					env.push_autorun_table(lua, state);
+					lua.get_field(state, -1, c"safeCall".as_ptr());
+					let safe_call_ptr = lua.to_function(state, -1).unwrap() as usize;
+					lua.pop(state, 2); // pop both the function and the env table
+
+					return func_ptr == safe_call_ptr;
+				}
+			}
+
+			// Push frame's function onto the stack
+			let tv = frame.get_func_tv();
+			unsafe {
+				if !(*tv).is_func() {
+					false
+				} else {
+					push_tvalue(lj_state, &*tv);
+					// ask env if this function is authorized
+					let authorized = env.is_function_authorized(lua, state, None).unwrap_or(false);
+					// pop the function off the stack
+					lua.pop(state, 1);
+
+					authorized
+				}
+			}
+		})
+		.map(|(_index, frame)| frame)
+		.collect();
+
+	// mark each autorun frame as a dummy
+	for frame in autorun_frames.iter_mut() {
+		frame.mark_as_dummy_frame(state as *mut LJState);
+	}
+
+	let result = lua.pcall_forward(state, nargs, LUA_MULTRET, 0);
+
+	// restore the frames
+	for frame in autorun_frames.iter_mut() {
+		frame.restore_from_dummy_frame();
+	}
+
+	let nresults = lua.get_top(state); // number of results on the stack
+	Ok(RawLuaReturn(nresults))
 }
