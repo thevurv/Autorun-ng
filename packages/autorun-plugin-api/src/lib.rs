@@ -92,7 +92,7 @@ pub unsafe extern "C" fn autorun_mkdir(plugin_handle: *mut autorun_core::plugins
 	plugin
 		.data_dir()
 		.create_dir_all(path.to_str().unwrap_or_default())
-		.map(|_| PluginResult::Ok)
+		.map(|_: ()| PluginResult::Ok)
 		.unwrap_or(PluginResult::ErrWriteFailed)
 }
 
@@ -103,6 +103,6 @@ pub unsafe extern "C" fn autorun_print(message: *const c_char) {
 	let message = unsafe { std::ffi::CStr::from_ptr(message) };
 
 	if let Ok(message_str) = message.to_str() {
-		println!("[Autorun Plugin] {}", message_str);
+		println!("[Autorun Plugin] {message_str}");
 	}
 }

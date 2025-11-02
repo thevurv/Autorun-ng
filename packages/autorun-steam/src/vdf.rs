@@ -38,7 +38,7 @@ pub enum TokenizeError {
 	UnexpectedEndOfInput,
 }
 
-pub fn tokenize<'a>(src: &'a [u8]) -> Result<Vec<Token<'a>>, TokenizeError> {
+pub fn tokenize(src: &[u8]) -> Result<Vec<Token<'_>>, TokenizeError> {
 	let mut tokens = vec![];
 
 	let mut ptr = 0;

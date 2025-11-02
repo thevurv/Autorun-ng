@@ -116,7 +116,7 @@ impl CommandRegistry {
 			match (command.execute)(args, context, self) {
 				Ok(()) => Ok(true),
 				Err(e) => {
-					context.write_error(&format!("Command '{}' failed: {}", command_name, e));
+					context.write_error(&format!("Command '{command_name}' failed: {e}"));
 					Ok(true)
 				}
 			}
@@ -158,12 +158,12 @@ impl CommandRegistry {
 					// Show help for specific command
 					let command_name = &args[0];
 					if let Some(command) = registry.get_commands().get(command_name) {
-						context.write_info(&format!("Help for command '{}':", command_name));
+						context.write_info(&format!("Help for command '{command_name}':"));
 						context.write_output("");
 						context.write_output(&format!("Description: {}", command.description));
 						context.write_output(&format!("Usage: {}", command.usage));
 					} else {
-						context.write_error(&format!("Unknown command: '{}'", command_name));
+						context.write_error(&format!("Unknown command: '{command_name}'"));
 					}
 				}
 				Ok(())

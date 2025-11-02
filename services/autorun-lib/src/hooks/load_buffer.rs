@@ -1,6 +1,6 @@
 use core::ffi::{c_char, c_int};
 
-use autorun_log::*;
+use autorun_log::error;
 use autorun_types::{LuaState, Realm};
 
 type LoadBufferFn = extern "C-unwind" fn(*mut LuaState, *const c_char, usize, *const c_char, *const c_char) -> c_int;
@@ -43,7 +43,7 @@ extern "C-unwind" fn load_buffer_h(
 		disable();
 		match crate::events::hook::run(state, buff_bytes, name_cstr.to_bytes(), mode_bytes) {
 			Ok(Some(x)) => {
-				buff = x.as_ptr() as *const c_char;
+				buff = x.as_ptr().cast::<c_char>();
 				size = x.len();
 			}
 			Err(why) => {

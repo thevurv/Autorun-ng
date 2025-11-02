@@ -1,4 +1,4 @@
-use autorun_log::*;
+use autorun_log::error;
 
 type PaintTraverseFn = extern "C-unwind" fn(this: *mut std::ffi::c_void, panel: usize, force_repaint: bool, allow_force: bool);
 

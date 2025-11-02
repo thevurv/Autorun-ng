@@ -1,4 +1,4 @@
-use autorun_log::*;
+use autorun_log::{error, info, warn};
 
 type TheTargetFn = extern "C-unwind" fn(arg1: i64, arg2: i64, arg3: u64);
 // type TheTargetFn = extern "C" fn() -> u8;

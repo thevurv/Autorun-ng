@@ -1,5 +1,5 @@
 use autorun_ipc::Message;
-use autorun_log::*;
+use autorun_log::error;
 
 pub fn handle(_messenger: &mut autorun_ipc::Messenger, message: Message) -> anyhow::Result<()> {
 	let Message::RunCode(realm, code) = message else {

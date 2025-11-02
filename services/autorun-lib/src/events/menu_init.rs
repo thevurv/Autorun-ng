@@ -1,4 +1,4 @@
-use autorun_log::*;
+use autorun_log::warn;
 use autorun_types::Realm;
 
 #[allow(unused)]
@@ -36,7 +36,7 @@ fn run_entrypoint(
 		autorun_core::plugins::ConfigPluginLanguage::Lua => {
 			if let Ok(menu_init) = plugin.read_menu_init() {
 				env.execute(lua, state, c"menu/init.lua", &menu_init)?;
-			};
+			}
 
 			if let Ok(shared_init) = plugin.read_shared_init() {
 				env.execute(lua, state, c"shared/init.lua", &shared_init)?;
@@ -67,7 +67,7 @@ fn run_entrypoint(
 			if let Ok(autorun_menu_init) =
 				unsafe { library.get::<extern "C" fn(plugin: *const core::ffi::c_void)>(b"autorun_menu_init\0") }
 			{
-				autorun_menu_init(&raw const *plugin as _);
+				autorun_menu_init((&raw const *plugin).cast());
 			}
 		}
 
