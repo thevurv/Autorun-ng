@@ -1,6 +1,6 @@
 use core::ffi::CStr;
 
-use crate::{LuaApi, LuaFunction, LuaState};
+use crate::{LuaApi, LuaFunction, LuaState, LuaTypeId};
 
 pub trait IntoLua {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState);
@@ -106,10 +106,9 @@ impl FromLua for Option<LuaFunction> {
 
 impl<T: FromLua> FromLua for Option<T> {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		if lua.type_id(state, stack_idx) == crate::LuaTypeId::Nil {
-			None
-		} else {
-			Some(T::from_lua(lua, state, stack_idx))
+		match lua.type_id(state, stack_idx) {
+			LuaTypeId::None | LuaTypeId::Nil => None,
+			_ => Some(T::from_lua(lua, state, stack_idx)),
 		}
 	}
 }

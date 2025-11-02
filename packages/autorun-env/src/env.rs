@@ -171,16 +171,16 @@ impl EnvHandle {
 
 	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, name: &CStr, src: &[u8]) -> anyhow::Result<()> {
 		if let Err(why) = lua.load_buffer_x(state, src, name, c"t") {
-			return Err(anyhow::anyhow!("Failed to compile: {why}"));
+			anyhow::bail!("Failed to compile: {why}");
 		}
 
 		self.push(lua, state);
 		if lua.set_fenv(state, -2).is_err() {
-			return Err(anyhow::anyhow!("Failed to set environment"));
+			anyhow::bail!("Failed to set environment");
 		}
 
 		if let Err(why) = lua.pcall(state, 0, 0, 0) {
-			return Err(anyhow::anyhow!("Failed to execute: {}", why));
+			anyhow::bail!("Failed to execute: {}", why);
 		}
 
 		Ok(())
