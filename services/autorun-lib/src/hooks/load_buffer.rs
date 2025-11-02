@@ -3,6 +3,8 @@ use core::ffi::{c_char, c_int};
 use autorun_log::error;
 use autorun_types::{LuaState, Realm};
 
+use crate::events::hook::HookEventOutcome;
+
 type LoadBufferFn = extern "C-unwind" fn(*mut LuaState, *const c_char, usize, *const c_char, *const c_char) -> c_int;
 
 static LOAD_BUFFER_H: std::sync::OnceLock<retour::GenericDetour<LoadBufferFn>> = std::sync::OnceLock::new();
@@ -42,9 +44,13 @@ extern "C-unwind" fn load_buffer_h(
 
 		disable();
 		match crate::events::hook::run(state, buff_bytes, name_cstr.to_bytes(), mode_bytes) {
-			Ok(Some(x)) => {
-				buff = x.as_ptr().cast::<c_char>();
-				size = x.len();
+			Ok(HookEventOutcome::Replace(ptr, len)) => {
+				buff = ptr;
+				size = len as _;
+			}
+			Ok(HookEventOutcome::Skip) => {
+				enable();
+				return 0;
 			}
 			Err(why) => {
 				let name_cstr = name_cstr.to_string_lossy();

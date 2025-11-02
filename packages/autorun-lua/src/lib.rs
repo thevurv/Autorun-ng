@@ -13,7 +13,11 @@ pub use lua::*;
 pub mod types;
 pub use types::*;
 
+pub mod util;
+pub use util::*;
+
 pub mod prelude {
 	pub use crate::lua::*;
 	pub use crate::types::*;
+	pub use crate::util::*;
 }

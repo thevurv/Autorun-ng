@@ -3,7 +3,7 @@ pub mod global;
 use anyhow::Context;
 use autorun_core::plugins::Plugin;
 use autorun_log::*;
-use autorun_lua::{LuaApi, RawHandle};
+use autorun_lua::{LUA_MULTRET, LuaApi, RawHandle};
 use autorun_luajit::{GCRef, LJState, index2adr};
 use autorun_types::{LuaState, Realm};
 use std::ffi::{CStr, c_int};
@@ -226,7 +226,7 @@ impl EnvHandle {
 		Ok(())
 	}
 
-	pub fn trigger(&self, lua: &LuaApi, state: *mut LuaState, event_name: &CStr, n_args: c_int) -> anyhow::Result<()> {
+	pub fn trigger(&self, lua: &LuaApi, state: *mut LuaState, event_name: &CStr, n_args: c_int) -> anyhow::Result<c_int> {
 		lua.push(state, event_name);
 		lua.insert(state, -(n_args + 1));
 
@@ -239,10 +239,13 @@ impl EnvHandle {
 			anyhow::bail!("don't remove Autorun.trigger lil bro.");
 		}
 
+		autorun_lua::dump_stack(lua, state);
 		lua.insert(state, -(n_args + 2));
-		lua.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
+		autorun_lua::dump_stack(lua, state);
+		let n_returns = lua.pcall(state, n_args + 1, LUA_MULTRET, 0).map_err(|e| anyhow::anyhow!(e))?;
+		autorun_lua::dump_stack(lua, state);
 
-		Ok(())
+		Ok(n_returns)
 	}
 
 	pub fn run_remote_callbacks(

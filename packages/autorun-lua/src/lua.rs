@@ -422,9 +422,15 @@ impl LuaApi {
 		n_args: c_int,
 		n_results: c_int,
 		err_func: c_int,
-	) -> Result<(), std::borrow::Cow<'static, str>> {
+	) -> Result<c_int, std::borrow::Cow<'static, str>> {
+		let prev_top = self.get_top(state);
 		match self._pcall(state, n_args, n_results, err_func) {
-			LUA_OK | LUA_YIELD => Ok(()),
+			LUA_OK | LUA_YIELD => {
+				let new_top = self.get_top(state);
+				let n_returned = prev_top - new_top - n_args;
+
+				Ok(n_returned)
+			}
 
 			_ => {
 				let err = self.check_string(state, -1);
