@@ -1,5 +1,5 @@
-///! The purpose of the Lua Queue is to allow other threads to schedule code to run on the main lua thread.
-///! Otherwise, if you try to run lua outside the main thread, you'll most definitely crash the game.
+//! The purpose of the Lua Queue is to allow other threads to schedule code to run on the main lua thread.
+//! Otherwise, if you try to run lua outside the main thread, you'll most definitely crash the game.
 use std::sync::{Arc, LazyLock, Mutex};
 
 use autorun_lua::LuaApi;

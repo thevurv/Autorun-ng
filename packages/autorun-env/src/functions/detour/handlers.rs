@@ -1,4 +1,5 @@
 use crate::functions::detour::raw;
+use autorun_log::*;
 use autorun_lua::{LUA_MULTRET, LuaApi, LuaFunction, RawHandle};
 use autorun_types::LuaState;
 

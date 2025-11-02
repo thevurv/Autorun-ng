@@ -4,13 +4,14 @@ mod lua_queue;
 mod menu;
 mod server;
 
+use autorun_log::error;
 pub use autorun_plugin_api::*;
 
 pub fn main() -> anyhow::Result<()> {
 	// Start IPC server in background thread
 	std::thread::spawn(|| {
 		if let Err(e) = server::start() {
-			eprintln!("Failed to start IPC server: {}", e);
+			eprintln!("Failed to start IPC server: {e}");
 		}
 	});
 
@@ -36,7 +37,7 @@ extern "C" fn autorun_entrypoint() {
 	}
 
 	if let Err(why) = main() {
-		autorun_log::error!("{why}");
+		error!("{why}");
 	}
 }
 
@@ -46,7 +47,7 @@ ctor::declarative::ctor! {
 	fn on_library_load() {
 			match std::env::current_exe() {
 				Err(why) => {
-					eprintln!("Failed to get current exe path: {:?}", why);
+					eprintln!("Failed to get current exe path: {why:?}");
 				}
 				Ok(exe) => {
 					// Ensure LD_PRELOAD doesn't affect other programs
@@ -55,7 +56,7 @@ ctor::declarative::ctor! {
 						unsafe { std::env::remove_var("LD_PRELOAD") };
 
 						if let Err(why) = main() {
-							autorun_log::error!("{why}");
+							error!("{why}");
 						}
 					}
 				}

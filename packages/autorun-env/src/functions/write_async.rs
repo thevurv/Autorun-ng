@@ -1,3 +1,4 @@
+use autorun_log::*;
 use autorun_lua::LuaApi;
 use autorun_types::LuaState;
 
@@ -17,12 +18,12 @@ pub fn write_async(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) ->
 		if !data_dir.exists(&target_path)
 			&& let Err(why) = data_dir.create(&target_path)
 		{
-			autorun_log::error!("Failed to create file '{target_path}' asynchronously: {why}");
+			error!("Failed to create file '{target_path}' asynchronously: {why}");
 			return;
 		}
 
 		if let Err(why) = data_dir.write(&target_path, content) {
-			autorun_log::error!("Failed to write to file '{target_path}' asynchronously: {why}");
+			error!("Failed to write to file '{target_path}' asynchronously: {why}");
 		}
 	});
 

@@ -3,6 +3,7 @@
 mod commands;
 
 use autorun_ipc::{Message, Server};
+use autorun_log::{error, info};
 
 pub fn start() -> anyhow::Result<()> {
 	let server = Server::start()?;
@@ -12,13 +13,13 @@ pub fn start() -> anyhow::Result<()> {
 			Ok(mut messenger) => {
 				std::thread::spawn(move || {
 					if let Err(e) = handle_client(&mut messenger) {
-						autorun_log::error!("{e}");
+						error!("{e}");
 					}
 				});
 			}
 
 			Err(e) => {
-				eprintln!("Failed to accept client: {}", e);
+				error!("Failed to accept client: {e}");
 				std::thread::sleep(std::time::Duration::from_millis(100));
 			}
 		}
@@ -27,13 +28,8 @@ pub fn start() -> anyhow::Result<()> {
 
 fn handle_message(messenger: &mut autorun_ipc::Messenger, message: Message) -> anyhow::Result<()> {
 	match message {
-		Message::Pong => (),
 		Message::Ping => {
 			messenger.send(Message::Pong)?;
-		}
-
-		Message::Print(..) => {
-			commands::print::handle(messenger, message)?;
 		}
 
 		Message::RunCode(..) => {
@@ -56,12 +52,13 @@ fn handle_client(messenger: &mut autorun_ipc::Messenger) -> anyhow::Result<()> {
 			Ok(Message::Shutdown) => break,
 			Ok(message) => handle_message(messenger, message)?,
 			Err(e) => {
-				eprintln!("Failed to receive message: {}", e);
+				error!("Failed to receive message: {e}");
 				break;
 			}
 		}
 	}
 
-	println!("Client disconnected");
+	info!("Client disconnected");
+
 	Ok(())
 }

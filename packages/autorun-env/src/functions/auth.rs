@@ -24,18 +24,17 @@ pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::En
 		}
 
 		let lj_state = state as *mut LJState;
+		let lj_state = unsafe { lj_state.as_mut() }.context("Failed to dereference LJState")?;
 		let frame_func = Frame::from_debug_ci(lj_state, debug_info.i_ci).get_func_tv();
 
 		// copy the function to the top of the stack
 		unsafe {
-			let state = lj_state.as_mut().context("Failed to dereference LJState")?;
-			push_tvalue(state, &*frame_func);
+			push_tvalue(lj_state, &*frame_func);
 		}
 	}
 
-	Ok(env
-		.is_function_authorized(lua, state, None)
-		.context("Failed to check function authorization.")?)
+	env.is_function_authorized(lua, state, None)
+		.context("Failed to check function authorization.")
 }
 
 /// Like pcall, but spoofs the frames so that Autorun is no where to be seen in the call stack.

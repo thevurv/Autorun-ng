@@ -1,3 +1,4 @@
+use autorun_log::warn;
 use autorun_types::Realm;
 
 /// Function that triggers all plugins init (server start) scripts.
@@ -35,7 +36,7 @@ fn run_entrypoint(
 		autorun_core::plugins::ConfigPluginLanguage::Lua => {
 			if let Ok(client_init) = plugin.read_client_init() {
 				env.execute(lua, state, c"client/init.lua", &client_init)?;
-			};
+			}
 
 			if let Ok(shared_init) = plugin.read_shared_init() {
 				env.execute(lua, state, c"shared/init.lua", &shared_init)?;
@@ -53,7 +54,7 @@ fn run_entrypoint(
 			let path = autorun_fs::get_path(autorun_fs::ambient_authority(), dir)?;
 			let lib_path = path.join(PLUGIN_PATH);
 			if !lib_path.exists() {
-				autorun_log::warn!(
+				warn!(
 					"Native init plugin library not found for plugin '{plugin}': {}",
 					lib_path.display()
 				);
@@ -66,7 +67,7 @@ fn run_entrypoint(
 			if let Ok(autorun_client_init) =
 				unsafe { library.get::<extern "C" fn(plugin: *const core::ffi::c_void)>(b"autorun_client_init\0") }
 			{
-				autorun_client_init(&raw const *plugin as _);
+				autorun_client_init((&raw const *plugin).cast());
 			}
 		}
 

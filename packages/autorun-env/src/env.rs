@@ -2,6 +2,7 @@ pub mod global;
 
 use anyhow::Context;
 use autorun_core::plugins::Plugin;
+use autorun_log::*;
 use autorun_lua::{LuaApi, RawHandle};
 use autorun_luajit::{GCRef, LJState, index2adr};
 use autorun_types::{LuaState, Realm};
@@ -28,8 +29,8 @@ macro_rules! as_env_lua_function {
 			let realm = crate::global::get_realm(state);
 			let env = crate::global::get_realm_env(realm).ok_or_else(|| anyhow::anyhow!("env doesn't exist somehow"))?;
 
-			/*if !env.is_active(lua, state) {
-				autorun_log::warn!(
+			if !env.is_active(lua, state) {
+				warn!(
 					"Attempted to call '{}' outside of authorized environment",
 					stringify!($func)
 				);
@@ -38,9 +39,9 @@ macro_rules! as_env_lua_function {
 				// right now this would kind of leak the fact that it's an autorun function.
 				lua.push(state, c"");
 				lua.error(state);
-			} else {*/
-			$func(lua, state, env)
-			//}
+			} else {
+				$func(lua, state, env)
+			}
 		})
 	};
 }

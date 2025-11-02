@@ -4,6 +4,7 @@ use std::{
 };
 
 mod commands;
+use autorun_log::{error, info};
 use commands::{CommandContext, CommandRegistry};
 
 use eframe::{
@@ -22,6 +23,7 @@ use autorun_types::Realm;
 const SIZE: (f32, f32) = (1200.0, 700.0);
 const REPAINT_TIME: Duration = Duration::from_secs(2);
 const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
+const STDIO_WAIT_INTERVAL: Duration = Duration::from_millis(200);
 
 fn load_icon() -> Option<std::sync::Arc<IconData>> {
 	let icon_bytes = include_bytes!("../../../../assets/run.png");
@@ -107,10 +109,10 @@ impl App {
 	fn validate_plugins(autorun: &Autorun) -> anyhow::Result<()> {
 		let (plugins, errors) = autorun.workspace().get_plugins()?;
 
-		autorun_log::info!("Loaded {} plugins successfully.", plugins.len());
+		info!("Loaded {} plugins successfully.", plugins.len());
 
 		for error in &errors {
-			autorun_log::error!("Failed to load plugin: {error}");
+			error!("Failed to load plugin: {error}");
 		}
 
 		Ok(())
@@ -155,15 +157,13 @@ impl App {
 		let mut stdio = shh::stdout().unwrap();
 		let mut stderr = shh::stderr().unwrap();
 
-		const WAIT_TIME: Duration = Duration::from_millis(200);
-
 		// Background thread to read stdout/stderr to console
 		let ctx = cc.egui_ctx.clone();
 		std::thread::spawn(move || {
 			loop {
 				use std::io::Read;
 
-				std::thread::sleep(WAIT_TIME);
+				std::thread::sleep(STDIO_WAIT_INTERVAL);
 
 				let mut log = log_thread.write().unwrap();
 				match (stdio.read_to_string(&mut log), stderr.read_to_string(&mut log)) {
@@ -176,7 +176,7 @@ impl App {
 		});
 
 		if let Err(why) = Self::validate_plugins(&autorun) {
-			autorun_log::error!("Failed to validate plugins: {why}");
+			error!("Failed to validate plugins: {why}");
 		}
 
 		let command_registry = CommandRegistry::new();
@@ -213,7 +213,7 @@ impl App {
 								if ui.button("Launch").clicked() {
 									self.user_disconnected = false;
 									if let Err(e) = self.autorun.launch_game() {
-										eprintln!("Failed to start attached: {}", e);
+										error!("Failed to start attached: {e}");
 									}
 								}
 
@@ -373,7 +373,7 @@ impl App {
 									.stick_to_bottom(true)
 									.show(ui, |ui| {
 										ui.set_width(ui.available_width());
-										self.render_ansi_text(ui, &log_content);
+										Self::render_ansi_text(ui, &log_content);
 									});
 							});
 					});
@@ -490,7 +490,7 @@ impl App {
 			});
 	}
 
-	fn show_settings_tab(&mut self, ui: &mut Ui) {
+	fn show_settings_tab(ui: &mut Ui) {
 		ui.vertical_centered(|ui| {
 			ui.add_space(50.0);
 			ui.heading("Settings");
@@ -512,7 +512,7 @@ impl App {
 		});
 	}
 
-	fn show_about_tab(&mut self, ui: &mut Ui) {
+	fn show_about_tab(ui: &mut Ui) {
 		ui.vertical_centered(|ui| {
 			ui.add_space(50.0);
 			ui.heading("About Autorun-ng");
@@ -541,7 +541,7 @@ impl App {
 		});
 	}
 
-	fn show_status_bar(&mut self, ui: &mut Ui) {
+	fn show_status_bar(ui: &mut Ui) {
 		Frame::default()
 			.fill(Color32::from_rgb(30, 30, 30))
 			.stroke(Stroke::new(1.0, Color32::from_rgb(50, 50, 50)))
@@ -585,7 +585,7 @@ impl App {
 				context.write_error(&format!("Unknown command: '{}'", self.terminal_input));
 			}
 			Err(e) => {
-				eprintln!("Command execution error: {}", e);
+				eprintln!("Command execution error: {e}");
 			}
 		}
 
@@ -598,11 +598,11 @@ impl App {
 		}
 
 		if let Err(e) = self.autorun.run_code(self.realm_state, &self.code) {
-			autorun_log::error!("Failed to execute code: {e}");
+			error!("Failed to execute code: {e}");
 		}
 	}
 
-	fn render_ansi_text(&self, ui: &mut Ui, text: &str) {
+	fn render_ansi_text(ui: &mut Ui, text: &str) {
 		let segments = parse_ansi_text(text);
 
 		ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
@@ -680,13 +680,13 @@ impl eframe::App for App {
 					ui.set_min_height(content_height);
 					match self.active_tab {
 						ActiveTab::Console => self.show_console_tab(ui),
-						ActiveTab::Settings => self.show_settings_tab(ui),
-						ActiveTab::About => self.show_about_tab(ui),
+						ActiveTab::Settings => Self::show_settings_tab(ui),
+						ActiveTab::About => Self::show_about_tab(ui),
 					}
 				});
 
 				// Status bar
-				self.show_status_bar(ui);
+				Self::show_status_bar(ui);
 			});
 		});
 	}
@@ -778,7 +778,6 @@ fn open_url(url: &str) {
 
 fn parse_ansi_foreground_color(code: &str) -> Option<Color32> {
 	match code.trim() {
-		"0" => None, // Reset
 		// Foreground colors
 		"30" => Some(Color32::BLACK),
 		"31" => Some(Color32::RED),
@@ -797,7 +796,7 @@ fn parse_ansi_foreground_color(code: &str) -> Option<Color32> {
 		"95" => Some(Color32::from_rgb(255, 100, 255)), // Bright magenta
 		"96" => Some(Color32::from_rgb(100, 255, 255)), // Bright cyan
 		"97" => Some(Color32::from_rgb(240, 240, 240)), // Bright white
-		_ => None,
+		_ => None,                                      // Reset
 	}
 }
 

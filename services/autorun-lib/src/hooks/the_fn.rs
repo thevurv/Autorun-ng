@@ -1,3 +1,5 @@
+use autorun_log::{error, info, warn};
+
 type TheTargetFn = extern "C-unwind" fn(arg1: i64, arg2: i64, arg3: u64);
 // type TheTargetFn = extern "C" fn() -> u8;
 
@@ -6,7 +8,7 @@ static THE_TARGET_FN_H: std::sync::OnceLock<retour::GenericDetour<TheTargetFn>> 
 extern "C-unwind" fn the_target_fn_h(a: i64, b: i64, c: u64) {
 	// extern "C" fn the_target_fn_h() -> u8 {
 	THE_TARGET_FN_H.get().unwrap().call(a, b, c);
-	autorun_log::info!("Called with {a:x} {b:x} {c:x}");
+	info!("Called with {a:x} {b:x} {c:x}");
 }
 
 #[allow(unused)]
@@ -30,17 +32,15 @@ pub fn init() -> anyhow::Result<()> {
 		unsafe {
 			let actual_bytes = std::slice::from_raw_parts(fn_start_addr as *const u8, expected_bytes.len());
 			if actual_bytes != expected_bytes {
-				autorun_log::error!(
+				error!(
 					"Function start verification failed at 0x{:x}. Expected: {:02x?}, Found: {:02x?}",
-					fn_start_addr,
-					expected_bytes,
-					actual_bytes
+					fn_start_addr, expected_bytes, actual_bytes
 				);
 
-				return Err(anyhow::anyhow!("Function start verification failed"));
+				anyhow::bail!("Function start verification failed");
 			}
 
-			autorun_log::info!("Function start verification passed at 0x{:x}", fn_start_addr);
+			info!("Function start verification passed at 0x{:x}", fn_start_addr);
 		}
 		let target_fn: TheTargetFn = unsafe { std::mem::transmute(fn_start_addr as *const ()) };
 
@@ -52,7 +52,7 @@ pub fn init() -> anyhow::Result<()> {
 
 		THE_TARGET_FN_H.set(detour).unwrap();
 	} else {
-		autorun_log::warn!("Function not found");
+		warn!("Function not found");
 	}
 
 	Ok(())
