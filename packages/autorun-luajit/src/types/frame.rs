@@ -27,10 +27,10 @@ impl Frame {
 		Self { tvalue, size }
 	}
 
-	pub fn from_debug_ci(state: *mut LJState, i_ci: i32) -> Self {
+	pub fn from_debug_ci(state: &mut LJState, i_ci: i32) -> Self {
 		let offset = (i_ci as u32) & 0xffff;
 		let size = (i_ci as u32) >> 16;
-		let tvstack = unsafe { (*state).stack.as_ptr::<TValue>() };
+		let tvstack = state.stack.as_ptr::<TValue>();
 		let frametv = unsafe { tvstack.add(offset as usize) };
 
 		Frame::new(frametv, size)
@@ -58,7 +58,7 @@ impl Frame {
 		matches!(self.get_type(), FrameType::C | FrameType::Cpcall)
 	}
 
-	pub fn get_gc_func(&self) -> anyhow::Result<&mut GCfunc> {
+	pub fn get_gc_func(&mut self) -> anyhow::Result<&mut GCfunc> {
 		unsafe {
 			let func_tv = self.tvalue.offset(-1);
 			let gcfunc = (*func_tv).as_mut::<GCfunc>()?;

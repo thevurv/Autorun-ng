@@ -44,7 +44,7 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 	}
 
 	let msg = args.join(" ");
-	println!("[{}] {msg}", plugin_name.unwrap_or(&"Lua"));
+	println!("[{}] {msg}", plugin_name.unwrap_or("Lua"));
 
 	Ok(())
 }
