@@ -16,7 +16,7 @@ fn parse_perms(perms: &str) -> Permissions {
 	}
 }
 
-pub fn scan(signature: &[Option<u8>]) -> Result<Option<usize>, std::io::Error> {
+pub fn scan(signature: &[Option<u8>], target_module: Option<&str>) -> Result<Option<usize>, std::io::Error> {
 	let maps = std::fs::read_to_string("/proc/self/maps")?;
 	let mut mem = std::fs::File::open("/proc/self/mem")?;
 
@@ -35,7 +35,15 @@ pub fn scan(signature: &[Option<u8>]) -> Result<Option<usize>, std::io::Error> {
 		let _offset = entries[2];
 		let _dev = entries[3];
 		let _inode = entries[4];
-		let _path = entries.get(5); // Optional
+		let path = entries.get(5); // Optional
+
+		if let Some(target_module) = target_module {
+			let module_path = path.unwrap_or(&"");
+			let module_name = module_path.rsplit('/').next().unwrap_or("");
+			if module_name != target_module {
+				continue;
+			}
+		}
 
 		if !perms.read || !perms.exec {
 			continue;
