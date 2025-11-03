@@ -2,7 +2,7 @@ pub mod hooks;
 
 use anyhow::Context;
 use autorun_lua::{DebugInfo, LUA_MULTRET, LuaApi, LuaTypeId, RawLuaReturn};
-use autorun_luajit::{Frame, FrameType, GCfunc, LJState, get_gcobj, push_tvalue};
+use autorun_luajit::{Frame, FrameType, GCfunc, LJState, get_gcobj, push_frame_func, push_tvalue};
 use autorun_types::LuaState;
 
 pub const ERROR_FFI_ID: u8 = 19;
@@ -100,7 +100,7 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 				if !(*tv).is_func() {
 					false
 				} else {
-					push_tvalue(lj_state, &*tv);
+					push_frame_func(lj_state, frame).expect("Failed to push frame function onto stack");
 					// ask env if this function is authorized
 					let authorized = env.is_function_authorized(lua, state, None).unwrap_or(false);
 					// pop the function off the stack
