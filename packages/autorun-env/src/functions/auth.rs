@@ -8,16 +8,11 @@ use autorun_types::LuaState;
 pub const ERROR_FFI_ID: u8 = 19;
 
 pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<bool> {
-	if !matches!(
-		lua.type_id(state, 1),
-		autorun_lua::LuaTypeId::Function | autorun_lua::LuaTypeId::Number
-	) {
+	if !matches!(lua.type_id(state, 1), LuaTypeId::Function | LuaTypeId::Number) {
 		anyhow::bail!("First argument must be a function or stack level.");
 	}
 
-	let frames = Frame::walk_stack(state as *mut LJState);
-	dbg!(frames);
-	if lua.type_id(state, 1) == autorun_lua::LuaTypeId::Number {
+	if lua.type_id(state, 1) == LuaTypeId::Number {
 		// attempt to resolve the function at the given stack level
 		let mut debug_info = unsafe { std::mem::zeroed::<DebugInfo>() };
 		let stack_level = lua.to::<i32>(state, 1);
@@ -48,7 +43,7 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		anyhow::bail!("At least one argument (the function to call) is required.");
 	}
 
-	if lua.type_id(state, 1) != autorun_lua::LuaTypeId::Function {
+	if lua.type_id(state, 1) != LuaTypeId::Function {
 		anyhow::bail!("First argument must be a function to call.");
 	}
 
@@ -57,7 +52,6 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		let lj_state = lj_state.as_ref().context("Failed to dereference LJState")?;
 		let gcfunc = get_gcobj::<GCfunc>(lj_state, 1)?;
 
-		autorun_log::debug!("GC func ffid: {:?}", gcfunc.header().ffid);
 		gcfunc.is_fast_function() && gcfunc.header().ffid == ERROR_FFI_ID
 	};
 
@@ -127,10 +121,8 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	let potential_level = if is_error_fn && lua.type_id(state, 3) == LuaTypeId::Number {
 		// get the level from the stack
 		let mut level = lua.to::<i32>(state, 3); // first arg is func, second is message, third is level
-
 		level -= 1; // adjust for closure wrapper
 
-		autorun_log::debug!("level: {}", level);
 		// replace it on the stack with 1, since we've removed our frames
 		lua.push(state, level);
 		lua.replace(state, 3);

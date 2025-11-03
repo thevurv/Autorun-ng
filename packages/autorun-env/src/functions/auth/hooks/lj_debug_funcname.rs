@@ -10,6 +10,8 @@ pub const TARGET_MODULE: &str = "lua_shared_client.so";
 pub const LJ_DEBUG_FUNCNAME_SIG: &str =
 	"48 89 5c 24 08 48 89 74 24 10 57 48 83 ec 20 48 8b 41 38 49 8b f0 48 83 c0 08 48 8b d9 48 3b d0";
 
+/// Number of frames to stitch across for Autorun. This is computed based on the typical
+/// frame structure for `Autorun.copyFastFunction(foo, function(...) Autorun.safeCall(...) end)`,
 pub const STITCHED_AUTORUN_FRAMES: usize = 4;
 pub const MINIMUM_STACK_FRAMES: usize = 4;
 
@@ -96,7 +98,6 @@ pub fn init() -> anyhow::Result<()> {
 		.context("Failed to find lj_debug_funcname signature")?;
 	let lj_debug_funcname_addr = lj_debug_funcname_addr.context("lj_debug_funcname address not found")?;
 
-	autorun_log::info!("Found lj_debug_funcname at address: {:x}", lj_debug_funcname_addr);
 	unsafe {
 		let hook = retour::GenericDetour::<LjDebugFuncnameFn>::new(
 			std::mem::transmute(lj_debug_funcname_addr as *const ()),
@@ -111,7 +112,6 @@ pub fn init() -> anyhow::Result<()> {
 		LJ_DEBUG_FUNCNAME_HOOK
 			.set(hook)
 			.map_err(|_| anyhow::anyhow!("Failed to set LJ_DEBUG_FUNCNAME_HOOK"))?;
-		autorun_log::info!("lj_debug_funcname hook installed successfully");
 	}
 
 	Ok(())
