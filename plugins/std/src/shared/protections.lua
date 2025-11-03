@@ -17,3 +17,4 @@ _G.debug.getlocal = wrapFastFunctionInSafeCall(_G.debug.getlocal)
 _G.debug.traceback = wrapFastFunctionInSafeCall(_G.debug.traceback)
 _G.setfenv = wrapFastFunctionInSafeCall(_G.setfenv)
 _G.error = wrapFastFunctionInSafeCall(_G.error)
+_G.assert = wrapFastFunctionInSafeCall(_G.assert) -- this one is interesting, it's a pure asm fast function that can leak Autorun's existence.
