@@ -7,8 +7,12 @@ pub const TARGET_MODULE: &str = "lua_shared.dll";
 #[cfg(target_os = "linux")]
 pub const TARGET_MODULE: &str = "lua_shared_client.so";
 
+#[cfg(target_os = "windows")]
 pub const LJ_DEBUG_FUNCNAME_SIG: &str =
 	"48 89 5c 24 08 48 89 74 24 10 57 48 83 ec 20 48 8b 41 38 49 8b f0 48 83 c0 08 48 8b d9 48 3b d0";
+
+#[cfg(target_os = "linux")]
+pub const LJ_DEBUG_FUNCNAME_SIG: &str = "41 55 41 54 55 48 89 fd 53 48 83 ec 08 48 8b 47 38 48 83 c0 08 48 39 c6 0f ?? ?? ?? ?? ?? 48 8b 06 49 89 d5 48 89 c2 83 e2 07 48 83 fa 03";
 
 /// Number of frames to stitch across for Autorun. This is computed based on the typical
 /// frame structure for `Autorun.copyFastFunction(foo, function(...) Autorun.safeCall(...) end)`,
