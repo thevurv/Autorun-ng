@@ -133,8 +133,6 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 
 	let result = lua.pcall_forward(state, nargs, LUA_MULTRET, 0);
 	if result.is_err() {
-		// enable error hook to get proper stack trace
-		hooks::lj_debug_funcname::enable()?;
 		// before we forward this error, check if it's from an error ff, and if so,
 		// pass the level as well.
 		return lua.error(state, potential_level, false);
