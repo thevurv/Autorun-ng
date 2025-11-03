@@ -1,9 +1,11 @@
 pub mod hooks;
 
 use anyhow::Context;
-use autorun_lua::{DebugInfo, LUA_MULTRET, LuaApi, RawLuaReturn};
-use autorun_luajit::{Frame, LJState, push_tvalue};
+use autorun_lua::{DebugInfo, LUA_MULTRET, LuaApi, LuaTypeId, RawLuaReturn};
+use autorun_luajit::{Frame, GCfunc, LJState, get_gcobj, push_tvalue};
 use autorun_types::LuaState;
+
+pub const ERROR_FFI_ID: u8 = 19;
 
 pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<bool> {
 	if !matches!(
@@ -49,6 +51,15 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	if lua.type_id(state, 1) != autorun_lua::LuaTypeId::Function {
 		anyhow::bail!("First argument must be a function to call.");
 	}
+
+	let is_error_fn = unsafe {
+		let lj_state = state as *mut LJState;
+		let lj_state = lj_state.as_ref().context("Failed to dereference LJState")?;
+		let gcfunc = get_gcobj::<GCfunc>(lj_state, 1)?;
+
+		autorun_log::debug!("GC func ffid: {:?}", gcfunc.header().ffid);
+		gcfunc.is_fast_function() && gcfunc.header().ffid == ERROR_FFI_ID
+	};
 
 	let nargs = lua.get_top(state) - 1; // exclude the function itself
 
@@ -104,12 +115,31 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		frame.mark_as_dummy_frame(state as *mut LJState);
 	}
 
+	let potential_level = if is_error_fn && lua.type_id(state, 3) == LuaTypeId::Number {
+		// get the level from the stack
+		let mut level = lua.to::<i32>(state, 3); // first arg is func, second is message, third is level
+
+		if level > 1 {
+			// Not sure why, but if we don't offset by one, it doesn't line up correctly.
+			level += 1;
+		}
+
+		autorun_log::debug!("level: {}", level);
+		// replace it on the stack with 1, since we've removed our frames
+		lua.push(state, level);
+		lua.replace(state, 3);
+		Some(level)
+	} else {
+		None
+	};
+
 	let result = lua.pcall_forward(state, nargs, LUA_MULTRET, 0);
 	if result.is_err() {
 		// enable error hook to get proper stack trace
 		hooks::lj_debug_funcname::enable()?;
-		// bye
-		return lua.error(state);
+		// before we forward this error, check if it's from an error ff, and if so,
+		// pass the level as well.
+		return lua.error(state, potential_level, false);
 	}
 
 	// restore the frames

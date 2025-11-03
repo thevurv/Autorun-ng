@@ -149,6 +149,8 @@ define_lua_api! {
 	pub fn get_top(state: *mut LuaState) -> c_int;
 	#[name = "lua_remove"]
 	pub fn remove(state: *mut LuaState, index: c_int);
+	#[name = "lua_replace"]
+	pub fn replace(state: *mut LuaState, index: c_int);
 	#[name = "lua_status"]
 	pub fn status(state: *mut LuaState) -> c_int;
 	#[name = "lua_type"]
@@ -449,15 +451,18 @@ impl LuaApi {
 		}
 	}
 
-	pub fn error(&self, state: *mut LuaState) -> ! {
+	pub fn error(&self, state: *mut LuaState, level: Option<i32>, forward: bool) -> ! {
 		// GMod concatenates the source info to the error message automatically.
 		// If we do not mimic this behavior, the error messages will be different from
 		// the ones by GMod, which leads to easy detection.
+		if (forward) {
+			self._error(state);
+		}
 
 		#[cfg(feature = "gmod")]
 		{
 			// Error message is already on top of the stack
-			self.where_(state, 1);
+			self.where_(state, level.unwrap_or(1));
 			// check if we're duplicating the error message (common if error is also detoured)
 			let where_string = self.to_string(state, -1).unwrap_or_default();
 			let error_string = self.to_string(state, -2).unwrap_or_default();
@@ -565,7 +570,7 @@ macro_rules! as_lua_function {
 				Ok(ret) => $crate::LuaReturn::into_lua_return(ret, lua, state),
 				Err(e) => {
 					lua.push(state, e.to_string());
-					lua.error(state);
+					lua.error(state, None, false);
 				}
 			}
 		}
