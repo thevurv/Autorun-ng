@@ -2,7 +2,7 @@ pub mod hooks;
 
 use anyhow::Context;
 use autorun_lua::{DebugInfo, LUA_MULTRET, LuaApi, LuaTypeId, RawLuaReturn};
-use autorun_luajit::{Frame, GCfunc, LJState, get_gcobj, push_tvalue};
+use autorun_luajit::{Frame, FrameType, GCfunc, LJState, get_gcobj, push_tvalue};
 use autorun_types::LuaState;
 
 pub const ERROR_FFI_ID: u8 = 19;
@@ -67,10 +67,27 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	let lj_state = state as *mut LJState;
 	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState")? };
 
+	let force_remove_debug_index = {
+		lua.push_globals(state);
+		lua.get_field(state, -1, c"FORCE_REMOVE_FRAME".as_ptr());
+
+		let index = lua.to::<i32>(state, -1);
+		lua.pop(state, 2); // pop both the field and the globals table
+
+		index
+	};
+
 	let mut autorun_frames: Vec<Frame> = frames
 		.into_iter()
 		.enumerate()
 		.filter(|(index, frame)| {
+			// NOTE: Fix closure wrapper being unauthorized and being kept in the stack
+			autorun_log::debug!("Frame {}: {}", index, frame.get_type());
+			if *index == force_remove_debug_index as usize {
+				autorun_log::debug!("Forcing removal of frame at index {}", index);
+				return true;
+			}
+
 			if *index == 0 && frame.is_c_frame() {
 				let gc_func = match frame.get_gc_func() {
 					Ok(func) => func,
@@ -93,6 +110,7 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 
 			// Push frame's function onto the stack
 			let tv = frame.get_func_tv();
+
 			unsafe {
 				if !(*tv).is_func() {
 					false
@@ -119,10 +137,7 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		// get the level from the stack
 		let mut level = lua.to::<i32>(state, 3); // first arg is func, second is message, third is level
 
-		if level > 1 {
-			// Not sure why, but if we don't offset by one, it doesn't line up correctly.
-			level += 1;
-		}
+		level -= 1; // adjust for closure wrapper
 
 		autorun_log::debug!("level: {}", level);
 		// replace it on the stack with 1, since we've removed our frames
