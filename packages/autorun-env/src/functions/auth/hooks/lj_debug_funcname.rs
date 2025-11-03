@@ -10,7 +10,7 @@ pub const TARGET_MODULE: &str = "lua_shared_client.so";
 pub const LJ_DEBUG_FUNCNAME_SIG: &str =
 	"48 89 5c 24 08 48 89 74 24 10 57 48 83 ec 20 48 8b 41 38 49 8b f0 48 83 c0 08 48 8b d9 48 3b d0";
 
-pub const STITCHED_AUTORUN_FRAMES: usize = 2;
+pub const STITCHED_AUTORUN_FRAMES: usize = 4;
 pub const MINIMUM_STACK_FRAMES: usize = 4;
 
 type LjDebugFuncnameFn = unsafe extern "C" fn(state: *mut LJState, frame: *mut TValue, name: *const *const u8) -> *const u8;
