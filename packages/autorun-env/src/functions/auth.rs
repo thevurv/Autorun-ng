@@ -67,24 +67,15 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	let lj_state = state as *mut LJState;
 	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState")? };
 
-	let force_remove_debug_index = {
-		lua.push_globals(state);
-		lua.get_field(state, -1, c"FORCE_REMOVE_FRAME".as_ptr());
-
-		let index = lua.to::<i32>(state, -1);
-		lua.pop(state, 2); // pop both the field and the globals table
-
-		index
-	};
-
 	let mut autorun_frames: Vec<Frame> = frames
 		.into_iter()
 		.enumerate()
 		.filter(|(index, frame)| {
-			// NOTE: Fix closure wrapper being unauthorized and being kept in the stack
-			autorun_log::debug!("Frame {}: {}", index, frame.get_type());
-			if *index == force_remove_debug_index as usize {
-				autorun_log::debug!("Forcing removal of frame at index {}", index);
+			if *index == 0 && frame.is_lua_frame() {
+				// Typically our closure wrapper frame, although it is not necessarily marked as a C frame.
+				// Its some tail call magic, but we always want to remove it. It does leak in debug.traceback,
+				// for example.
+
 				return true;
 			}
 
