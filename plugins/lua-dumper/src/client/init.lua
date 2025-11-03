@@ -14,9 +14,3 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.mkdir(hostName .. "/" .. parentDir)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
-
-_G.RunInAutorun = function(cb)
-    _G.print("[Autorun] Running code in Autorun context...")
-    cb()
-    _G.print("[Autorun] Finished running code in Autorun context.")
-end
