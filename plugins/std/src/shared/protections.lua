@@ -11,6 +11,7 @@ local function wrapFastFunctionInSafeCall(fn)
     end)
 end
 
+_G.pcall = wrapFastFunctionInSafeCall(_G.pcall)
 _G.getfenv = wrapFastFunctionInSafeCall(_G.getfenv)
 _G.debug.getinfo = wrapFastFunctionInSafeCall(_G.debug.getinfo)
 _G.debug.getlocal = wrapFastFunctionInSafeCall(_G.debug.getlocal)
