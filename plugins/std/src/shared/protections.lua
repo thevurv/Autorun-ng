@@ -2,7 +2,12 @@
 
 local function wrapFastFunctionInSafeCall(fn)
     return Autorun.copyFastFunction(fn, function(...)
-        return Autorun.safeCall(fn, ...)
+        -- This is an awful hack, but TCO (tail-call optimization) causes issues with function authorization,
+        -- and basically moves all of our Autorun code to the actual Lua code which called a protected function,
+        -- and it will fail authorization checks and bug out. This forces a call frame to be generated each time,
+        -- which passes through our authorization checks correctly.
+        local results = { Autorun.safeCall(fn, ...) }
+        return unpack(results)
     end)
 end
 

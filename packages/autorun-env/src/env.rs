@@ -29,7 +29,7 @@ macro_rules! as_env_lua_function {
 			let realm = crate::global::get_realm(state);
 			let env = crate::global::get_realm_env(realm).ok_or_else(|| anyhow::anyhow!("env doesn't exist somehow"))?;
 
-			/*if !env.is_active(lua, state) {
+			if !env.is_active(lua, state) {
 				warn!(
 					"Attempted to call '{}' outside of authorized environment",
 					stringify!($func)
@@ -38,10 +38,10 @@ macro_rules! as_env_lua_function {
 				// todo: potentially add a silenterror type so we can return that and it'll return a nil.
 				// right now this would kind of leak the fact that it's an autorun function.
 				lua.push(state, c"");
-				lua.error(state);
-			} else {*/
-			$func(lua, state, env)
-			//}
+				lua.error(state, None, false);
+			} else {
+				$func(lua, state, env)
+			}
 		})
 	};
 }
