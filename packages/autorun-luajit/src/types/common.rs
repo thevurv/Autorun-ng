@@ -287,7 +287,7 @@ pub struct GCstr {
 	pub unused: u8,
 	pub hash: MSize,
 	pub len: MSize,
-	pub _unk: u32, // No idea what this is for, but it's there in GMod's LuaJIT build
+	pub _padding: u32, // The two bytes (reserved + unused) causes major misalignment, so we need padding here
 }
 
 impl GCstr {
@@ -301,12 +301,10 @@ impl GCstr {
 	}
 
 	pub fn as_str(&self) -> anyhow::Result<&str> {
-		dbg!(self.len);
-		dbg!(self.data());
-
 		if self.len == 0 || self.data().is_null() {
 			return Ok("");
 		}
+
 		let bytes = self.as_bytes();
 		let s = std::str::from_utf8(bytes).context("GCstr contains invalid UTF-8 data")?;
 		Ok(s)

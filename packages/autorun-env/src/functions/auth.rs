@@ -49,7 +49,6 @@ pub fn is_proto_authorized(_lua: &LuaApi, state: *mut LuaState, env: crate::EnvH
 
 	let proto_gc = get_gcobj::<GCProto>(lj_state, 1).context("Failed to get GCProto for given index.")?;
 	let proto_chunk_name = proto_gc.chunk_name_str().context("Failed to get chunk name from proto.")?;
-	dbg!(proto_chunk_name);
 	let proto_chunk_name_cstr =
 		std::ffi::CString::new(proto_chunk_name.clone()).context("Failed to convert chunk name to CString.")?;
 

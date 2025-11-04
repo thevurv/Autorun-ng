@@ -222,7 +222,7 @@ impl EnvHandle {
 	}
 
 	pub fn format_chunk_name(&self, base: &CStr) -> anyhow::Result<CString> {
-		let formatted = format!("{}{}", self.chunk_nonce, base.to_str()?);
+		let formatted = format!("{}-{}", self.chunk_nonce, base.to_str()?);
 		Ok(CString::new(formatted)?)
 	}
 
