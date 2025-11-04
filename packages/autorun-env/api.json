@@ -353,7 +353,7 @@
 					"parameters": [
 						{
 							"name": "funcOrLevel",
-							"type": "function | integer",
+							"type": "function | number",
 							"description": "The function to check or the stack level"
 						}
 					],
