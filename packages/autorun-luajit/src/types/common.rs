@@ -380,14 +380,14 @@ pub struct GCProto {
 
 impl GCProto {
 	pub fn chunk_name_str(&self) -> anyhow::Result<&str> {
-		let gcstr = unsafe {
+		let chunk_name = unsafe {
 			self.chunkname
 				.as_ptr::<GCstr>()
 				.as_ref()
 				.context("Failed to dereference chunk name GCstr")?
 		};
 
-		gcstr.as_str()
+		chunk_name.as_str()
 	}
 }
 
