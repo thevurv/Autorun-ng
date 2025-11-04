@@ -347,6 +347,42 @@
 					]
 				},
 				{
+					"name": "isFunctionAuthorized",
+					"description": "Checks if a given function or stack level is authorized by the Autorun environment.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "funcOrLevel",
+							"type": "function | integer",
+							"description": "The function to check or the stack level"
+						}
+					],
+					"returns": [
+						{
+							"type": "boolean",
+							"description": "True if the function/level is authorized, false otherwise"
+						}
+					]
+				},
+				{
+					"name": "isProtoAuthorized",
+					"description": "Checks if a given prototype is authorized by the Autorun environment. This can be used to verify if protos from VM events are from Autorun or not.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "proto",
+							"type": "proto",
+							"description": "The prototype to check"
+						}
+					],
+					"returns": [
+						{
+							"type": "boolean",
+							"description": "True if the prototype is authorized, false otherwise"
+						}
+					]
+				},
+				{
 					"name": "load",
 					"description": "Compiles a Lua string into a callable function without executing it. Similar to Lua's loadstring/load function. Use this to dynamically compile code at runtime. NOTE: The environment inside defaults to the global environment, NOT Autorun's environment.",
 					"realm": "shared",
