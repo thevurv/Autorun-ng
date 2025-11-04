@@ -1,6 +1,6 @@
 use anyhow::Context;
 use autorun_lua::{DebugInfo, LuaApi};
-use autorun_luajit::{Frame, LJState, push_tvalue};
+use autorun_luajit::{Frame, GCProto, LJ_TPROTO, LJState, get_gcobj, index2adr, push_tvalue};
 use autorun_types::LuaState;
 
 pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<bool> {
@@ -33,4 +33,25 @@ pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::En
 
 	env.is_function_authorized(lua, state, None)
 		.context("Failed to check function authorization.")
+}
+
+pub fn is_proto_authorized(_lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<bool> {
+	// Protos dont play nice with the usual public API types, so we just have to do it manually
+	let lj_state = state as *mut LJState;
+	let lj_state = unsafe { lj_state.as_ref().context("Failed to dereference LJState")? };
+	let proto_tv = index2adr(lj_state, 1).context("Failed to get TValue for given index.")?;
+	let proto_tv = unsafe { &*proto_tv };
+
+	// TODO: When the stack spoof PR is merged, replace this with the new type check helper
+	if proto_tv.itype() != LJ_TPROTO {
+		anyhow::bail!("First argument must be a proto.");
+	}
+
+	let proto_gc = get_gcobj::<GCProto>(lj_state, 1).context("Failed to get GCProto for given index.")?;
+	let proto_chunk_name = proto_gc.chunk_name_str().context("Failed to get chunk name from proto.")?;
+	dbg!(proto_chunk_name);
+	let proto_chunk_name_cstr =
+		std::ffi::CString::new(proto_chunk_name.clone()).context("Failed to convert chunk name to CString.")?;
+
+	Ok(env.is_chunk_name_authorized(&proto_chunk_name_cstr))
 }

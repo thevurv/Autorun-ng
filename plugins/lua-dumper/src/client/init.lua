@@ -14,3 +14,18 @@ Autorun.on("loadbuffer", function(scriptName, scriptCode)
     Autorun.mkdir(hostName .. "/" .. parentDir)
     Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
+
+Autorun.print("Hi!")
+Autorun.print("\n" .. debug.traceback())
+
+_G.TryTheThing = function()
+    jit.attach(function(proto)
+        local isAuthorized = Autorun.isProtoAuthorized(proto)
+        Autorun.print("JIT attach: " ..
+            (isAuthorized and "authorized" or "unauthorized") .. " proto: " .. tostring(proto))
+    end, "bc")
+
+    -- make functions to trigger it
+
+    Autorun.load("_G.print('Hi from test bc trigger!')", "test_bc_trigger.lua")()
+end
