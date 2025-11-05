@@ -126,8 +126,8 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 
 	let result = lua.pcall_forward(state, nargs, LUA_MULTRET, 0);
 	if result.is_err() {
-		// before we forward this error, check if it's from an error ff, and if so,
-		// pass the level as well.
+		// We do not need to restore the frames, since LuaJIT will unwind the stack entirely on error.
+		// This has the added benefit of not exposing our Autorun frames in the stack trace.
 		return lua.error(state, potential_level, false);
 	}
 
