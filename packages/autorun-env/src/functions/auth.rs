@@ -2,7 +2,7 @@ pub mod hooks;
 
 use anyhow::Context;
 use autorun_lua::{DebugInfo, LUA_MULTRET, LuaApi, LuaTypeId, RawLuaReturn};
-use autorun_luajit::{Frame, FrameType, GCfunc, LJState, get_gcobj, push_frame_func, push_tvalue};
+use autorun_luajit::{Frame, FrameType, GCProto, GCfunc, LJState, get_gcobj, index2adr, push_frame_func, push_tvalue};
 use autorun_types::LuaState;
 
 pub const ERROR_FFI_ID: u8 = 19;
@@ -154,8 +154,7 @@ pub fn is_proto_authorized(_lua: &LuaApi, state: *mut LuaState, env: crate::EnvH
 	let proto_tv = index2adr(lj_state, 1).context("Failed to get TValue for given index.")?;
 	let proto_tv = unsafe { &*proto_tv };
 
-	// TODO: When the stack spoof PR is merged, replace this with the new type check helper
-	if proto_tv.itype() != LJ_TPROTO {
+	if !proto_tv.is_proto() {
 		anyhow::bail!("First argument must be a proto.");
 	}
 

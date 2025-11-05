@@ -4,13 +4,13 @@ local hostName = string.match(_G.GetHostName(), "^([%w_%-][%w _%-']*)$") or "unk
 Autorun.print(Autorun.color("green") .. "Started!" .. Autorun.color("reset"))
 
 Autorun.on("loadbuffer", function(scriptName, scriptCode)
-    if string.sub(scriptName, 1, 1) == "@" then
-        scriptName = string.sub(scriptName, 2)
-    end
+	if string.sub(scriptName, 1, 1) == "@" then
+		scriptName = string.sub(scriptName, 2)
+	end
 
-    -- A little bit of extra sanitizing.
-    local parentDir = string.match(scriptName, "^(.*)/") or "."
+	-- A little bit of extra sanitizing.
+	local parentDir = string.match(scriptName, "^(.*)/") or "."
 
-    Autorun.mkdir(hostName .. "/" .. parentDir)
-    Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
+	Autorun.mkdir(hostName .. "/" .. parentDir)
+	Autorun.writeAsync(hostName .. "/" .. scriptName, scriptCode)
 end)
