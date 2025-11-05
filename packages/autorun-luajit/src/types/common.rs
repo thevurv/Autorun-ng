@@ -1,5 +1,6 @@
 // Subset of lj_obj.h
 
+use anyhow::Context;
 use std::ffi::{c_int, c_void};
 
 // IMPORTANT: GMod's LUA_IDSIZE was randomly changed to 128 instead of 60 like in vanilla LuaJIT
@@ -27,7 +28,7 @@ pub trait IntoLJType {
 	const LJ_TYPE: u32;
 }
 
-pub type MSize = u64;
+pub type MSize = u32;
 pub type GCSize = u64;
 
 #[repr(C)]
@@ -276,15 +277,38 @@ pub struct GCState {
 	pub pause: MSize,
 }
 
-#[repr(C)]
+/// NOTE: Incompatibility with LuaJIT 2.1 here.
+/// 2.1 has the 'sid' field, while GMod's 2.1.0-beta3 does not.
+/// 2.1's hash field is a uint32_t, while GMod's is a MSize.
+#[repr(C, packed)]
 pub struct GCstr {
 	pub header: GCHeader,
-	pub udtype: u8,
+	pub reserved: u8,
 	pub unused: u8,
-	pub env: GCRef,
+	pub hash: MSize,
 	pub len: MSize,
-	pub metatable: GCRef,
-	pub align1: u32,
+	pub _padding: u32, // The two bytes (reserved + unused) causes major misalignment, so we need padding here
+}
+
+impl GCstr {
+	fn data(&self) -> *const u8 {
+		// payload is stored immediately after the GCstr struct
+		unsafe { (self as *const GCstr).add(1) as *const u8 }
+	}
+
+	fn as_bytes(&self) -> &[u8] {
+		unsafe { std::slice::from_raw_parts(self.data(), self.len as usize) }
+	}
+
+	pub fn as_str(&self) -> anyhow::Result<&str> {
+		if self.len == 0 || self.data().is_null() {
+			return Ok("");
+		}
+
+		let bytes = self.as_bytes();
+		let s = std::str::from_utf8(bytes).context("GCstr contains invalid UTF-8 data")?;
+		Ok(s)
+	}
 }
 
 impl IntoLJType for GCstr {
@@ -326,6 +350,50 @@ impl IntoLJType for GCUpval {
 }
 
 pub type BCIns = u32;
+
+pub type BCLine = u32;
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct GCProto {
+	header: GCHeader,
+	pub numparams: u8,
+	pub framesize: u8,
+	pub sizebc: MSize,
+	pub unused: u32,
+	pub gclist: GCRef,
+	pub k: MRef,
+	pub uv: MRef,
+	pub sizekgc: MSize,
+	pub sizekn: MSize,
+	pub sizept: MSize,
+	pub sizeuv: u8,
+	pub flags: u8,
+	pub trace: u16,
+	pub chunkname: GCRef,
+	pub firstline: BCLine,
+	pub numline: BCLine,
+	pub lineinfo: MRef,
+	pub uvinfo: MRef,
+	pub varinfo: MRef,
+}
+
+impl GCProto {
+	pub fn chunk_name_str(&self) -> anyhow::Result<&str> {
+		let chunk_name = unsafe {
+			self.chunkname
+				.as_ptr::<GCstr>()
+				.as_ref()
+				.context("Failed to dereference chunk name GCstr")?
+		};
+
+		chunk_name.as_str()
+	}
+}
+
+impl IntoLJType for GCProto {
+	const LJ_TYPE: u32 = LJ_TPROTO;
+}
 
 // Metamethod enum
 #[repr(u8)]

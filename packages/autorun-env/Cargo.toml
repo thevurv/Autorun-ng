@@ -11,6 +11,7 @@ libloading = { workspace = true }
 anyhow = { workspace = true }
 retour = { workspace = true }
 cap-std = { workspace = true }
+rand = "0.8.5"
 
 autorun-core = { path = "../autorun-core" }
 autorun-types = { path = "../autorun-types" }
