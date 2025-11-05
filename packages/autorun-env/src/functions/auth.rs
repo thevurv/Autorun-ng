@@ -47,14 +47,7 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		anyhow::bail!("First argument must be a function to call.");
 	}
 
-	let is_error_fn = unsafe {
-		let lj_state = state as *mut LJState;
-		let lj_state = lj_state.as_ref().context("Failed to dereference LJState")?;
-		let gcfunc = get_gcobj::<GCfunc>(lj_state, 1)?;
-
-		gcfunc.is_fast_function() && gcfunc.header().ffid == ERROR_FFI_ID
-	};
-
+	let is_error_fn = is_error_fn(state, 1)?;
 	let nargs = lua.get_top(state) - 1; // exclude the function itself
 
 	let frames = Frame::walk_stack(state as *mut LJState);
@@ -145,6 +138,18 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 
 	let nresults = lua.get_top(state); // number of results on the stack
 	Ok(RawLuaReturn(nresults))
+}
+
+fn is_error_fn(state: *mut LuaState, idx: i32) -> anyhow::Result<bool> {
+	let is_error_fn = unsafe {
+		let lj_state = state as *mut LJState;
+		let lj_state = lj_state.as_ref().context("Failed to dereference LJState")?;
+		let gcfunc = get_gcobj::<GCfunc>(lj_state, idx)?;
+
+		gcfunc.is_fast_function() && gcfunc.header().ffid == ERROR_FFI_ID
+	};
+
+	Ok(is_error_fn)
 }
 
 pub fn is_proto_authorized(_lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<bool> {
