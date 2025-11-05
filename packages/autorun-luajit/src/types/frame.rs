@@ -37,26 +37,23 @@ impl std::fmt::Display for FrameType {
 /// This struct helps manage and interpret these frames.
 pub struct Frame {
 	pub tvalue: *mut TValue,
-	pub size: u32,
 	payload_copy: TValue,
 }
 
 impl Frame {
-	pub fn new(tvalue: *mut TValue, size: u32) -> Self {
+	pub fn new(tvalue: *mut TValue) -> Self {
 		Self {
 			tvalue,
-			size,
 			payload_copy: unsafe { *tvalue.offset(-1) },
 		}
 	}
 
 	pub fn from_debug_ci(state: &mut LJState, i_ci: i32) -> Self {
 		let offset = (i_ci as u32) & 0xffff;
-		let size = (i_ci as u32) >> 16;
 		let tvstack = state.stack.as_ptr::<TValue>();
 		let frametv = unsafe { tvstack.add(offset as usize) };
 
-		Frame::new(frametv, size)
+		frametv.into()
 	}
 
 	pub fn walk_stack(state: *mut LJState) -> Vec<Frame> {
@@ -67,7 +64,7 @@ impl Frame {
 		let mut frame = unsafe { (*state).base.offset(-1) };
 
 		while frame > start {
-			let current_frame = Frame::new(frame, 0); // size is not relevant here
+			let current_frame: Frame = frame.into();
 			frames.push(current_frame);
 
 			if current_frame.is_lua_frame() {
@@ -95,11 +92,11 @@ impl Frame {
 	}
 
 	pub fn is_lua_frame(&self) -> bool {
-		matches!(self.get_type(), FrameType::Lua)
+		self.get_type() == FrameType::Lua
 	}
 
 	pub fn is_c_frame(&self) -> bool {
-		matches!(self.get_type(), FrameType::C)
+		self.get_type() == FrameType::C
 	}
 
 	pub fn get_gc_func(&self) -> anyhow::Result<&mut GCfunc> {
@@ -146,7 +143,7 @@ impl Frame {
 		let bc_a = bc_ins.a();
 		let offset = (1 + LJ_FR2 + (bc_a as u32)) as isize;
 
-		Frame::new(unsafe { self.tvalue.offset(-offset) }, 0) // size is not relevant here
+		unsafe { self.tvalue.offset(-offset) }.into()
 	}
 
 	pub fn get_delta_size(&self) -> u64 {
@@ -155,6 +152,12 @@ impl Frame {
 
 	pub fn get_previous_delta_frame(&self) -> Self {
 		let size = self.get_delta_size() as usize;
-		Frame::new(unsafe { self.tvalue.byte_sub(size) }, size as u32)
+		unsafe { self.tvalue.byte_sub(size).into() }
+	}
+}
+
+impl Into<Frame> for *mut TValue {
+	fn into(self) -> Frame {
+		Frame::new(self)
 	}
 }
