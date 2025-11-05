@@ -160,6 +160,17 @@ pub struct GCfuncL {
 	pub uvptr: [GCRef; 1],
 }
 
+impl GCfuncL {
+	pub fn get_proto(&self) -> anyhow::Result<&GCProto> {
+		let pc_ref = self.header.pc;
+		// proto starts immediately before the pc pointer
+		let proto = unsafe { pc_ref.as_ptr::<GCProto>().offset(-1) };
+		let proto_ref = unsafe { proto.as_ref().context("Failed to dereference GCProto from GCfuncL")? };
+
+		Ok(proto_ref)
+	}
+}
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub union GCfunc {
