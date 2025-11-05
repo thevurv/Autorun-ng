@@ -107,9 +107,9 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 		.collect();
 
 	// mark each autorun frame as a dummy
-	for frame in autorun_frames.iter_mut() {
-		frame.mark_as_dummy_frame(state as *mut LJState);
-	}
+	autorun_frames
+		.iter_mut()
+		.for_each(|frame| frame.mark_as_dummy_frame(lj_state));
 
 	let potential_level = if is_error_fn && lua.type_id(state, 3) == LuaTypeId::Number {
 		// get the level from the stack
@@ -132,12 +132,9 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	}
 
 	// restore the frames
-	for frame in autorun_frames.iter_mut() {
-		frame.restore_from_dummy_frame();
-	}
+	autorun_frames.iter_mut().for_each(|frame| frame.restore_from_dummy_frame());
 
-	let nresults = lua.get_top(state); // number of results on the stack
-	Ok(RawLuaReturn(nresults))
+	Ok(RawLuaReturn(lua.get_top(state)))
 }
 
 fn is_error_fn(state: *mut LuaState, idx: i32) -> anyhow::Result<bool> {
