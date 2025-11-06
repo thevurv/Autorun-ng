@@ -1,5 +1,5 @@
 use anyhow::Context;
-use autorun_luajit::{Frame, LJState, TValue};
+use autorun_luajit::{Frame, LJ_TFUNC, LJState, TValue};
 
 #[cfg(target_os = "windows")]
 pub const TARGET_MODULE: &str = "lua_shared.dll";
@@ -42,8 +42,8 @@ static LJ_DEBUG_FUNCNAME_HOOK: std::sync::OnceLock<retour::GenericDetour<LjDebug
 ///
 /// We also cannot set a flag or anything because we forward errors which longjmps back to LuaJIT code, which means we can not control the ending state
 extern "C" fn lj_debug_funcname_hook(state: *mut LJState, frame: *mut TValue, name: *const *const u8) -> *const u8 {
-	let first_ret = unsafe { LJ_DEBUG_FUNCNAME_HOOK.get().unwrap().call(state, frame, name) };
-	if first_ret != std::ptr::null() {
+	let first_ret: *const u8 = unsafe { LJ_DEBUG_FUNCNAME_HOOK.get().unwrap().call(state, frame, name) };
+	if !first_ret.is_null() {
 		// Never attempt to stitch if we already have a valid name.
 		return first_ret;
 	}

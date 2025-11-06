@@ -128,7 +128,7 @@ pub fn safe_call(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> a
 	if result.is_err() {
 		// We do not need to restore the frames, since LuaJIT will unwind the stack entirely on error.
 		// This has the added benefit of not exposing our Autorun frames in the stack trace.
-		return lua.error(state, potential_level, false);
+		return lua.error(state, potential_level.or(Some(0)), false);
 	}
 
 	// restore the frames
