@@ -39,7 +39,7 @@ macro_rules! as_env_lua_function {
 				// todo: potentially add a silenterror type so we can return that and it'll return a nil.
 				// right now this would kind of leak the fact that it's an autorun function.
 				lua.push(state, c"");
-				lua.error(state);
+				lua.error(state, None, false);
 			} else {
 				$func(lua, state, env)
 			}
@@ -170,6 +170,12 @@ impl EnvHandle {
 		lua.push(state, as_env_lua_function!(crate::functions::is_proto_authorized));
 		lua.set_table(state, -3);
 
+		lua.push(state, c"safeCall");
+		lua.push(state, as_env_lua_function!(crate::functions::safe_call));
+		lua.set_table(state, -3);
+
+		crate::functions::hooks::install_auth_hooks().expect("Failed to install auth hooks");
+
 		lua.push(state, c"VERSION");
 		lua.push(state, env!("CARGO_PKG_VERSION").to_string());
 		lua.set_table(state, -3);
@@ -233,7 +239,7 @@ impl EnvHandle {
 		}
 	}
 
-	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
+	pub fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
 		self.push(lua, state);
 		lua.get_field(state, -1, c"Autorun".as_ptr());
 		lua.remove(state, -2);

@@ -383,6 +383,29 @@
 					]
 				},
 				{
+					"name": "safeCall",
+					"description": "Calls a function in a spoofed state, such that it cannot access any Autorun call frames. This is both useful for calling untrusted code safely. Currently, it only is meant to be used internally by Autorun, but exposed for advanced use cases.",
+					"realm": "shared",
+					"parameters": [
+						{
+							"name": "func",
+							"type": "function",
+							"description": "The function to call safely"
+						},
+						{
+							"name": "args",
+							"type": "...any",
+							"description": "Arguments to pass to the function"
+						}
+					],
+					"returns": [
+						{
+							"type": "...any",
+							"description": "Return values from the function"
+						}
+					]
+				},
+				{
 					"name": "load",
 					"description": "Compiles a Lua string into a callable function without executing it. Similar to Lua's loadstring/load function. Use this to dynamically compile code at runtime. NOTE: The environment inside defaults to the global environment, NOT Autorun's environment.",
 					"realm": "shared",

@@ -129,3 +129,4 @@ xpcall = _G.xpcall
 _VERSION = _G._VERSION
 getfenv = _G.getfenv
 setfenv = _G.setfenv
+unpack = _G.unpack

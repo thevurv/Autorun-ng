@@ -75,7 +75,7 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> any
 	})
 }
 
-pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
 	if lua.is_c_function(state, 1) == 0 {
 		anyhow::bail!("First argument must be a C function to copy.");
 	}
