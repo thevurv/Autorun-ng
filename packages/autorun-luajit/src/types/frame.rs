@@ -4,6 +4,8 @@ use crate::{BCIns, GCRef, GCfunc, LJ_FR2, LJState, TValue};
 pub const FRAME_TYPE: u8 = 3;
 pub const FRAME_P: u8 = 4;
 pub const FRAME_TYPEP: u8 = FRAME_TYPE | FRAME_P;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FrameType {
 	Lua = 0,
 	C = 1,
@@ -12,6 +14,22 @@ pub enum FrameType {
 	Cpcall = 5,
 	FfPcall = 6,
 	FfPcallWithHook = 7,
+}
+
+impl std::fmt::Display for FrameType {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		let type_str = match self {
+			FrameType::Lua => "Lua",
+			FrameType::C => "C",
+			FrameType::Continuation => "Continuation",
+			FrameType::LuaVararg => "LuaVararg",
+			FrameType::Cpcall => "Cpcall",
+			FrameType::FfPcall => "FfPcall",
+			FrameType::FfPcallWithHook => "FfPcallWithHook",
+		};
+
+		write!(f, "{}", type_str)
+	}
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -84,7 +102,7 @@ impl Frame {
 		matches!(self.get_type(), FrameType::C)
 	}
 
-	pub fn get_gc_func(&mut self) -> anyhow::Result<&mut GCfunc> {
+	pub fn get_gc_func(&self) -> anyhow::Result<&mut GCfunc> {
 		unsafe {
 			let func_tv = self.tvalue.offset(-1);
 			let gcfunc = (*func_tv).as_mut::<GCfunc>()?;

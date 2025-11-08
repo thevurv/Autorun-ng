@@ -83,7 +83,9 @@ pub struct GCRef {
 
 impl GCRef {
 	pub fn from_ptr<T>(ptr: *mut T) -> Self {
-		Self { gcptr64: ptr as u64 }
+		Self {
+			gcptr64: (ptr as u64) & LJ_GCVMASK,
+		}
 	}
 
 	// equivalent to the gcref macro in LuaJIT
@@ -127,6 +129,14 @@ impl Debug for TValue {
 	}
 }
 
+macro_rules! impl_tvalue_type_check {
+	($function_name:ident, $lj_type_const:expr) => {
+		pub fn $function_name(&self) -> bool {
+			self.itype() == $lj_type_const
+		}
+	};
+}
+
 impl TValue {
 	pub fn as_ptr<T: IntoLJType>(&self) -> anyhow::Result<*mut T> {
 		if self.itype() != T::LJ_TYPE {
@@ -147,6 +157,21 @@ impl TValue {
 	pub fn itype(&self) -> u32 {
 		unsafe { ((self.it64 >> 47) & 0xFFFFFFFF) as u32 }
 	}
+
+	impl_tvalue_type_check!(is_nil, LJ_TNIL);
+	impl_tvalue_type_check!(is_false, LJ_TFALSE);
+	impl_tvalue_type_check!(is_true, LJ_TTRUE);
+	impl_tvalue_type_check!(is_lightud, LJ_TLIGHTUD);
+	impl_tvalue_type_check!(is_str, LJ_TSTR);
+	impl_tvalue_type_check!(is_upval, LJ_TUPVAL);
+	impl_tvalue_type_check!(is_thread, LJ_TTHREAD);
+	impl_tvalue_type_check!(is_proto, LJ_TPROTO);
+	impl_tvalue_type_check!(is_func, LJ_TFUNC);
+	impl_tvalue_type_check!(is_trace, LJ_TTRACE);
+	impl_tvalue_type_check!(is_cdata, LJ_TCDATA);
+	impl_tvalue_type_check!(is_tab, LJ_TTAB);
+	impl_tvalue_type_check!(is_udata, LJ_TUDATA);
+	impl_tvalue_type_check!(is_numx, LJ_TNUMX);
 }
 
 #[repr(C, packed)]
