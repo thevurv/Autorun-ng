@@ -17,11 +17,9 @@ fn lua_adder(lua: &LuaApi, state: *mut LuaState) -> Result<f64, Box<dyn std::err
 pub extern "C-unwind" fn gmod13_open(state: *mut LuaState) -> std::ffi::c_int {
 	let lua = autorun_lua::get_api().expect("Failed to get lua api");
 
-	lua.push_globals(state); // Push _G
-
-	lua.push(state, "adder");
-	lua.push(state, as_lua_function!(lua_adder));
-	lua.set_table(state, -3); // _G["adder"] = lua_adder
+	// _G.adder = lua_adder
+	let globals = lua.globals(state);
+	lua.set(state, &globals, "adder", as_lua_function!(lua_adder));
 
 	0
 }

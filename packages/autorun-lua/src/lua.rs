@@ -136,7 +136,7 @@ define_lua_api! {
 	#[name = "lua_pcall"]
 	fn _pcall(state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> c_int;
 	#[name = "lua_createtable"]
-	pub fn create_table(state: *mut LuaState, narr: c_int, nrec: c_int);
+	pub fn _create_table(state: *mut LuaState, narr: c_int, nrec: c_int);
 	#[name = "lua_equal"]
 	fn _equal(state: *mut LuaState, index1: c_int, index2: c_int) -> c_int;
 	#[name = "lua_error"]

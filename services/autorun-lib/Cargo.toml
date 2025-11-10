@@ -13,18 +13,18 @@ anyhow = { workspace = true }
 libloading = { workspace = true }
 retour = { workspace = true }
 
-autorun-ipc = { path = "../../packages/autorun-ipc" }
-autorun-types = { path = "../../packages/autorun-types" }
-autorun-log = { path = "../../packages/autorun-log" }
-autorun-lua = { path = "../../packages/autorun-lua" }
-autorun-interfaces = { path = "../../packages/autorun-interfaces" }
-autorun-scan = { path = "../../packages/autorun-scan" }
-autorun-core = { path = "../../packages/autorun-core" }
-autorun-env = { path = "../../packages/autorun-env" }
-autorun-fs = { path = "../../packages/autorun-fs" }
+autorun-ipc = { workspace = true }
+autorun-types = { workspace = true }
+autorun-log = { workspace = true }
+autorun-lua = { workspace = true }
+autorun-interfaces = { workspace = true }
+autorun-scan = { workspace = true }
+autorun-core = { workspace = true }
+autorun-env = { workspace = true }
+autorun-fs = { workspace = true }
 
 # Exported plugin api
-autorun-plugin-api = { path = "../../packages/autorun-plugin-api" }
+autorun-plugin-api = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = ["Win32_System_Console"] }

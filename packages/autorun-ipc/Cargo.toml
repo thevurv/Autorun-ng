@@ -9,5 +9,4 @@ description.workspace = true
 anyhow = { workspace = true }
 interprocess = { workspace = true }
 nanoserde = { workspace = true }
-
-autorun-types = { path = "../autorun-types" }
+autorun-types = { workspace = true }

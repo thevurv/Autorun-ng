@@ -3,28 +3,23 @@ pub mod global;
 use anyhow::Context;
 use autorun_core::plugins::Plugin;
 use autorun_log::*;
-use autorun_lua::{LuaApi, RawHandle};
+use autorun_lua::{Globals, LuaApi, LuaTable};
 use autorun_luajit::{GCRef, LJState, index2adr};
 use autorun_types::{LuaState, Realm};
 use std::ffi::{CStr, CString, c_int};
+
+use crate::functions;
 
 #[derive(Debug, Clone, Copy)]
 pub struct EnvHandle {
 	realm: Realm,
 	env_gcr: GCRef,
 	chunk_nonce: u64,
-	handle: RawHandle,
+	env: LuaTable,
+	autorun: LuaTable,
 }
 
-impl core::ops::Deref for EnvHandle {
-	type Target = RawHandle;
-
-	fn deref(&self) -> &Self::Target {
-		&self.handle
-	}
-}
-
-macro_rules! as_env_lua_function {
+macro_rules! wrap {
 	($func:expr) => {
 		autorun_lua::as_lua_function!(|lua: &LuaApi, state: *mut LuaState| {
 			let realm = crate::global::get_realm(state);
@@ -48,6 +43,10 @@ macro_rules! as_env_lua_function {
 }
 
 impl EnvHandle {
+	pub fn push(&self, lua: &LuaApi, state: *mut LuaState) {
+		self.env.push(lua, state);
+	}
+
 	pub fn realm(&self) -> Realm {
 		self.realm
 	}
@@ -86,93 +85,34 @@ impl EnvHandle {
 			return None;
 		}
 
-		self.push_autorun_table(lua, state);
-		lua.get_field(state, -1, c"PLUGIN".as_ptr());
+		let dir: *mut Plugin = lua.get(state, &self.autorun, "PLUGIN");
+		let dir = unsafe { dir.as_ref() }?;
 
-		let dir = lua.to_userdata(state, -1) as *mut Plugin;
-		if dir.is_null() {
-			lua.pop(state, 2);
-			return None;
-		}
-		lua.pop(state, 2);
-
-		unsafe { dir.as_ref() }
+		Some(dir)
 	}
 
-	fn create_autorun_table(lua: &LuaApi, state: *mut LuaState) {
-		lua.create_table(state, 0, 6);
+	fn create_autorun_table(lua: &LuaApi, state: *mut LuaState) -> LuaTable {
+		let t = lua.table(state);
+		lua.set(state, &t, "print", wrap!(functions::print));
+		lua.set(state, &t, "read", wrap!(functions::read));
+		lua.set(state, &t, "write", wrap!(functions::write));
+		lua.set(state, &t, "writeAsync", wrap!(functions::write_async));
+		lua.set(state, &t, "mkdir", wrap!(functions::mkdir));
+		lua.set(state, &t, "append", wrap!(functions::append));
+		lua.set(state, &t, "exists", wrap!(functions::exists));
+		lua.set(state, &t, "detour", wrap!(functions::detour));
+		lua.set(state, &t, "enableDetour", wrap!(functions::detour_enable));
+		lua.set(state, &t, "disableDetour", wrap!(functions::detour_disable));
+		lua.set(state, &t, "removeDetour", wrap!(functions::detour_remove));
+		lua.set(state, &t, "getOriginalFunction", wrap!(functions::detour_get_original));
+		lua.set(state, &t, "copyFastFunction", wrap!(functions::copy_fast_function));
+		lua.set(state, &t, "load", wrap!(functions::load));
+		lua.set(state, &t, "triggerRemote", wrap!(functions::trigger_remote));
+		lua.set(state, &t, "isFunctionAuthorized", wrap!(functions::is_function_authorized));
+		lua.set(state, &t, "isProtoAuthorized", wrap!(functions::is_proto_authorized));
+		lua.set(state, &t, "VERSION", env!("CARGO_PKG_VERSION"));
 
-		lua.push(state, c"print");
-		lua.push(state, as_env_lua_function!(crate::functions::print));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"read");
-		lua.push(state, as_env_lua_function!(crate::functions::read));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"write");
-		lua.push(state, as_env_lua_function!(crate::functions::write));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"writeAsync");
-		lua.push(state, as_env_lua_function!(crate::functions::write_async));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"mkdir");
-		lua.push(state, as_env_lua_function!(crate::functions::mkdir));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"append");
-		lua.push(state, as_env_lua_function!(crate::functions::append));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"exists");
-		lua.push(state, as_env_lua_function!(crate::functions::exists));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"detour");
-		lua.push(state, as_env_lua_function!(crate::functions::detour));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"enableDetour");
-		lua.push(state, as_env_lua_function!(crate::functions::detour_enable));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"disableDetour");
-		lua.push(state, as_env_lua_function!(crate::functions::detour_disable));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"removeDetour");
-		lua.push(state, as_env_lua_function!(crate::functions::detour_remove));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"getOriginalFunction");
-		lua.push(state, as_env_lua_function!(crate::functions::detour_get_original));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"copyFastFunction");
-		lua.push(state, as_env_lua_function!(crate::functions::copy_fast_function));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"load");
-		lua.push(state, as_env_lua_function!(crate::functions::load));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"triggerRemote");
-		lua.push(state, as_env_lua_function!(crate::functions::trigger_remote));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"isFunctionAuthorized");
-		lua.push(state, as_env_lua_function!(crate::functions::is_function_authorized));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"isProtoAuthorized");
-		lua.push(state, as_env_lua_function!(crate::functions::is_proto_authorized));
-		lua.set_table(state, -3);
-
-		lua.push(state, c"VERSION");
-		lua.push(state, env!("CARGO_PKG_VERSION").to_string());
-		lua.set_table(state, -3);
+		return t;
 	}
 
 	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, name: &CStr, src: &[u8]) -> anyhow::Result<()> {
@@ -194,16 +134,14 @@ impl EnvHandle {
 	}
 
 	pub fn create(lua: &LuaApi, state: *mut LuaState, realm: Realm) -> anyhow::Result<Self> {
-		// Create autorun environment
-		lua.create_table(state, 0, 2);
+		let autorun = Self::create_autorun_table(lua, state);
 
-		lua.push(state, "Autorun");
-		Self::create_autorun_table(lua, state);
-		lua.set_table(state, -3);
+		let env = lua.table(state);
+		lua.set(state, &env, "Autorun", &autorun);
+		lua.set(state, &env, "_G", Globals);
 
-		lua.push(state, "_G");
-		lua.push_globals(state);
-		lua.set_table(state, -3);
+		// todo: refactor luajit code to not depend on the stack
+		env.push(lua, state);
 
 		// Can unwrap since we are sure there is something on the stack
 		let lj_state = state as *mut LJState;
@@ -211,13 +149,16 @@ impl EnvHandle {
 		let env_tvalue = index2adr(lj_state, -1).context("Failed to get TValue for environment")?;
 		let env_gcr = unsafe { (*env_tvalue).gcr };
 
-		let handle = RawHandle::from_stack(lua, state).unwrap();
+		// todo: refactor luajit code to not depend on the stack
+		lua.pop(state, 1);
+
 		let chunk_nonce = rand::random::<u64>();
 		Ok(Self {
 			realm,
 			env_gcr,
 			chunk_nonce,
-			handle,
+			env,
+			autorun,
 		})
 	}
 
@@ -233,20 +174,8 @@ impl EnvHandle {
 		}
 	}
 
-	fn push_autorun_table(&self, lua: &LuaApi, state: *mut LuaState) {
-		self.push(lua, state);
-		lua.get_field(state, -1, c"Autorun".as_ptr());
-		lua.remove(state, -2);
-	}
-
 	pub fn set_plugin(&self, lua: &LuaApi, state: *mut LuaState, plugin: &Plugin) -> anyhow::Result<()> {
-		self.push_autorun_table(lua, state);
-
-		lua.push(state, c"PLUGIN");
-		lua.new_userdata(state, plugin.try_clone()?);
-		lua.set_table(state, -3);
-
-		lua.pop(state, 1);
+		lua.set(state, &self.autorun, "PLUGIN", plugin.try_clone()?);
 		Ok(())
 	}
 
@@ -254,7 +183,7 @@ impl EnvHandle {
 		lua.push(state, event_name);
 		lua.insert(state, -(n_args + 1));
 
-		self.push_autorun_table(lua, state);
+		self.autorun.push(lua, state);
 		lua.get_field(state, -1, c"trigger".as_ptr());
 		lua.remove(state, -2); // remove Autorun table
 
@@ -279,7 +208,7 @@ impl EnvHandle {
 		lua.push(state, event_name);
 		lua.insert(state, -(n_args + 1));
 
-		self.push_autorun_table(lua, state);
+		self.autorun.push(lua, state);
 		lua.get_field(state, -1, c"runRemoteCallbacks".as_ptr());
 		lua.remove(state, -2); // remove Autorun table
 

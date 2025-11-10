@@ -12,11 +12,11 @@ egui_extras = { version = "0.28.0", default-features = false, features = ["synte
 shh = { version = "1.0.1" }
 image = { version = "0.24", default-features = false, features = ["png"] }
 
-autorun-ipc = { path = "../../packages/autorun-ipc" }
-autorun-steam = { path = "../../packages/autorun-steam" }
-autorun-types = { path = "../../packages/autorun-types" }
-autorun-log = { path = "../../packages/autorun-log" }
-autorun-core = { path = "../../packages/autorun-core" }
+autorun-ipc = { workspace = true }
+autorun-steam = { workspace = true }
+autorun-types = { workspace = true }
+autorun-log = { workspace = true }
+autorun-core = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 eframe = { version = "0.28.0" }
