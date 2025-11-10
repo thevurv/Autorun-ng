@@ -2,12 +2,15 @@
 
 use anyhow::Context;
 use std::ffi::{c_int, c_void};
+use std::fmt::Debug;
 
 // IMPORTANT: GMod's LUA_IDSIZE was randomly changed to 128 instead of 60 like in vanilla LuaJIT
 #[cfg(feature = "gmod")]
 pub const LUA_IDSIZE: i32 = 128;
 #[cfg(not(feature = "gmod"))]
 pub const LUA_IDSIZE: i32 = 60;
+
+pub const LJ_FR2: u32 = 1;
 
 pub const LJ_TNIL: u32 = !0u32;
 pub const LJ_TFALSE: u32 = !1u32;
@@ -79,6 +82,12 @@ pub struct GCRef {
 }
 
 impl GCRef {
+	pub fn from_ptr<T>(ptr: *mut T) -> Self {
+		Self {
+			gcptr64: (ptr as u64) & LJ_GCVMASK,
+		}
+	}
+
 	// equivalent to the gcref macro in LuaJIT
 	pub fn as_ptr<T>(&self) -> *mut T {
 		self.gcptr64 as *mut T
@@ -112,6 +121,22 @@ pub union TValue {
 	pub ftsz: u64,
 }
 
+impl Debug for TValue {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "TValue {{ itype: {}, gcr: {:x} }}", self.itype(), unsafe {
+			self.gcr.gcptr64
+		})
+	}
+}
+
+macro_rules! impl_tvalue_type_check {
+	($function_name:ident, $lj_type_const:expr) => {
+		pub fn $function_name(&self) -> bool {
+			self.itype() == $lj_type_const
+		}
+	};
+}
+
 impl TValue {
 	pub fn as_ptr<T: IntoLJType>(&self) -> anyhow::Result<*mut T> {
 		if self.itype() != T::LJ_TYPE {
@@ -132,6 +157,21 @@ impl TValue {
 	pub fn itype(&self) -> u32 {
 		unsafe { ((self.it64 >> 47) & 0xFFFFFFFF) as u32 }
 	}
+
+	impl_tvalue_type_check!(is_nil, LJ_TNIL);
+	impl_tvalue_type_check!(is_false, LJ_TFALSE);
+	impl_tvalue_type_check!(is_true, LJ_TTRUE);
+	impl_tvalue_type_check!(is_lightud, LJ_TLIGHTUD);
+	impl_tvalue_type_check!(is_str, LJ_TSTR);
+	impl_tvalue_type_check!(is_upval, LJ_TUPVAL);
+	impl_tvalue_type_check!(is_thread, LJ_TTHREAD);
+	impl_tvalue_type_check!(is_proto, LJ_TPROTO);
+	impl_tvalue_type_check!(is_func, LJ_TFUNC);
+	impl_tvalue_type_check!(is_trace, LJ_TTRACE);
+	impl_tvalue_type_check!(is_cdata, LJ_TCDATA);
+	impl_tvalue_type_check!(is_tab, LJ_TTAB);
+	impl_tvalue_type_check!(is_udata, LJ_TUDATA);
+	impl_tvalue_type_check!(is_numx, LJ_TNUMX);
 }
 
 #[repr(C, packed)]
@@ -158,6 +198,17 @@ pub struct GCfuncC {
 pub struct GCfuncL {
 	pub header: GCFuncHeader,
 	pub uvptr: [GCRef; 1],
+}
+
+impl GCfuncL {
+	pub fn get_proto(&self) -> anyhow::Result<&GCProto> {
+		let pc_ref = self.header.pc;
+		// proto starts immediately before the pc pointer
+		let proto = unsafe { pc_ref.as_ptr::<GCProto>().offset(-1) };
+		let proto_ref = unsafe { proto.as_ref().context("Failed to dereference GCProto from GCfuncL")? };
+
+		Ok(proto_ref)
+	}
 }
 
 #[repr(C)]
@@ -349,7 +400,15 @@ impl IntoLJType for GCUpval {
 	const LJ_TYPE: u32 = LJ_TUPVAL;
 }
 
-pub type BCIns = u32;
+#[derive(Debug, Clone, Copy)]
+pub struct BCIns(u32);
+
+impl BCIns {
+	pub fn a(&self) -> u8 {
+		//#define bc_a(i)		((BCReg)(((i)>>8)&0xff))
+		((self.0 >> 8) & 0xff) as u8
+	}
+}
 
 pub type BCLine = u32;
 
