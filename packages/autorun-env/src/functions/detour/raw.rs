@@ -1,6 +1,6 @@
 use autorun_jit::Function;
 use autorun_jit::{Arg, CallingConvention, Jump};
-use autorun_lua::{LuaApi, LuaFunction, LuaState};
+use autorun_lua::{LuaApi, LuaCFunction, LuaState};
 use std::ffi::c_int;
 
 const CALLBACK_REF_BITS: u32 = 24;
@@ -42,9 +42,10 @@ type HandlerType = extern "C-unwind" fn(
 	state: *mut LuaState,
 	metadata: i32,
 	lua: *const LuaApi,
-	original_function: *const LuaFunction,
+	original_function: *const LuaCFunction,
 ) -> c_int;
-type RetourHandlerType = extern "C-unwind" fn(state: *mut LuaState, detour: *const retour::GenericDetour<LuaFunction>) -> c_int;
+type RetourHandlerType =
+	extern "C-unwind" fn(state: *mut LuaState, detour: *const retour::GenericDetour<LuaCFunction>) -> c_int;
 
 const TRAMPOLINE_SIZE: usize = 64;
 
@@ -78,7 +79,7 @@ pub fn make_detour_trampoline(
 }
 
 pub fn make_retour_lua_trampoline(
-	detour_ptr: *const retour::GenericDetour<LuaFunction>,
+	detour_ptr: *const retour::GenericDetour<LuaCFunction>,
 	handler: RetourHandlerType,
 ) -> anyhow::Result<Function> {
 	let mut trampoline = Function::allocate(TRAMPOLINE_SIZE);

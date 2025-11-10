@@ -1,10 +1,10 @@
 use anyhow::anyhow;
 use autorun_jit::Function;
-use autorun_lua::{LuaApi, LuaFunction, LuaUserdata, RawHandle};
+use autorun_lua::{LuaApi, LuaCFunction, LuaUserdata, RawHandle};
 use autorun_types::LuaState;
 
 pub struct Detour {
-	pub detour: Box<retour::GenericDetour<LuaFunction>>,
+	pub detour: Box<retour::GenericDetour<LuaCFunction>>,
 	pub _detour_callback: RawHandle,
 	pub _detour_trampoline: Function,
 	pub _retour_trampoline: Function,
@@ -35,11 +35,11 @@ pub fn detour_disable(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle
 	Ok(())
 }
 
-pub fn detour_get_original(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<LuaFunction> {
+pub fn detour_get_original(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<LuaCFunction> {
 	let detour = lua.to::<*mut Detour>(state, 1);
 	let detour = unsafe { detour.as_mut() }.ok_or(anyhow!("First argument must be a detour userdata"))?;
 
-	Ok(unsafe { std::mem::transmute::<usize, LuaFunction>(*detour.original_function_ptr) })
+	Ok(unsafe { std::mem::transmute::<usize, LuaCFunction>(*detour.original_function_ptr) })
 }
 
 pub fn detour_remove(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<()> {

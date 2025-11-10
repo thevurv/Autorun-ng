@@ -6,7 +6,7 @@ use crate::functions::detour::handlers::{detour_handler, retour_handler};
 use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_trampoline};
 use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
-use autorun_lua::{LuaApi, LuaFunction, LuaTypeId, RawHandle, RawLuaReturn};
+use autorun_lua::{LuaApi, LuaCFunction, LuaTypeId, RawHandle, RawLuaReturn};
 use autorun_luajit::{GCfunc, LJState, get_gcobj, get_gcobj_mut};
 use autorun_types::LuaState;
 use retour::GenericDetour;
@@ -14,7 +14,7 @@ use std::ffi::c_int;
 pub use userdata::{detour_disable, detour_enable, detour_get_original, detour_remove};
 
 pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<Detour> {
-	if lua.is_c_function(state, 1) == 0 {
+	if !lua.raw.iscfunction(state, 1) {
 		anyhow::bail!("First argument must be a C function to detour.");
 	}
 
@@ -27,12 +27,12 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> any
 		anyhow::bail!("Cannot detour a fast-function. Use copyFastFunction instead.");
 	}
 
-	let target_function: LuaFunction = unsafe { std::mem::transmute(gcfunc.c.c) };
+	let target_function: LuaCFunction = unsafe { std::mem::transmute(gcfunc.c.c) };
 	if target_function as usize == 0 {
 		anyhow::bail!("Target function pointer is null.");
 	}
 
-	if lua.type_id(state, 2) != LuaTypeId::Function {
+	if lua.raw.typeid(state, 2) != LuaTypeId::Function {
 		anyhow::bail!("Second argument must be a function to use as detour.");
 	}
 
@@ -50,7 +50,7 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> any
 	let detour = unsafe {
 		Box::new(GenericDetour::new(
 			target_function,
-			std::mem::transmute::<*const u8, LuaFunction>(detour_trampoline.as_ptr()),
+			std::mem::transmute::<*const u8, LuaCFunction>(detour_trampoline.as_ptr()),
 		)?)
 	};
 
@@ -61,7 +61,7 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> any
 	}
 
 	// create retour trampoline
-	let retour_trampoline = make_retour_lua_trampoline(detour.as_ref() as *const GenericDetour<LuaFunction>, retour_handler)?;
+	let retour_trampoline = make_retour_lua_trampoline(detour.as_ref() as *const GenericDetour<LuaCFunction>, retour_handler)?;
 
 	// link the original function pointer
 	*original_function_ptr = retour_trampoline.as_ptr() as usize;
@@ -76,11 +76,11 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> any
 }
 
 pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
-	if lua.is_c_function(state, 1) == 0 {
+	if !lua.raw.iscfunction(state, 1) {
 		anyhow::bail!("First argument must be a C function to copy.");
 	}
 
-	if lua.type_id(state, 2) != LuaTypeId::Function {
+	if lua.raw.typeid(state, 2) != LuaTypeId::Function {
 		anyhow::bail!("Second argument must be a function to use.");
 	}
 
@@ -102,9 +102,9 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHa
 
 	// Push it as a closure to call
 	unsafe {
-		lua.push_closure(
+		lua.raw.pushcclosure(
 			state,
-			std::mem::transmute::<*const u8, LuaFunction>(trampoline.as_ptr()),
+			std::mem::transmute::<*const u8, LuaCFunction>(trampoline.as_ptr()),
 			original_upvalues as c_int,
 		);
 	}

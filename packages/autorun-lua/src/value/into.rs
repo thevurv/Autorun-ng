@@ -1,6 +1,6 @@
 use std::ffi::CStr;
 
-use crate::{LuaApi, LuaFunction, LuaState, LuaTypeId, LuaUserdata};
+use crate::{LuaApi, LuaCFunction, LuaState, LuaUserdata};
 
 pub trait IntoLua {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState);
@@ -8,13 +8,13 @@ pub trait IntoLua {
 
 impl IntoLua for f64 {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_number(state, self);
+		lua.raw.pushnumber(state, self);
 	}
 }
 
 impl IntoLua for &CStr {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_string(state, self.as_ptr());
+		lua.raw.pushstring(state, self.as_ptr());
 	}
 }
 
@@ -22,43 +22,43 @@ impl IntoLua for &CStr {
 
 impl IntoLua for bool {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_bool(state, self);
+		lua.raw.pushboolean(state, self);
 	}
 }
 
 impl IntoLua for i32 {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_integer(state, self);
+		lua.raw.pushinteger(state, self);
 	}
 }
 
 impl IntoLua for Vec<u8> {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_lstring(state, self.as_ptr() as *const i8, self.len());
+		lua.raw.pushlstring(state, self.as_ptr() as *const i8, self.len());
 	}
 }
 
 impl IntoLua for &[u8] {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_lstring(state, self.as_ptr() as *const i8, self.len());
+		lua.raw.pushlstring(state, self.as_ptr() as *const i8, self.len());
 	}
 }
 
 impl IntoLua for String {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_lstring(state, self.as_ptr() as *const i8, self.len());
+		lua.raw.pushlstring(state, self.as_ptr() as *const i8, self.len());
 	}
 }
 
-impl IntoLua for LuaFunction {
+impl IntoLua for LuaCFunction {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_function(state, self);
+		lua.raw.pushcfunction(state, self);
 	}
 }
 
 impl IntoLua for &std::borrow::Cow<'_, str> {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_lstring(state, self.as_ptr() as _, self.len());
+		lua.raw.pushlstring(state, self.as_ptr() as _, self.len());
 	}
 }
 
@@ -70,7 +70,7 @@ impl IntoLua for &std::path::PathBuf {
 
 impl IntoLua for &str {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push_lstring(state, self.as_ptr() as _, self.len());
+		lua.raw.pushlstring(state, self.as_ptr() as _, self.len());
 	}
 }
 
@@ -78,13 +78,16 @@ impl<T: IntoLua> IntoLua for Option<T> {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
 		match self {
 			Some(val) => val.into_lua(lua, state),
-			None => lua.push_nil(state),
+			None => lua.raw.pushnil(state),
 		}
 	}
 }
 
 impl<T: LuaUserdata> IntoLua for T {
 	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.new_userdata(state, self);
+		lua.raw.newuserdata(state, self);
 	}
 }
+
+// todo: implement IntoLua for () when we have specialization
+// currently it conflicts with LuaReturn

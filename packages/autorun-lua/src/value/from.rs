@@ -1,4 +1,4 @@
-use crate::{LuaApi, LuaFunction, LuaState, LuaTypeId, LuaUserdata};
+use crate::{LuaApi, LuaCFunction, LuaState, LuaTypeId, LuaUserdata};
 
 pub trait FromLua: Sized {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self;
@@ -6,26 +6,26 @@ pub trait FromLua: Sized {
 
 impl FromLua for f64 {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		lua.to_number(state, stack_idx)
+		lua.raw.tonumber(state, stack_idx)
 	}
 }
 
 impl FromLua for bool {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		lua.to_bool(state, stack_idx)
+		lua.raw.toboolean(state, stack_idx)
 	}
 }
 
 impl FromLua for i32 {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		lua.to_integer(state, stack_idx)
+		lua.raw.tointeger(state, stack_idx)
 	}
 }
 
 impl FromLua for &[u8] {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
 		let mut len = 0;
-		let str = lua.to_lstring(state, stack_idx, &mut len);
+		let str = lua.raw.tolstring(state, stack_idx, &mut len);
 		if str.is_null() {
 			&[]
 		} else {
@@ -42,15 +42,15 @@ impl FromLua for String {
 }
 
 // Some seemingly "C" functions are actually LuaJIT fast-functions and return NULL despite being valid C functions
-impl FromLua for Option<LuaFunction> {
+impl FromLua for Option<LuaCFunction> {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		lua.to_function(state, stack_idx)
+		lua.raw.tocfunction(state, stack_idx)
 	}
 }
 
 impl<T: FromLua> FromLua for Option<T> {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		match lua.type_id(state, stack_idx) {
+		match lua.raw.typeid(state, stack_idx) {
 			LuaTypeId::None | LuaTypeId::Nil => None,
 			_ => Some(T::from_lua(lua, state, stack_idx)),
 		}
@@ -66,6 +66,6 @@ impl FromLua for std::borrow::Cow<'_, str> {
 
 impl<T: LuaUserdata> FromLua for *mut T {
 	fn from_lua(lua: &LuaApi, state: *mut LuaState, stack_idx: i32) -> Self {
-		lua.to_userdata(state, stack_idx) as _
+		lua.raw.touserdata(state, stack_idx) as _
 	}
 }

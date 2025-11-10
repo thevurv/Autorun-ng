@@ -34,7 +34,7 @@ macro_rules! wrap {
 				// todo: potentially add a silenterror type so we can return that and it'll return a nil.
 				// right now this would kind of leak the fact that it's an autorun function.
 				lua.push(state, c"");
-				lua.error(state);
+				lua.raw.error(state);
 			} else {
 				$func(lua, state, env)
 			}
@@ -57,25 +57,25 @@ impl EnvHandle {
 		let lj_state = state as *mut LJState;
 		let lj_state = unsafe { lj_state.as_ref().context("Failed to dereference LJState")? };
 
-		lua.get_fenv(state, func_index);
+		lua.raw.getfenv(state, func_index);
 		let function_env_tvalue = index2adr(lj_state, -1).context("Failed to get TValue for function environment")?;
 		let function_env_gcr = unsafe { (*function_env_tvalue).gcr };
 
-		lua.pop(state, 1);
+		lua.raw.pop(state, 1);
 		Ok(function_env_gcr == self.env_gcr)
 	}
 
 	pub fn is_active(&self, lua: &LuaApi, state: *mut LuaState) -> bool {
-		if lua.get_info(state, 1, c"f").is_none() {
+		if lua.raw.getinfo(state, 1, c"f").is_none() {
 			// No function info available
 			return false;
 		}
 
-		lua.get_fenv(state, -1);
+		lua.raw.getfenv(state, -1);
 		self.push(lua, state);
 
-		let equal = lua.is_raw_equal(state, -1, -2);
-		lua.pop(state, 3);
+		let equal = lua.raw.rawequal(state, -1, -2);
+		lua.raw.pop(state, 3);
 
 		equal
 	}
@@ -117,12 +117,12 @@ impl EnvHandle {
 
 	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, name: &CStr, src: &[u8]) -> anyhow::Result<()> {
 		let name = self.format_chunk_name(name)?;
-		if let Err(why) = lua.load_buffer_x(state, src, &name, c"t") {
+		if let Err(why) = lua.loadbufferx(state, src, &name, c"t") {
 			anyhow::bail!("Failed to compile: {why}");
 		}
 
 		self.push(lua, state);
-		if lua.set_fenv(state, -2).is_err() {
+		if lua.setfenv(state, -2).is_err() {
 			anyhow::bail!("Failed to set environment");
 		}
 
@@ -150,7 +150,7 @@ impl EnvHandle {
 		let env_gcr = unsafe { (*env_tvalue).gcr };
 
 		// todo: refactor luajit code to not depend on the stack
-		lua.pop(state, 1);
+		lua.raw.pop(state, 1);
 
 		let chunk_nonce = rand::random::<u64>();
 		Ok(Self {
@@ -181,18 +181,18 @@ impl EnvHandle {
 
 	pub fn trigger(&self, lua: &LuaApi, state: *mut LuaState, event_name: &CStr, n_args: c_int) -> anyhow::Result<()> {
 		lua.push(state, event_name);
-		lua.insert(state, -(n_args + 1));
+		lua.raw.insert(state, -(n_args + 1));
 
 		self.autorun.push(lua, state);
-		lua.get_field(state, -1, c"trigger".as_ptr());
-		lua.remove(state, -2); // remove Autorun table
+		lua.raw.getfield(state, -1, c"trigger".as_ptr());
+		lua.raw.remove(state, -2); // remove Autorun table
 
-		if lua.type_id(state, -1) != autorun_lua::LuaTypeId::Function {
-			lua.pop(state, 1);
+		if lua.raw.typeid(state, -1) != autorun_lua::LuaTypeId::Function {
+			lua.raw.pop(state, 1);
 			anyhow::bail!("don't remove Autorun.trigger lil bro.");
 		}
 
-		lua.insert(state, -(n_args + 2));
+		lua.raw.insert(state, -(n_args + 2));
 		lua.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
 
 		Ok(())
@@ -206,18 +206,18 @@ impl EnvHandle {
 		n_args: c_int,
 	) -> anyhow::Result<()> {
 		lua.push(state, event_name);
-		lua.insert(state, -(n_args + 1));
+		lua.raw.insert(state, -(n_args + 1));
 
 		self.autorun.push(lua, state);
-		lua.get_field(state, -1, c"runRemoteCallbacks".as_ptr());
-		lua.remove(state, -2); // remove Autorun table
+		lua.raw.getfield(state, -1, c"runRemoteCallbacks".as_ptr());
+		lua.raw.remove(state, -2); // remove Autorun table
 
-		if lua.type_id(state, -1) != autorun_lua::LuaTypeId::Function {
-			lua.pop(state, 1);
+		if lua.raw.typeid(state, -1) != autorun_lua::LuaTypeId::Function {
+			lua.raw.pop(state, 1);
 			anyhow::bail!("don't remove Autorun.runRemoteCallbacks lil bro.");
 		}
 
-		lua.insert(state, -(n_args + 2));
+		lua.raw.insert(state, -(n_args + 2));
 		lua.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
 
 		Ok(())
