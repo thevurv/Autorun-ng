@@ -3,10 +3,12 @@ pub mod global;
 use anyhow::Context;
 use autorun_core::plugins::Plugin;
 use autorun_log::*;
-use autorun_lua::{Globals, LuaApi, LuaTable, RawHandle};
+use autorun_lua::{Globals, LuaApi, LuaTable};
 use autorun_luajit::{GCRef, LJState, index2adr};
 use autorun_types::{LuaState, Realm};
 use std::ffi::{CStr, CString, c_int};
+
+use crate::functions;
 
 #[derive(Debug, Clone, Copy)]
 pub struct EnvHandle {
@@ -91,28 +93,23 @@ impl EnvHandle {
 
 	fn create_autorun_table(lua: &LuaApi, state: *mut LuaState) -> LuaTable {
 		let t = lua.table(state);
-		lua.set(state, &t, "print", wrap!(crate::functions::print));
-		lua.set(state, &t, "read", wrap!(crate::functions::read));
-		lua.set(state, &t, "write", wrap!(crate::functions::write));
-		lua.set(state, &t, "writeAsync", wrap!(crate::functions::write_async));
-		lua.set(state, &t, "mkdir", wrap!(crate::functions::mkdir));
-		lua.set(state, &t, "append", wrap!(crate::functions::append));
-		lua.set(state, &t, "exists", wrap!(crate::functions::exists));
-		lua.set(state, &t, "detour", wrap!(crate::functions::detour));
-		lua.set(state, &t, "enableDetour", wrap!(crate::functions::detour_enable));
-		lua.set(state, &t, "disableDetour", wrap!(crate::functions::detour_disable));
-		lua.set(state, &t, "removeDetour", wrap!(crate::functions::detour_remove));
-		lua.set(state, &t, "getOriginalFunction", wrap!(crate::functions::detour_get_original));
-		lua.set(state, &t, "copyFastFunction", wrap!(crate::functions::copy_fast_function));
-		lua.set(state, &t, "load", wrap!(crate::functions::load));
-		lua.set(state, &t, "triggerRemote", wrap!(crate::functions::trigger_remote));
-		lua.set(
-			state,
-			&t,
-			"isFunctionAuthorized",
-			wrap!(crate::functions::is_function_authorized),
-		);
-		lua.set(state, &t, "isProtoAuthorized", wrap!(crate::functions::is_proto_authorized));
+		lua.set(state, &t, "print", wrap!(functions::print));
+		lua.set(state, &t, "read", wrap!(functions::read));
+		lua.set(state, &t, "write", wrap!(functions::write));
+		lua.set(state, &t, "writeAsync", wrap!(functions::write_async));
+		lua.set(state, &t, "mkdir", wrap!(functions::mkdir));
+		lua.set(state, &t, "append", wrap!(functions::append));
+		lua.set(state, &t, "exists", wrap!(functions::exists));
+		lua.set(state, &t, "detour", wrap!(functions::detour));
+		lua.set(state, &t, "enableDetour", wrap!(functions::detour_enable));
+		lua.set(state, &t, "disableDetour", wrap!(functions::detour_disable));
+		lua.set(state, &t, "removeDetour", wrap!(functions::detour_remove));
+		lua.set(state, &t, "getOriginalFunction", wrap!(functions::detour_get_original));
+		lua.set(state, &t, "copyFastFunction", wrap!(functions::copy_fast_function));
+		lua.set(state, &t, "load", wrap!(functions::load));
+		lua.set(state, &t, "triggerRemote", wrap!(functions::trigger_remote));
+		lua.set(state, &t, "isFunctionAuthorized", wrap!(functions::is_function_authorized));
+		lua.set(state, &t, "isProtoAuthorized", wrap!(functions::is_proto_authorized));
 		lua.set(state, &t, "VERSION", env!("CARGO_PKG_VERSION"));
 
 		return t;
