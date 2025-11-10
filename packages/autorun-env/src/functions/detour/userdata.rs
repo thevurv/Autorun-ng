@@ -1,5 +1,6 @@
+use anyhow::anyhow;
 use autorun_jit::Function;
-use autorun_lua::{IntoLua, LuaApi, LuaFunction, RawHandle};
+use autorun_lua::{LuaApi, LuaFunction, LuaUserdata, RawHandle};
 use autorun_types::LuaState;
 
 pub struct Detour {
@@ -10,19 +11,12 @@ pub struct Detour {
 	pub original_function_ptr: Box<usize>,
 }
 
-impl IntoLua for Detour {
-	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		lua.new_userdata(state, self);
-	}
-}
+impl LuaUserdata for Detour {}
 
 pub fn detour_enable(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<()> {
-	let detour_userdata = lua.to_userdata(state, 1) as *mut Detour;
-	if detour_userdata.is_null() {
-		anyhow::bail!("First argument must be a detour userdata.");
-	}
+	let detour = lua.to::<*mut Detour>(state, 1);
+	let detour = unsafe { detour.as_mut() }.ok_or(anyhow!("First argument must be a detour userdata"))?;
 
-	let detour = unsafe { &mut *detour_userdata };
 	unsafe {
 		detour.detour.enable()?;
 	}
@@ -31,12 +25,9 @@ pub fn detour_enable(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle)
 }
 
 pub fn detour_disable(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<()> {
-	let detour_userdata = lua.to_userdata(state, 1) as *mut Detour;
-	if detour_userdata.is_null() {
-		anyhow::bail!("First argument must be a detour userdata.");
-	}
+	let detour = lua.to::<*mut Detour>(state, 1);
+	let detour = unsafe { detour.as_mut() }.ok_or(anyhow!("First argument must be a detour userdata"))?;
 
-	let detour = unsafe { &mut *detour_userdata };
 	unsafe {
 		detour.detour.disable()?;
 	}
@@ -45,26 +36,19 @@ pub fn detour_disable(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle
 }
 
 pub fn detour_get_original(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<LuaFunction> {
-	let detour_userdata = lua.to_userdata(state, 1) as *mut Detour;
-	if detour_userdata.is_null() {
-		anyhow::bail!("First argument must be a detour userdata.");
-	}
-
-	let detour = unsafe { &mut *detour_userdata };
+	let detour = lua.to::<*mut Detour>(state, 1);
+	let detour = unsafe { detour.as_mut() }.ok_or(anyhow!("First argument must be a detour userdata"))?;
 
 	Ok(unsafe { std::mem::transmute::<usize, LuaFunction>(*detour.original_function_ptr) })
 }
 
 pub fn detour_remove(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<()> {
-	let detour_userdata = lua.to_userdata(state, 1) as *mut Detour;
-	if detour_userdata.is_null() {
-		anyhow::bail!("First argument must be a detour userdata.");
-	}
+	let detour = lua.to::<*mut Detour>(state, 1);
+	let detour = unsafe { detour.as_mut() }.ok_or(anyhow!("First argument must be a detour userdata"))?;
 
-	let detour = unsafe { &mut *detour_userdata };
 	unsafe {
 		detour.detour.disable()?;
-		std::ptr::drop_in_place(detour_userdata);
+		std::ptr::drop_in_place(detour);
 	}
 
 	Ok(())
