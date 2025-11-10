@@ -9,5 +9,7 @@ description.workspace = true
 serde = { workspace = true }
 cap-std = { workspace = true }
 anyhow = { workspace = true }
+autorun-lua = { workspace = true }
+
 nestify = "0.3.3"
 toml = "0.9.5"

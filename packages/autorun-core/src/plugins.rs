@@ -1,3 +1,4 @@
+use autorun_lua::LuaUserdata;
 use cap_std::fs::Dir;
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +11,8 @@ pub struct Plugin {
 
 	config: Config,
 }
+
+impl LuaUserdata for Plugin {}
 
 impl core::fmt::Display for Plugin {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

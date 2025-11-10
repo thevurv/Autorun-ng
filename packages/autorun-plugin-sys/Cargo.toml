@@ -6,6 +6,6 @@ authors.workspace = true
 description.workspace = true
 
 [dependencies]
-autorun-core = { path = "../autorun-core" }
+autorun-core = { workspace = true }
 
 libloading = { workspace = true }

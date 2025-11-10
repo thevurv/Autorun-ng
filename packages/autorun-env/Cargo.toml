@@ -13,10 +13,10 @@ retour = { workspace = true }
 cap-std = { workspace = true }
 rand = "0.8.5"
 
-autorun-core = { path = "../autorun-core" }
-autorun-types = { path = "../autorun-types" }
-autorun-lua = { path = "../autorun-lua" }
-autorun-log = { path = "../autorun-log" }
-autorun-jit = { path = "../autorun-jit" }
-autorun-luajit = { path = "../autorun-luajit" }
-autorun-interfaces = { path = "../autorun-interfaces" }
+autorun-core = { workspace = true }
+autorun-types = { workspace = true }
+autorun-lua = { workspace = true }
+autorun-log = { workspace = true }
+autorun-jit = { workspace = true }
+autorun-luajit = { workspace = true }
+autorun-interfaces = { workspace = true }

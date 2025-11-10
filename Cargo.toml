@@ -21,3 +21,17 @@ serde = { version = "1.0.219", features = ["derive"] }
 interprocess = "2.2.3"
 nanoserde = { version = "0.2.1", default-features = false, features = ["binary"] }
 retour = { git = "https://github.com/thevurv/retour-rs" }
+
+autorun-lua = { path = "packages/autorun-lua" }
+autorun-ipc = { path = "packages/autorun-ipc" }
+autorun-types = { path = "packages/autorun-types" }
+autorun-log = { path = "packages/autorun-log" }
+autorun-interfaces = { path = "packages/autorun-interfaces" }
+autorun-scan = { path = "packages/autorun-scan" }
+autorun-core = { path = "packages/autorun-core" }
+autorun-env = { path = "packages/autorun-env" }
+autorun-fs = { path = "packages/autorun-fs" }
+autorun-steam = { path = "packages/autorun-steam" }
+autorun-jit = { path = "packages/autorun-jit" }
+autorun-luajit = { path = "packages/autorun-luajit" }
+autorun-plugin-api = { path = "packages/autorun-plugin-api" }

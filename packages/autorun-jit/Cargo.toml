@@ -8,9 +8,9 @@ description.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 retour = { workspace = true }
-autorun-core = { path = "../autorun-core" }
-autorun-types = { path = "../autorun-types" }
-autorun-lua = { path = "../autorun-lua" }
-autorun-log = { path = "../autorun-log" }
+autorun-core = { workspace = true }
+autorun-types = { workspace = true }
+autorun-lua = { workspace = true }
+autorun-log = { workspace = true }
 
 region = "3.0.2"
