@@ -44,7 +44,7 @@ macro_rules! wrap {
 
 impl EnvHandle {
 	pub fn push(&self, lua: &LuaApi, state: *mut LuaState) {
-		self.env.push(lua, state);
+		lua.push(state, &self.env);
 	}
 
 	pub fn realm(&self) -> Realm {
@@ -117,16 +117,11 @@ impl EnvHandle {
 
 	pub fn execute(&self, lua: &LuaApi, state: *mut LuaState, name: &CStr, src: &[u8]) -> anyhow::Result<()> {
 		let name = self.format_chunk_name(name)?;
-		if let Err(why) = lua.loadbufferx(state, src, &name, c"t") {
-			anyhow::bail!("Failed to compile: {why}");
-		}
+		let chunk = lua.load(state, src, &name)?;
+		lua.setfenv(state, &chunk, &self.env)?;
 
-		self.push(lua, state);
-		if lua.setfenv(state, -2).is_err() {
-			anyhow::bail!("Failed to set environment");
-		}
-
-		if let Err(why) = lua.pcall(state, 0, 0, 0) {
+		lua.push(state, &chunk);
+		if let Err(why) = lua.raw.pcall(state, 0, 0, 0) {
 			anyhow::bail!("Failed to execute: {}", why);
 		}
 
@@ -141,7 +136,7 @@ impl EnvHandle {
 		lua.set(state, &env, "_G", Globals);
 
 		// todo: refactor luajit code to not depend on the stack
-		env.push(lua, state);
+		lua.push(state, &env);
 
 		// Can unwrap since we are sure there is something on the stack
 		let lj_state = state as *mut LJState;
@@ -183,7 +178,7 @@ impl EnvHandle {
 		lua.push(state, event_name);
 		lua.raw.insert(state, -(n_args + 1));
 
-		self.autorun.push(lua, state);
+		lua.push(state, &self.autorun);
 		lua.raw.getfield(state, -1, c"trigger".as_ptr());
 		lua.raw.remove(state, -2); // remove Autorun table
 
@@ -193,7 +188,7 @@ impl EnvHandle {
 		}
 
 		lua.raw.insert(state, -(n_args + 2));
-		lua.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
+		lua.raw.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
 
 		Ok(())
 	}
@@ -208,7 +203,7 @@ impl EnvHandle {
 		lua.push(state, event_name);
 		lua.raw.insert(state, -(n_args + 1));
 
-		self.autorun.push(lua, state);
+		lua.push(state, &self.autorun);
 		lua.raw.getfield(state, -1, c"runRemoteCallbacks".as_ptr());
 		lua.raw.remove(state, -2); // remove Autorun table
 
@@ -218,7 +213,7 @@ impl EnvHandle {
 		}
 
 		lua.raw.insert(state, -(n_args + 2));
-		lua.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
+		lua.raw.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
 
 		Ok(())
 	}

@@ -5,12 +5,6 @@ pub struct LuaTable {
 	handle: RawHandle,
 }
 
-impl LuaTable {
-	pub fn push(&self, lua: &LuaApi, state: *mut LuaState) {
-		self.handle.push(lua, state);
-	}
-}
-
 impl LuaApi {
 	pub fn globals(&self, state: *mut LuaState) -> LuaTable {
 		self.push(state, Globals);

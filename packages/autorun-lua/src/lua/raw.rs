@@ -118,7 +118,7 @@ define_lua_api! {
 	pub fn insert(state: *mut LuaState, index: c_int);
 
 	#[name = "luaL_loadbufferx"]
-	pub fn loadbufferx(
+	pub fn _loadbufferx(
 		state: *mut LuaState,
 		buff: *const c_char,
 		size: usize,
@@ -126,7 +126,7 @@ define_lua_api! {
 		mode: *const c_char,
 	) -> c_int;
 	#[name = "luaL_loadstring"]
-	pub fn loadstring(state: *mut LuaState, str: *const c_char) -> c_int;
+	pub fn _loadstring(state: *mut LuaState, str: *const c_char) -> c_int;
 	#[name = "luaL_checknumber"]
 	pub fn checknumber(state: *mut LuaState, index: c_int) -> c_double;
 	#[name = "luaL_checklstring"]
@@ -135,7 +135,7 @@ define_lua_api! {
 	#[name = "lua_call"]
 	pub fn call(state: *mut LuaState, n_args: c_int, n_results: c_int) -> c_int;
 	#[name = "lua_pcall"]
-	pub fn pcall(state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> c_int;
+	pub fn _pcall(state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> c_int;
 	#[name = "lua_createtable"]
 	pub fn createtable(state: *mut LuaState, narr: c_int, nrec: c_int);
 	#[name = "lua_equal"]
@@ -210,7 +210,7 @@ define_lua_api! {
 	#[name = "lua_getfenv"]
 	pub fn getfenv(state: *mut LuaState, index: c_int);
 	#[name = "lua_setfenv"]
-	pub fn setfenv(state: *mut LuaState, index: c_int) -> c_int;
+	pub fn _setfenv(state: *mut LuaState, index: c_int) -> c_int;
 
 	#[name = "luaL_ref"]
 	pub fn _reference(state: *mut LuaState, t: c_int) -> c_int;
@@ -349,5 +349,57 @@ impl RawLuaApi {
 
 		self._unreference(state, REGISTRY_INDEX, reference);
 		Ok(())
+	}
+
+	pub fn loadstring(&self, state: *mut LuaState, s: *const c_char) -> Result<(), std::borrow::Cow<'static, str>> {
+		match self._loadstring(state, s) {
+			LUA_OK | LUA_YIELD => Ok(()),
+			_ => {
+				let err_msg = self.tolstring(state, -1, std::ptr::null_mut());
+				self.pop(state, 1);
+
+				let err_str = if !err_msg.is_null() {
+					unsafe { std::ffi::CStr::from_ptr(err_msg) }.to_string_lossy()
+				} else {
+					std::borrow::Cow::Borrowed("Unknown error")
+				};
+
+				Err(err_str)
+			}
+		}
+	}
+
+	pub fn loadbufferx(&self, state: *mut LuaState, buff: &[u8], name: &CStr, mode: &CStr) -> LuaResult<()> {
+		match self._loadbufferx(state, buff.as_ptr() as _, buff.len(), name.as_ptr(), mode.as_ptr()) {
+			LUA_OK | LUA_YIELD => Ok(()),
+
+			_ => {
+				let err = self.checkstring(state, -1);
+				self.pop(state, 1);
+
+				Err(LuaError::Runtime(err.to_string()))
+			}
+		}
+	}
+
+	pub fn pcall(&self, state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> LuaResult<()> {
+		match self._pcall(state, n_args, n_results, err_func) {
+			LUA_OK | LUA_YIELD => Ok(()),
+
+			_ => {
+				let err = self.checkstring(state, -1);
+				self.pop(state, 1);
+
+				Err(LuaError::Runtime(err.to_string()))
+			}
+		}
+	}
+
+	pub fn setfenv(&self, state: *mut LuaState, index: c_int) -> LuaResult<()> {
+		if self._setfenv(state, index) != 0 {
+			Ok(())
+		} else {
+			Err(LuaError::GenericFailure)
+		}
 	}
 }

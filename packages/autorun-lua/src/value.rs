@@ -16,6 +16,9 @@ pub use globals::*;
 mod userdata;
 pub use userdata::*;
 
+mod function;
+pub use function::*;
+
 #[derive(Debug, Clone)]
 pub enum LuaValue {
 	Nil,
@@ -23,6 +26,7 @@ pub enum LuaValue {
 	Number(f64),
 	String(String),
 	Table(LuaTable),
+	Function(LuaFunction),
 	CFunction(LuaCFunction),
 	LightUserdata(*mut c_void),
 	Userdata(*mut c_void),
@@ -36,6 +40,7 @@ impl IntoLua for LuaValue {
 			LuaValue::Number(n) => lua.raw.pushnumber(state, n),
 			LuaValue::String(s) => lua.raw.pushlstring(state, s.as_ptr() as *const i8, s.len()),
 			LuaValue::Table(t) => t.into_lua(lua, state),
+			LuaValue::Function(f) => f.into_lua(lua, state),
 			LuaValue::CFunction(f) => lua.raw.pushcfunction(state, f),
 			LuaValue::Userdata(u) => lua.raw.pushlightuserdata(state, u),
 			LuaValue::LightUserdata(u) => lua.raw.pushlightuserdata(state, u),

@@ -1,4 +1,4 @@
-use crate::{LuaResult, LuaState};
+use crate::{LuaResult, LuaState, REGISTRY_INDEX};
 
 /// A handle to a value in the lua registry.
 /// Note this does not have any reference counting, hence can be cloned.
@@ -21,9 +21,7 @@ impl RawHandle {
 	}
 
 	pub fn push(&self, lua: &crate::LuaApi, state: *mut LuaState) {
-		// let v = lua.getregistry(state, self.0);
-		// lua.push(state, v);
-		lua.raw.rawgeti(state, crate::lua::REGISTRY_INDEX, self.0);
+		lua.raw.rawgeti(state, REGISTRY_INDEX, self.0);
 	}
 
 	pub fn free(self, lua: &crate::LuaApi, state: *mut LuaState) -> LuaResult<()> {

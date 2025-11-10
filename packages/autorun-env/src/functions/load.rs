@@ -7,7 +7,7 @@ pub fn load(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow
 	let chunk_name = std::ffi::CString::new(chunk_name)?;
 	let chunk_name = env.format_chunk_name(&chunk_name)?;
 
-	if let Err(why) = lua.loadbufferx(state, source.as_bytes(), &chunk_name, c"t") {
+	if let Err(why) = lua.raw.loadbufferx(state, source.as_bytes(), &chunk_name, c"t") {
 		lua.raw.pushnil(state);
 		lua.push(state, why.to_string());
 		return Ok(RawLuaReturn(2));
