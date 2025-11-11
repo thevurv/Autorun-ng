@@ -18,7 +18,7 @@ pub extern "C-unwind" fn detour_handler(
 	let lua = unsafe { &*lua_api };
 
 	let callback_handle = RawHandle::from_id(callback_id);
-	callback_handle.push(lua, state);
+	lua.raw.push(state, &callback_handle);
 	lua.raw.insert(state, 1);
 
 	let num_arguments = lua.raw.gettop(state) - 1;

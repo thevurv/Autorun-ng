@@ -3,7 +3,7 @@ pub mod global;
 use anyhow::Context;
 use autorun_core::plugins::Plugin;
 use autorun_log::*;
-use autorun_lua::{Globals, LuaApi, LuaTable};
+use autorun_lua::{Globals, IntoLua, LuaApi, LuaTable, RawLuaApi};
 use autorun_luajit::{GCRef, LJState, index2adr};
 use autorun_types::{LuaState, Realm};
 use std::ffi::{CStr, CString, c_int};
@@ -17,6 +17,12 @@ pub struct EnvHandle {
 	chunk_nonce: u64,
 	env: LuaTable,
 	autorun: LuaTable,
+}
+
+impl IntoLua for &EnvHandle {
+	fn into_lua(self, lua: &RawLuaApi, state: *mut LuaState) {
+		lua.push(state, &self.env);
+	}
 }
 
 macro_rules! wrap {
@@ -33,8 +39,7 @@ macro_rules! wrap {
 
 				// todo: potentially add a silenterror type so we can return that and it'll return a nil.
 				// right now this would kind of leak the fact that it's an autorun function.
-				lua.push(state, c"");
-				lua.raw.error(state);
+				lua.error(state, c"");
 			} else {
 				$func(lua, state, env)
 			}
@@ -43,10 +48,6 @@ macro_rules! wrap {
 }
 
 impl EnvHandle {
-	pub fn push(&self, lua: &LuaApi, state: *mut LuaState) {
-		lua.push(state, &self.env);
-	}
-
 	pub fn realm(&self) -> Realm {
 		self.realm
 	}
@@ -72,7 +73,7 @@ impl EnvHandle {
 		}
 
 		lua.raw.getfenv(state, -1);
-		self.push(lua, state);
+		lua.raw.push(state, self);
 
 		let equal = lua.raw.rawequal(state, -1, -2);
 		lua.raw.pop(state, 3);
@@ -85,7 +86,7 @@ impl EnvHandle {
 			return None;
 		}
 
-		let dir: *mut Plugin = lua.get(state, &self.autorun, "PLUGIN");
+		let dir: *mut Plugin = lua.get(state, &self.autorun, "PLUGIN").ok()?;
 		let dir = unsafe { dir.as_ref() }?;
 
 		Some(dir)
@@ -120,10 +121,8 @@ impl EnvHandle {
 		let chunk = lua.load(state, src, &name)?;
 		lua.setfenv(state, &chunk, &self.env)?;
 
-		lua.push(state, &chunk);
-		if let Err(why) = lua.raw.pcall(state, 0, 0, 0) {
-			anyhow::bail!("Failed to execute: {}", why);
-		}
+		lua.raw.push(state, &chunk);
+		lua.raw.pcall(state, 0, 0, 0)?;
 
 		Ok(())
 	}
@@ -136,7 +135,7 @@ impl EnvHandle {
 		lua.set(state, &env, "_G", Globals);
 
 		// todo: refactor luajit code to not depend on the stack
-		lua.push(state, &env);
+		lua.raw.push(state, &env);
 
 		// Can unwrap since we are sure there is something on the stack
 		let lj_state = state as *mut LJState;
@@ -175,10 +174,10 @@ impl EnvHandle {
 	}
 
 	pub fn trigger(&self, lua: &LuaApi, state: *mut LuaState, event_name: &CStr, n_args: c_int) -> anyhow::Result<()> {
-		lua.push(state, event_name);
+		lua.raw.push(state, event_name);
 		lua.raw.insert(state, -(n_args + 1));
 
-		lua.push(state, &self.autorun);
+		lua.raw.push(state, &self.autorun);
 		lua.raw.getfield(state, -1, c"trigger".as_ptr());
 		lua.raw.remove(state, -2); // remove Autorun table
 
@@ -200,10 +199,10 @@ impl EnvHandle {
 		event_name: &CStr,
 		n_args: c_int,
 	) -> anyhow::Result<()> {
-		lua.push(state, event_name);
+		lua.raw.push(state, event_name);
 		lua.raw.insert(state, -(n_args + 1));
 
-		lua.push(state, &self.autorun);
+		lua.raw.push(state, &self.autorun);
 		lua.raw.getfield(state, -1, c"runRemoteCallbacks".as_ptr());
 		lua.raw.remove(state, -2); // remove Autorun table
 

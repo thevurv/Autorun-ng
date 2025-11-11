@@ -5,9 +5,9 @@ pub fn run(state: *mut autorun_types::LuaState, buffer: &[u8], name: &[u8], mode
 	let realm = autorun_env::global::get_realm(state);
 	let env = autorun_env::global::get_realm_env(realm).expect("env should exist here");
 
-	lua.push(state, name);
-	lua.push(state, buffer);
-	lua.push(state, mode);
+	lua.raw.push(state, name);
+	lua.raw.push(state, buffer);
+	lua.raw.push(state, mode);
 	env.trigger(lua, state, c"loadbuffer", 3)?;
 
 	// let n_returns = lua.get_top(state);

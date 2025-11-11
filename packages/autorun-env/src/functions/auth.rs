@@ -14,7 +14,7 @@ pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::En
 	if lua.raw.typeid(state, 1) == autorun_lua::LuaTypeId::Number {
 		// attempt to resolve the function at the given stack level
 		let mut debug_info = unsafe { std::mem::zeroed::<DebugInfo>() };
-		let stack_level = lua.to::<i32>(state, 1);
+		let stack_level = lua.raw.try_to::<i32>(state, 1)?;
 		lua.raw.pop(state, 1); // remove the stack level argument
 
 		if lua.raw.getstack(state, stack_level, &raw mut debug_info as _) == 0 {

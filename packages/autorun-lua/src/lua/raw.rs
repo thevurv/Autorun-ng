@@ -1,7 +1,7 @@
 use core::ffi::{c_char, c_double, c_int, c_uint, c_void};
 use std::ffi::CStr;
 
-use crate::{IntoLua, LuaCFunction, LuaError, LuaResult, LuaState, LuaTypeId};
+use crate::{FromLua, IntoLua, LuaCFunction, LuaError, LuaResult, LuaState, LuaTypeId, TryIntoLua};
 
 #[cfg(feature = "gmod")]
 const LUA_IDSIZE: usize = 128;
@@ -401,5 +401,21 @@ impl RawLuaApi {
 		} else {
 			Err(LuaError::GenericFailure)
 		}
+	}
+
+	pub fn push<T: IntoLua>(&self, state: *mut LuaState, value: T) {
+		T::into_lua(value, self, state);
+	}
+
+	pub fn try_push<T: TryIntoLua>(&self, state: *mut LuaState, value: T) -> LuaResult<()> {
+		T::try_into_lua(value, self, state)
+	}
+
+	pub fn to<T: FromLua>(&self, state: *mut LuaState, stack_idx: c_int) -> T {
+		T::from_lua(self, state, stack_idx)
+	}
+
+	pub fn try_to<T: crate::TryFromLua>(&self, state: *mut LuaState, stack_idx: c_int) -> LuaResult<T> {
+		T::try_from_lua(self, state, stack_idx)
 	}
 }

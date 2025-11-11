@@ -21,44 +21,41 @@ impl LuaApi {
 		Ok(Self { raw })
 	}
 
-	pub fn push<T: IntoLua>(&self, state: *mut LuaState, value: T) {
-		T::into_lua(value, self, state);
-	}
-
-	pub fn to<T: FromLua>(&self, state: *mut LuaState, stack_idx: c_int) -> T {
-		T::from_lua(self, state, stack_idx)
-	}
-
 	pub fn load(&self, state: *mut LuaState, src: impl AsRef<[u8]>, name: &CStr) -> LuaResult<LuaFunction> {
 		let src = src.as_ref();
 		self.raw.loadbufferx(state, src, name, c"t")?;
-		let func = self.to(state, -1);
+		let func = self.raw.try_to(state, -1)?;
 		self.raw.pop(state, -1);
 
 		Ok(func)
 	}
 
 	pub fn setfenv(&self, state: *mut LuaState, f: &LuaFunction, env: &LuaTable) -> LuaResult<()> {
-		f.into_lua(self, state);
-		env.into_lua(self, state);
+		self.raw.push(state, f);
+		self.raw.push(state, env);
 		self.raw.setfenv(state, -2)?;
 		self.raw.pop(state, 1);
 
 		Ok(())
 	}
 
-	pub fn getregistry(&self, state: *mut LuaState, key: impl IntoLua) -> LuaValue {
-		key.into_lua(self, state);
+	pub fn getregistry(&self, state: *mut LuaState, key: impl IntoLua) -> LuaValue<'_> {
+		key.into_lua(&self.raw, state);
 		self.raw.rawget(state, REGISTRY_INDEX);
-		let value = self.to(state, -1);
+		let value = self.raw.to(state, -1);
 		self.raw.pop(state, 1);
 		value
 	}
 
 	pub fn setregistry(&self, state: *mut LuaState, key: impl IntoLua, value: impl IntoLua) {
-		key.into_lua(self, state);
-		value.into_lua(self, state);
+		key.into_lua(&self.raw, state);
+		value.into_lua(&self.raw, state);
 		self.raw.rawset(state, REGISTRY_INDEX);
+	}
+
+	pub fn error(&self, state: *mut LuaState, msg: impl IntoLua) -> ! {
+		self.raw.push(state, msg);
+		self.raw.error(state);
 	}
 }
 
@@ -68,10 +65,9 @@ macro_rules! as_lua_function {
 		extern "C-unwind" fn lua_wrapper(state: *mut $crate::LuaState) -> i32 {
 			let lua = autorun_lua::get_api().expect("Failed to get Lua API");
 			match $func(lua, state) {
-				Ok(ret) => $crate::LuaReturn::into_lua_return(ret, lua, state),
+				Ok(ret) => $crate::LuaReturn::into_lua_return(ret, &lua.raw, state),
 				Err(e) => {
-					lua.push(state, e.to_string());
-					lua.raw.error(state);
+					lua.error(state, e.to_string());
 				}
 			}
 		}

@@ -1,26 +1,27 @@
-use crate::{FromLua, IntoLua, LuaApi, LuaState, LuaTypeId, RawHandle};
+use crate::{IntoLua, LuaError, LuaResult, LuaState, LuaTypeId, LuaValue, RawHandle, RawLuaApi, TryFromLua};
 
 #[derive(Debug, Clone, Copy)]
 pub struct LuaFunction {
 	handle: RawHandle,
 }
 
-impl IntoLua for &LuaFunction {
-	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
-		self.handle.push(lua, state);
+impl LuaFunction {
+	pub(crate) fn from_raw(handle: RawHandle) -> Self {
+		Self { handle }
 	}
 }
 
-impl FromLua for LuaFunction {
-	fn from_lua(lua: &LuaApi, state: *mut LuaState, index: i32) -> Self {
-		assert_eq!(
-			lua.raw.typeid(state, index),
-			LuaTypeId::Function,
-			"Value was not a LuaFunction"
-		);
+impl IntoLua for &LuaFunction {
+	fn into_lua(self, lua: &RawLuaApi, state: *mut LuaState) {
+		lua.push(state, &self.handle);
+	}
+}
 
-		lua.raw.pushvalue(state, index);
-		let handle = RawHandle::from_stack(lua, state).expect("Failed to allocate registry value");
-		LuaFunction { handle }
+impl TryFromLua for LuaFunction {
+	fn try_from_lua(lua: &RawLuaApi, state: *mut LuaState, index: i32) -> LuaResult<Self> {
+		match lua.try_to(state, index)? {
+			LuaValue::Function(f) => Ok(f),
+			other => Err(LuaError::mismatch(LuaTypeId::Function, other.typeid())),
+		}
 	}
 }

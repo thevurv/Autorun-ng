@@ -17,3 +17,20 @@ pub enum LuaTypeId {
 	Userdata = 7,
 	Thread = 8,
 }
+
+impl core::fmt::Display for LuaTypeId {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+		match self {
+			LuaTypeId::None => write!(f, "None"),
+			LuaTypeId::Nil => write!(f, "Nil"),
+			LuaTypeId::Boolean => write!(f, "Boolean"),
+			LuaTypeId::LightUserdata => write!(f, "LightUserdata"),
+			LuaTypeId::Number => write!(f, "Number"),
+			LuaTypeId::String => write!(f, "String"),
+			LuaTypeId::Table => write!(f, "Table"),
+			LuaTypeId::Function => write!(f, "Function"),
+			LuaTypeId::Userdata => write!(f, "Userdata"),
+			LuaTypeId::Thread => write!(f, "Thread"),
+		}
+	}
+}
