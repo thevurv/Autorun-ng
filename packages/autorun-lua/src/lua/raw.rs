@@ -133,7 +133,7 @@ define_lua_api! {
 	pub fn checklstring(state: *mut LuaState, index: c_int, len: *mut c_uint) -> *const c_char;
 
 	#[name = "lua_call"]
-	pub fn call(state: *mut LuaState, n_args: c_int, n_results: c_int) -> c_int;
+	pub fn call(state: *mut LuaState, n_args: c_int, n_results: c_int);
 	#[name = "lua_pcall"]
 	pub fn _pcall(state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> c_int;
 	#[name = "lua_createtable"]

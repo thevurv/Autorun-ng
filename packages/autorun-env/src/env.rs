@@ -3,7 +3,7 @@ pub mod global;
 use anyhow::Context;
 use autorun_core::plugins::Plugin;
 use autorun_log::*;
-use autorun_lua::{Globals, IntoLua, LuaApi, LuaTable, RawLuaApi};
+use autorun_lua::{Globals, IntoLua, IntoLuaArgs, LuaApi, LuaFunction, LuaTable, LuaValue, RawLuaApi};
 use autorun_luajit::{GCRef, LJState, index2adr};
 use autorun_types::{LuaState, Realm};
 use std::ffi::{CStr, CString, c_int};
@@ -120,9 +120,7 @@ impl EnvHandle {
 		let name = self.format_chunk_name(name)?;
 		let chunk = lua.load(state, src, &name)?;
 		lua.setfenv(state, &chunk, &self.env)?;
-
-		lua.raw.push(state, &chunk);
-		lua.raw.pcall(state, 0, 0, 0)?;
+		lua.pcall(state, &chunk, ())?;
 
 		Ok(())
 	}
@@ -173,46 +171,15 @@ impl EnvHandle {
 		Ok(())
 	}
 
-	pub fn trigger(&self, lua: &LuaApi, state: *mut LuaState, event_name: &CStr, n_args: c_int) -> anyhow::Result<()> {
-		lua.raw.push(state, event_name);
-		lua.raw.insert(state, -(n_args + 1));
-
-		lua.raw.push(state, &self.autorun);
-		lua.raw.getfield(state, -1, c"trigger".as_ptr());
-		lua.raw.remove(state, -2); // remove Autorun table
-
-		if lua.raw.typeid(state, -1) != autorun_lua::LuaTypeId::Function {
-			lua.raw.pop(state, 1);
-			anyhow::bail!("don't remove Autorun.trigger lil bro.");
-		}
-
-		lua.raw.insert(state, -(n_args + 2));
-		lua.raw.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
-
+	pub fn trigger(&self, lua: &LuaApi, state: *mut LuaState, args: impl IntoLuaArgs) -> anyhow::Result<()> {
+		let trigger: LuaFunction = lua.get(state, &self.autorun, "trigger")?;
+		lua.pcall(state, &trigger, args)?;
 		Ok(())
 	}
 
-	pub fn run_remote_callbacks(
-		&self,
-		lua: &LuaApi,
-		state: *mut LuaState,
-		event_name: &CStr,
-		n_args: c_int,
-	) -> anyhow::Result<()> {
-		lua.raw.push(state, event_name);
-		lua.raw.insert(state, -(n_args + 1));
-
-		lua.raw.push(state, &self.autorun);
-		lua.raw.getfield(state, -1, c"runRemoteCallbacks".as_ptr());
-		lua.raw.remove(state, -2); // remove Autorun table
-
-		if lua.raw.typeid(state, -1) != autorun_lua::LuaTypeId::Function {
-			lua.raw.pop(state, 1);
-			anyhow::bail!("don't remove Autorun.runRemoteCallbacks lil bro.");
-		}
-
-		lua.raw.insert(state, -(n_args + 2));
-		lua.raw.pcall(state, n_args + 1, 0, 0).map_err(|e| anyhow::anyhow!(e))?;
+	pub fn run_remote_callbacks(&self, lua: &LuaApi, state: *mut LuaState, args: impl IntoLuaArgs) -> anyhow::Result<()> {
+		let run_remote_callbacks = lua.get(state, &self.autorun, "runRemoteCallbacks")?;
+		lua.pcall(state, &run_remote_callbacks, args)?;
 
 		Ok(())
 	}

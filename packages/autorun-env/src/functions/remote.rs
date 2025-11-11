@@ -51,8 +51,7 @@ pub fn trigger_remote(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle)
 
 	let opposite_env = crate::global::get_realm_env(opposite_realm).ok_or(anyhow::anyhow!("Opposing env does not exist"))?;
 
-	lua.raw.push(opposite_state, value);
-	opposite_env.run_remote_callbacks(lua, opposite_state, &event_name, 1)?;
+	opposite_env.run_remote_callbacks(lua, opposite_state, (event_name.as_c_str(), value))?;
 
 	Ok(())
 }
