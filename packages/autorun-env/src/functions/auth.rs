@@ -1,5 +1,5 @@
 use anyhow::Context;
-use autorun_lua::{DebugInfo, LuaApi};
+use autorun_lua::{LuaApi, RawDebugInfo};
 use autorun_luajit::{Frame, GCProto, LJ_TPROTO, LJState, get_gcobj, index2adr, push_tvalue};
 use autorun_types::LuaState;
 
@@ -13,8 +13,8 @@ pub fn is_function_authorized(lua: &LuaApi, state: *mut LuaState, env: crate::En
 
 	if lua.raw.typeid(state, 1) == autorun_lua::LuaTypeId::Number {
 		// attempt to resolve the function at the given stack level
-		let mut debug_info = unsafe { std::mem::zeroed::<DebugInfo>() };
-		let stack_level = lua.to::<i32>(state, 1);
+		let mut debug_info = unsafe { std::mem::zeroed::<RawDebugInfo>() };
+		let stack_level = lua.raw.try_to::<i32>(state, 1)?;
 		lua.raw.pop(state, 1); // remove the stack level argument
 
 		if lua.raw.getstack(state, stack_level, &raw mut debug_info as _) == 0 {
@@ -49,8 +49,7 @@ pub fn is_proto_authorized(_lua: &LuaApi, state: *mut LuaState, env: crate::EnvH
 
 	let proto_gc = get_gcobj::<GCProto>(lj_state, 1).context("Failed to get GCProto for given index.")?;
 	let proto_chunk_name = proto_gc.chunk_name_str().context("Failed to get chunk name from proto.")?;
-	let proto_chunk_name_cstr =
-		std::ffi::CString::new(proto_chunk_name.clone()).context("Failed to convert chunk name to CString.")?;
+	let proto_chunk_name_cstr = std::ffi::CString::new(proto_chunk_name).context("Failed to convert chunk name to CString.")?;
 
 	Ok(env.is_chunk_name_authorized(&proto_chunk_name_cstr))
 }

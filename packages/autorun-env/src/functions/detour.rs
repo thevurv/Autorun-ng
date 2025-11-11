@@ -36,7 +36,7 @@ pub fn detour(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> any
 		anyhow::bail!("Second argument must be a function to use as detour.");
 	}
 
-	let detour_callback = RawHandle::from_stack(lua, state).context("Failed to create raw handle for detour callback.")?;
+	let detour_callback = RawHandle::from_stack(&lua.raw, state).context("Failed to create raw handle for detour callback.")?;
 	let mut original_function_ptr = Box::new(0usize);
 
 	// create the trampoline
@@ -95,7 +95,7 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHa
 	let original_ffid = gcfunc.header().ffid;
 	let original_upvalues = gcfunc.header().nupvalues;
 
-	let function_handle = RawHandle::from_stack(lua, state).context("Failed to create raw handle for function.")?;
+	let function_handle = RawHandle::from_stack(&lua.raw, state).context("Failed to create raw handle for function.")?;
 
 	let trampoline = make_detour_trampoline(lua, function_handle.id(), std::ptr::null(), detour_handler)?;
 	// Not a detour, but we can reuse the trampoline maker to create a fast-function trampoline

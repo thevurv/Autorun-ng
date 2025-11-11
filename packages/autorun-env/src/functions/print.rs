@@ -1,4 +1,4 @@
-use autorun_lua::LuaApi;
+use autorun_lua::{LuaApi, LuaValue};
 use autorun_types::LuaState;
 
 pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<()> {
@@ -7,42 +7,29 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 	let nargs = lua.raw.gettop(state);
 	let mut args = Vec::with_capacity(nargs as usize);
 	for i in 1..=nargs {
-		match lua.raw.typeid(state, i) {
-			autorun_lua::LuaTypeId::Nil => {
+		match lua.raw.to::<LuaValue>(state, i) {
+			LuaValue::Nil => {
 				args.push(String::from("nil"));
 			}
 
-			autorun_lua::LuaTypeId::LightUserdata => {
-				let ptr = lua.raw.touserdata(state, i);
+			LuaValue::LightUserdata(ptr) => {
 				args.push(format!("lightuserdata: {:p}", ptr));
 			}
 
-			autorun_lua::LuaTypeId::Userdata => {
-				let ptr = lua.raw.touserdata(state, i);
+			LuaValue::Userdata(ptr) => {
 				args.push(format!("userdata: {:p}", ptr));
 			}
 
-			autorun_lua::LuaTypeId::Function => {
-				let ptr = lua.raw.tocfunction(state, i);
-				if let Some(func) = ptr {
-					args.push(format!("function: {:p}", func));
-				} else {
-					args.push(String::from("function: <null>"));
-				}
+			LuaValue::CFunction(func) => {
+				args.push(format!("function: {:p}", func));
 			}
 
-			autorun_lua::LuaTypeId::Thread => {
-				let ptr = lua.raw.tothread(state, i);
-				args.push(format!("thread: {:p}", ptr));
-			}
-
-			autorun_lua::LuaTypeId::Boolean => {
-				let val = lua.to::<bool>(state, i);
+			LuaValue::Boolean(val) => {
 				args.push(String::from(if val { "true" } else { "false" }));
 			}
 
 			_ => {
-				let arg = lua.to::<String>(state, i);
+				let arg = lua.raw.try_to::<String>(state, i)?;
 				args.push(arg);
 			}
 		}

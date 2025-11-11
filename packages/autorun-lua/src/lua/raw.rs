@@ -1,7 +1,7 @@
 use core::ffi::{c_char, c_double, c_int, c_uint, c_void};
 use std::ffi::CStr;
 
-use crate::{IntoLua, LuaCFunction, LuaError, LuaResult, LuaState, LuaTypeId};
+use crate::{FromLua, IntoLua, LuaCFunction, LuaError, LuaResult, LuaState, LuaTypeId, TryIntoLua};
 
 #[cfg(feature = "gmod")]
 const LUA_IDSIZE: usize = 128;
@@ -11,7 +11,7 @@ const LUA_IDSIZE: usize = 60;
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct DebugInfo {
+pub struct RawDebugInfo {
 	pub event: c_int,
 	pub name: *const c_char,             // n
 	pub namewhat: *const c_char,         // n
@@ -133,7 +133,7 @@ define_lua_api! {
 	pub fn checklstring(state: *mut LuaState, index: c_int, len: *mut c_uint) -> *const c_char;
 
 	#[name = "lua_call"]
-	pub fn call(state: *mut LuaState, n_args: c_int, n_results: c_int) -> c_int;
+	pub fn call(state: *mut LuaState, n_args: c_int, n_results: c_int);
 	#[name = "lua_pcall"]
 	pub fn _pcall(state: *mut LuaState, n_args: c_int, n_results: c_int, err_func: c_int) -> c_int;
 	#[name = "lua_createtable"]
@@ -239,8 +239,8 @@ impl RawLuaApi {
 		self._toboolean(state, index) != 0
 	}
 
-	pub fn getinfo(&self, state: *mut LuaState, level: c_int, what: &CStr) -> Option<DebugInfo> {
-		let mut debug_info = unsafe { std::mem::zeroed::<DebugInfo>() };
+	pub fn getinfo(&self, state: *mut LuaState, level: c_int, what: &CStr) -> Option<RawDebugInfo> {
+		let mut debug_info = unsafe { std::mem::zeroed::<RawDebugInfo>() };
 
 		if self.getstack(state, level, &raw mut debug_info as _) == 0 {
 			return None;
@@ -401,5 +401,21 @@ impl RawLuaApi {
 		} else {
 			Err(LuaError::GenericFailure)
 		}
+	}
+
+	pub fn push<T: IntoLua>(&self, state: *mut LuaState, value: T) {
+		T::into_lua(value, self, state);
+	}
+
+	pub fn try_push<T: TryIntoLua>(&self, state: *mut LuaState, value: T) -> LuaResult<()> {
+		T::try_into_lua(value, self, state)
+	}
+
+	pub fn to<T: FromLua>(&self, state: *mut LuaState, stack_idx: c_int) -> T {
+		T::from_lua(self, state, stack_idx)
+	}
+
+	pub fn try_to<T: crate::TryFromLua>(&self, state: *mut LuaState, stack_idx: c_int) -> LuaResult<T> {
+		T::try_from_lua(self, state, stack_idx)
 	}
 }

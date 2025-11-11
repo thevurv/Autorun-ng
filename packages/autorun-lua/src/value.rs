@@ -1,4 +1,4 @@
-use crate::{LuaApi, LuaCFunction, LuaState, LuaTypeId};
+use crate::{LuaCFunction, LuaState, LuaTypeId, RawHandle, RawLuaApi};
 use core::ffi::c_void;
 
 mod from;
@@ -20,11 +20,11 @@ mod function;
 pub use function::*;
 
 #[derive(Debug, Clone)]
-pub enum LuaValue {
+pub enum LuaValue<'a> {
 	Nil,
 	Boolean(bool),
 	Number(f64),
-	String(String),
+	String(&'a [u8]),
 	Table(LuaTable),
 	Function(LuaFunction),
 	CFunction(LuaCFunction),
@@ -32,40 +32,74 @@ pub enum LuaValue {
 	Userdata(*mut c_void),
 }
 
-impl IntoLua for LuaValue {
-	fn into_lua(self, lua: &LuaApi, state: *mut LuaState) {
+impl LuaValue<'_> {
+	pub fn typeid(&self) -> LuaTypeId {
 		match self {
-			LuaValue::Nil => lua.raw.pushnil(state),
-			LuaValue::Boolean(b) => lua.raw.pushboolean(state, b),
-			LuaValue::Number(n) => lua.raw.pushnumber(state, n),
-			LuaValue::String(s) => lua.raw.pushlstring(state, s.as_ptr() as *const i8, s.len()),
-			LuaValue::Table(t) => t.into_lua(lua, state),
-			LuaValue::Function(f) => f.into_lua(lua, state),
-			LuaValue::CFunction(f) => lua.raw.pushcfunction(state, f),
-			LuaValue::Userdata(u) => lua.raw.pushlightuserdata(state, u),
-			LuaValue::LightUserdata(u) => lua.raw.pushlightuserdata(state, u),
+			LuaValue::Nil => LuaTypeId::Nil,
+			LuaValue::Boolean(_) => LuaTypeId::Boolean,
+			LuaValue::Number(_) => LuaTypeId::Number,
+			LuaValue::String(_) => LuaTypeId::String,
+			LuaValue::Table(_) => LuaTypeId::Table,
+			LuaValue::Function(_) => LuaTypeId::Function,
+			LuaValue::CFunction(_) => LuaTypeId::Function,
+			LuaValue::LightUserdata(_) => LuaTypeId::LightUserdata,
+			LuaValue::Userdata(_) => LuaTypeId::Userdata,
 		}
 	}
 }
 
-impl FromLua for LuaValue {
-	fn from_lua(lua: &LuaApi, state: *mut LuaState, index: i32) -> Self {
-		let lua_type = lua.raw.typeid(state, index);
+impl IntoLua for LuaValue<'_> {
+	fn into_lua(self, lua: &RawLuaApi, state: *mut LuaState) {
+		match self {
+			LuaValue::Nil => lua.pushnil(state),
+			LuaValue::Boolean(b) => lua.pushboolean(state, b),
+			LuaValue::Number(n) => lua.pushnumber(state, n),
+			LuaValue::String(s) => lua.pushlstring(state, s.as_ptr() as *const i8, s.len()),
+			LuaValue::Table(t) => t.into_lua(lua, state),
+			LuaValue::Function(f) => f.into_lua(lua, state),
+			LuaValue::CFunction(f) => lua.pushcfunction(state, f),
+			LuaValue::Userdata(u) => lua.pushlightuserdata(state, u),
+			LuaValue::LightUserdata(u) => lua.pushlightuserdata(state, u),
+		}
+	}
+}
+
+impl FromLua for LuaValue<'_> {
+	fn from_lua(lua: &RawLuaApi, state: *mut LuaState, index: i32) -> Self {
+		let lua_type = lua.typeid(state, index);
 		match lua_type {
-			LuaTypeId::Boolean => LuaValue::Boolean(lua.to::<bool>(state, index)),
-			LuaTypeId::Number => LuaValue::Number(lua.to::<f64>(state, index)),
-			LuaTypeId::String => LuaValue::String(lua.to::<String>(state, index)),
-			LuaTypeId::Table => LuaValue::Table(lua.to::<LuaTable>(state, index)),
+			LuaTypeId::Boolean => LuaValue::Boolean(lua.toboolean(state, index)),
+			LuaTypeId::Number => LuaValue::Number(lua.tonumber(state, index)),
+			LuaTypeId::String => {
+				let mut len = 0;
+				let str = lua.tolstring(state, index, &mut len);
+				if str.is_null() {
+					LuaValue::String(&[])
+				} else {
+					LuaValue::String(unsafe { std::slice::from_raw_parts(str as *const u8, len as _) })
+				}
+			}
+
+			LuaTypeId::Table => {
+				lua.pushvalue(state, index);
+				let handle = RawHandle::from_stack(lua, state).expect("Failed to allocate registry value");
+				LuaValue::Table(LuaTable::from_raw(handle))
+			}
+
 			LuaTypeId::Function => {
-				let func = lua.to::<Option<LuaCFunction>>(state, index);
+				let func = lua.tocfunction(state, index);
 				if let Some(func) = func {
 					LuaValue::CFunction(func)
 				} else {
-					LuaValue::Nil
+					lua.pushvalue(state, index);
+					let handle = RawHandle::from_stack(lua, state).expect("Failed to allocate registry value");
+					LuaValue::Function(LuaFunction::from_raw(handle))
 				}
 			}
-			LuaTypeId::LightUserdata => LuaValue::LightUserdata(lua.raw.touserdata(state, index)),
-			LuaTypeId::Userdata => LuaValue::Userdata(lua.raw.touserdata(state, index)),
+
+			LuaTypeId::LightUserdata => LuaValue::LightUserdata(lua.touserdata(state, index)),
+			LuaTypeId::Userdata => LuaValue::Userdata(lua.touserdata(state, index)),
+
 			_ => LuaValue::Nil,
 		}
 	}
