@@ -60,7 +60,7 @@ extern "C-unwind" fn load_buffer_h(
 
 pub fn init() -> anyhow::Result<()> {
 	let lua = autorun_lua::get_api()?;
-	let target_fn = lua._load_buffer_x;
+	let target_fn = lua.raw._loadbufferx;
 
 	let detour = unsafe {
 		let detour = retour::GenericDetour::new(target_fn, load_buffer_h)?;

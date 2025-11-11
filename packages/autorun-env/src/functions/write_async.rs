@@ -3,8 +3,8 @@ use autorun_lua::LuaApi;
 use autorun_types::LuaState;
 
 pub fn write_async(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<()> {
-	let target_path = lua.check_string(state, 1);
-	let content = lua.check_string(state, 2);
+	let target_path = lua.raw.checkstring(state, 1);
+	let content = lua.raw.checkstring(state, 2);
 
 	let plugin = env
 		.get_active_plugin(lua, state)

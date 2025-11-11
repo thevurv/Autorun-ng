@@ -4,26 +4,26 @@ use autorun_types::LuaState;
 pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<()> {
 	let plugin_name = env.get_active_plugin(lua, state).map(|p| p.config().plugin.name.as_str());
 
-	let nargs = lua.get_top(state);
+	let nargs = lua.raw.gettop(state);
 	let mut args = Vec::with_capacity(nargs as usize);
 	for i in 1..=nargs {
-		match lua.type_id(state, i) {
+		match lua.raw.typeid(state, i) {
 			autorun_lua::LuaTypeId::Nil => {
 				args.push(String::from("nil"));
 			}
 
 			autorun_lua::LuaTypeId::LightUserdata => {
-				let ptr = lua.to_userdata(state, i);
+				let ptr = lua.raw.touserdata(state, i);
 				args.push(format!("lightuserdata: {:p}", ptr));
 			}
 
 			autorun_lua::LuaTypeId::Userdata => {
-				let ptr = lua.to_userdata(state, i);
+				let ptr = lua.raw.touserdata(state, i);
 				args.push(format!("userdata: {:p}", ptr));
 			}
 
 			autorun_lua::LuaTypeId::Function => {
-				let ptr = lua.to_function(state, i);
+				let ptr = lua.raw.tocfunction(state, i);
 				if let Some(func) = ptr {
 					args.push(format!("function: {:p}", func));
 				} else {
@@ -32,7 +32,7 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 			}
 
 			autorun_lua::LuaTypeId::Thread => {
-				let ptr = lua.to_thread(state, i);
+				let ptr = lua.raw.tothread(state, i);
 				args.push(format!("thread: {:p}", ptr));
 			}
 

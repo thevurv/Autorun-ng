@@ -22,7 +22,7 @@ impl IntoLua for RemoteValue {
 				lua.push(state, b);
 			}
 			RemoteValue::Nil => {
-				lua.push_nil(state);
+				lua.raw.pushnil(state);
 			}
 		}
 	}
@@ -34,7 +34,7 @@ fn serialize_value(
 	_env: crate::EnvHandle,
 	stack_idx: core::ffi::c_int,
 ) -> anyhow::Result<RemoteValue> {
-	match lua.type_id(state, -1) {
+	match lua.raw.typeid(state, -1) {
 		LuaTypeId::LightUserdata | LuaTypeId::Function | LuaTypeId::Userdata | LuaTypeId::Thread => {
 			Err(anyhow::anyhow!("Unsupported type for remote value"))
 		}
@@ -49,7 +49,7 @@ fn serialize_value(
 }
 
 pub fn trigger_remote(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyhow::Result<()> {
-	let event_name = lua.check_string(state, 1);
+	let event_name = lua.raw.checkstring(state, 1);
 	let event_name = std::ffi::CString::new(event_name.as_bytes())?;
 	let value = serialize_value(lua, state, env, 2)?;
 

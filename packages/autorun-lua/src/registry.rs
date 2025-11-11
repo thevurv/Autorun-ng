@@ -1,4 +1,4 @@
-use crate::LuaState;
+use crate::{LuaResult, LuaState, REGISTRY_INDEX};
 
 /// A handle to a value in the lua registry.
 /// Note this does not have any reference counting, hence can be cloned.
@@ -9,11 +9,11 @@ pub struct RawHandle(i32);
 impl RawHandle {
 	/// Pops the value at the top of the stack and stores it in the registry.
 	pub fn from_stack(lua: &crate::LuaApi, state: *mut LuaState) -> Option<Self> {
-		if lua.get_top(state) < 1 {
+		if lua.raw.gettop(state) < 1 {
 			return None;
 		}
 
-		lua.reference(state).map(Self)
+		lua.raw.reference(state).map(Self)
 	}
 
 	pub fn from_id(id: i32) -> Self {
@@ -21,11 +21,11 @@ impl RawHandle {
 	}
 
 	pub fn push(&self, lua: &crate::LuaApi, state: *mut LuaState) {
-		lua.get_registry(state, self.0);
+		lua.raw.rawgeti(state, REGISTRY_INDEX, self.0);
 	}
 
-	pub fn free(self, lua: &crate::LuaApi, state: *mut LuaState) -> Result<(), crate::RegistryDerefError> {
-		lua.dereference(state, self.0)
+	pub fn free(self, lua: &crate::LuaApi, state: *mut LuaState) -> LuaResult<()> {
+		lua.raw.unreference(state, self.0)
 	}
 
 	pub fn id(&self) -> i32 {
