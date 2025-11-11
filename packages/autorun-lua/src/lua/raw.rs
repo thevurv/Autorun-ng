@@ -11,7 +11,7 @@ const LUA_IDSIZE: usize = 60;
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct DebugInfo {
+pub struct RawDebugInfo {
 	pub event: c_int,
 	pub name: *const c_char,             // n
 	pub namewhat: *const c_char,         // n
@@ -239,8 +239,8 @@ impl RawLuaApi {
 		self._toboolean(state, index) != 0
 	}
 
-	pub fn getinfo(&self, state: *mut LuaState, level: c_int, what: &CStr) -> Option<DebugInfo> {
-		let mut debug_info = unsafe { std::mem::zeroed::<DebugInfo>() };
+	pub fn getinfo(&self, state: *mut LuaState, level: c_int, what: &CStr) -> Option<RawDebugInfo> {
+		let mut debug_info = unsafe { std::mem::zeroed::<RawDebugInfo>() };
 
 		if self.getstack(state, level, &raw mut debug_info as _) == 0 {
 			return None;

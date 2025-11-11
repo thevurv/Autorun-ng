@@ -11,8 +11,8 @@ This implements Autorun's lua abstractions and being able to access the lua api 
 use autorun_lua::*;
 
 fn lua_adder(lua: &LuaApi, state: *mut LuaState) -> Result<f64, Box<dyn std::error::Error>> {
-	let x = lua.check_number(state, 1);
-	let y = lua.check_number(state, 2);
+	let x = lua.raw.try_to::<f64>(state, 1)?;
+	let y = lua.raw.try_to::<f64>(state, 2)?;
 
 	// This pushes it onto lua's stack for you.
 	// You can return multiple values via a tuple of values

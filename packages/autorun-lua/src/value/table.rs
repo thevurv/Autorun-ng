@@ -1,4 +1,6 @@
-use crate::{FromLua, Globals, IntoLua, LuaApi, LuaResult, LuaState, RawHandle, RawLuaApi, TryFromLua};
+use crate::{
+	FromLua, Globals, IntoLua, LuaApi, LuaError, LuaResult, LuaState, LuaTypeId, LuaValue, RawHandle, RawLuaApi, TryFromLua,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct LuaTable {
@@ -45,5 +47,14 @@ impl LuaApi {
 impl IntoLua for &LuaTable {
 	fn into_lua(self, lua: &RawLuaApi, state: *mut LuaState) {
 		lua.push(state, &self.handle);
+	}
+}
+
+impl TryFromLua for LuaTable {
+	fn try_from_lua(lua: &RawLuaApi, state: *mut LuaState, index: i32) -> LuaResult<Self> {
+		match lua.to(state, index) {
+			LuaValue::Table(table) => Ok(table),
+			other => Err(LuaError::mismatch(LuaTypeId::Table, other.typeid())),
+		}
 	}
 }

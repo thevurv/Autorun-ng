@@ -67,18 +67,15 @@ impl EnvHandle {
 	}
 
 	pub fn is_active(&self, lua: &LuaApi, state: *mut LuaState) -> bool {
-		if lua.raw.getinfo(state, 1, c"f").is_none() {
-			// No function info available
+		let Ok(info) = lua.getinfo(state, 1, c"f") else {
 			return false;
-		}
+		};
 
-		lua.raw.getfenv(state, -1);
-		lua.raw.push(state, self);
+		let Ok(Some(env)) = lua.getfenv(state, &info.func.unwrap()) else {
+			return false;
+		};
 
-		let equal = lua.raw.rawequal(state, -1, -2);
-		lua.raw.pop(state, 3);
-
-		equal
+		lua.equal(state, &env, &self.env)
 	}
 
 	pub fn get_active_plugin(&self, lua: &LuaApi, state: *mut LuaState) -> Option<&Plugin> {
