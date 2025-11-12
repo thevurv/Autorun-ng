@@ -33,6 +33,10 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 				args.push(format!("function: {:p}", func_str));
 			}
 
+			LuaValue::Number(val) => {
+				args.push(val.to_string());
+			}
+
 			_ => {
 				let arg = lua.raw.try_to::<String>(state, i)?;
 				args.push(arg);
