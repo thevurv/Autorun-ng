@@ -63,5 +63,8 @@ pub fn restore_func(func: *mut GCfunc) -> anyhow::Result<()> {
 	proto.framesize = state.original_frame_size;
 	autorun_log::debug!("Frame size restored.");
 
+	// We no longer need to keep the state
+	ORIGINAL_DETOUR_STATES.lock().unwrap().remove(&(func as usize));
+
 	Ok(())
 }
