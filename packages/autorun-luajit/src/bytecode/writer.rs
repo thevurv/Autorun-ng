@@ -65,4 +65,8 @@ impl BCWriter {
 		self.offset += 1;
 		Ok(old_instruction)
 	}
+
+	pub fn get_ptr(&self) -> *mut BCIns {
+		self.ptr
+	}
 }

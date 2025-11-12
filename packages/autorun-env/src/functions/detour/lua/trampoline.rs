@@ -1,5 +1,6 @@
 //! This module emits the necessary trampoline LJ bytecode for detouring Lua functions.
 
+use crate::functions::detour::lua::state::OriginalDetourState;
 use anyhow::Context;
 use autorun_luajit::bytecode::{BCWriter, Op};
 use autorun_luajit::{BCIns, GCProto, GCfuncL, ProtoFlags};
@@ -13,7 +14,7 @@ const MINIMUM_UPVALUES: u8 = 1;
 /// pulls the detour function from upvalue 0, moves all arguments into
 /// their correct registers, and then calls the detour function with CALLT.
 /// This trampoline completely replaces the target function's bytecode and does not consume an extra level of stack.
-pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL) -> anyhow::Result<()> {
+pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL, original_detour_state: &mut OriginalDetourState) -> anyhow::Result<()> {
 	let mut writer = BCWriter::from_gcfunc_l(gcfunc_l).context("Failed to create BCWriter from GCfuncL")?;
 	let proto = gcfunc_l.get_proto().context("Failed to get proto from GCfuncL")?;
 	let proto = unsafe { proto.as_mut().context("Failed to dereference proto")? };
@@ -29,6 +30,12 @@ pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL) -> anyhow::Result<()> {
 	if proto.has_flag(ProtoFlags::Vararg) {
 		anyhow::bail!("Detour trampoline does not support vararg functions.");
 	}
+
+	// Save original fields for restoration later
+	let bytecode_slice = unsafe { std::slice::from_raw_parts(writer.get_ptr(), proto.sizebc as usize) };
+	let original_bytecode = bytecode_slice.to_vec();
+	original_detour_state.original_bytecode = original_bytecode;
+	original_detour_state.original_frame_size = proto.framesize;
 
 	let nargs = proto.numparams;
 	let maxslots = 2 * nargs + 2;

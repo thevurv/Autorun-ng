@@ -150,6 +150,10 @@ macro_rules! impl_tvalue_type_check {
 }
 
 impl TValue {
+	pub fn nil() -> Self {
+		Self { it64: -1 }
+	}
+
 	pub fn as_ptr<T: IntoLJType>(&self) -> anyhow::Result<*mut T> {
 		if self.itype() != T::LJ_TYPE {
 			anyhow::bail!("TValue type mismatch: expected {}, got {}", T::LJ_TYPE, self.itype());

@@ -109,6 +109,7 @@ impl EnvHandle {
 		lua.set(state, &t, "isFunctionAuthorized", wrap!(functions::is_function_authorized));
 		lua.set(state, &t, "isProtoAuthorized", wrap!(functions::is_proto_authorized));
 		lua.set(state, &t, "testLua", wrap!(functions::test_lua));
+		lua.set(state, &t, "restoreLua", wrap!(functions::restore_lua));
 		lua.set(state, &t, "VERSION", env!("CARGO_PKG_VERSION"));
 
 		return t;
