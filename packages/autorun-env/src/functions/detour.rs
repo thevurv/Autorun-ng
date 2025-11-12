@@ -131,11 +131,27 @@ pub fn test_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> a
 	let lj_state = state as *mut LJState;
 	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
 	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
+	let gcfunc_l = gcfunc.as_l().context("Target function must be a Lua function.")?;
+	let proto = gcfunc_l.get_proto()?;
+	let proto = unsafe { proto.as_mut().context("Failed to get proto for target function.")? };
+
 	let replacement_tv = unsafe {
 		index2adr(lj_state, 2)
 			.context("Failed to get TValue for replacement upvalue.")?
 			.read()
 	};
+
+	let detour_gcfunc = get_gcobj::<GCfunc>(lj_state, 2).context("Failed to get GCfunc for detour function.")?;
+	let detour_gcfunc_l = detour_gcfunc.as_l().context("Detour function must be a Lua function.")?;
+	let detour_proto = detour_gcfunc_l.get_proto()?;
+	let detour_proto = unsafe { detour_proto.as_mut().context("Failed to get proto for detour function.")? };
+
+	// Copy over debug information from detour to target
+	detour_proto.chunkname = proto.chunkname;
+	detour_proto.firstline = proto.firstline;
+	detour_proto.lineinfo = proto.lineinfo;
+	detour_proto.uvinfo = proto.uvinfo;
+	detour_proto.varinfo = proto.varinfo;
 
 	let gcfunc_l = gcfunc.as_l().context("Must be a Lua function.")?;
 	autorun_log::debug!("Patching upvalue...");
