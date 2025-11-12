@@ -2,7 +2,7 @@
 
 use anyhow::Context;
 use autorun_luajit::bytecode::{BCWriter, Op};
-use autorun_luajit::{BCIns, GCProto, GCfuncL};
+use autorun_luajit::{BCIns, GCProto, GCfuncL, ProtoFlags};
 
 /// Assumes detour function is in UV 0.
 /// # Detouring
@@ -21,6 +21,10 @@ pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL) -> anyhow::Result<()> {
 
 	if proto.sizeuv < 1 {
 		anyhow::bail!("Target function's proto does not have enough upvalues for detour trampoline.");
+	}
+
+	if proto.has_flag(ProtoFlags::Vararg) {
+		anyhow::bail!("Detour trampoline does not support vararg functions.");
 	}
 
 	let nargs = proto.numparams;

@@ -478,6 +478,13 @@ impl Debug for BCIns {
 }
 
 pub type BCLine = u32;
+pub enum ProtoFlags {
+	Child = 0x01,
+	Vararg = 0x02,
+	FFI = 0x04,
+	NoJIT = 0x08,
+	ILoop = 0x10,
+}
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -516,6 +523,10 @@ impl GCProto {
 		};
 
 		chunk_name.as_str()
+	}
+
+	pub fn has_flag(&self, flag: ProtoFlags) -> bool {
+		(self.flags & (flag as u8)) != 0
 	}
 }
 
