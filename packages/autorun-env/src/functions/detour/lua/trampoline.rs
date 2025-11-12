@@ -5,6 +5,11 @@ use autorun_luajit::bytecode::{BCWriter, Op};
 use autorun_luajit::{BCIns, GCProto, GCfuncL};
 
 /// Assumes detour function is in UV 0.
+/// # Detouring
+/// This emits a trampoline which sets up a new function that specifically
+/// pulls the detour function from upvalue 0, moves all arguments into
+/// their correct registers, and then calls the detour function with CALLT.
+/// This trampoline completely replaces the target function's bytecode and does not consume an extra level of stack.
 pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL) -> anyhow::Result<()> {
 	let mut writer = BCWriter::from_gcfunc_l(gcfunc_l).context("Failed to create BCWriter from GCfuncL")?;
 	let proto = gcfunc_l.get_proto().context("Failed to get proto from GCfuncL")?;
