@@ -1,1 +1,2 @@
-mod upvalue;
+pub mod trampoline;
+pub mod upvalue;

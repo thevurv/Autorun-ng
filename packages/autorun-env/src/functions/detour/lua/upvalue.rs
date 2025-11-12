@@ -5,7 +5,7 @@
 use anyhow::Context;
 use autorun_luajit::{GCUpval, GCfuncL, TValue};
 
-pub fn replace(func: GCfuncL, target_index: u32, replacement_tv: TValue) -> anyhow::Result<()> {
+pub fn replace(func: &GCfuncL, target_index: u32, replacement_tv: TValue) -> anyhow::Result<()> {
 	if target_index >= func.header.nupvalues as u32 {
 		anyhow::bail!(
 			"Upvalue replacement index out of bounds: target_index {} exceeds number of upvalues {}.",

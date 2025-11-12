@@ -9,7 +9,7 @@ use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
 use autorun_lua::{LuaApi, LuaCFunction, LuaTypeId, RawHandle, RawLuaReturn};
 use autorun_luajit::bytecode::{BCWriter, Op};
-use autorun_luajit::{BCIns, GCfunc, LJState, get_gcobj, get_gcobj_mut};
+use autorun_luajit::{BCIns, GCfunc, LJState, get_gcobj, get_gcobj_mut, index2adr};
 use autorun_types::LuaState;
 use retour::GenericDetour;
 use std::ffi::c_int;
@@ -130,22 +130,16 @@ pub fn test_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> a
 	let lj_state = state as *mut LJState;
 	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
 	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
+	let replacement_tv = unsafe {
+		index2adr(lj_state, 2)
+			.context("Failed to get TValue for replacement upvalue.")?
+			.read()
+	};
 
 	let gcfunc_l = gcfunc.as_l().context("Must be a Lua function.")?;
-	let proto = unsafe { gcfunc_l.get_proto()?.as_mut() }.context("Failed to get prototype.")?;
-
-	if proto.sizebc < 3 {
-		autorun_log::debug!("Bytecode instruction count: {}, cannot patch test function.", proto.sizebc);
-		anyhow::bail!("Not enough bytecode instructions to patch.");
-	}
-
-	let mut bc_writer = BCWriter::from_gcfunc_l(gcfunc_l)?;
-	bc_writer.set_offset(1)?; // skip after the FUNCF opcode
-	let old_ins = bc_writer.replace(BCIns::from_ad(Op::KSHORT, 0, 1337))?; // KSHORT
-	let old_ins2 = bc_writer.replace(BCIns::from_ad(Op::RET1, 0, 2))?; // RET1
-
-	autorun_log::debug!("Patched bytecode instructions.");
-	autorun_log::debug!("Old instructions: \n{:#?}\n{:#?}", old_ins, old_ins2);
+	autorun_log::debug!("Patching upvalue...");
+	lua::upvalue::replace(gcfunc_l, 0, replacement_tv)?;
+	lua::trampoline::overwrite_with_trampoline(gcfunc_l)?;
 
 	Ok(RawLuaReturn(0))
 }

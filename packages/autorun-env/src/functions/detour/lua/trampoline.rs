@@ -1,0 +1,43 @@
+//! This module emits the necessary trampoline LJ bytecode for detouring Lua functions.
+
+use anyhow::Context;
+use autorun_luajit::bytecode::{BCWriter, Op};
+use autorun_luajit::{BCIns, GCProto, GCfuncL};
+
+/// Assumes detour function is in UV 0.
+pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL) -> anyhow::Result<()> {
+	let mut writer = BCWriter::from_gcfunc_l(gcfunc_l).context("Failed to create BCWriter from GCfuncL")?;
+	let proto = gcfunc_l.get_proto().context("Failed to get proto from GCfuncL")?;
+	let proto = unsafe { proto.as_mut().context("Failed to dereference proto")? };
+
+	if proto.sizebc < 15 {
+		anyhow::bail!("Target function's proto is too small to overwrite with trampoline.");
+	}
+
+	if proto.sizeuv < 1 {
+		anyhow::bail!("Target function's proto does not have enough upvalues for detour trampoline.");
+	}
+
+	let nargs = proto.numparams;
+	let maxslots = 2 * nargs + 2;
+	proto.framesize = maxslots; // update framesize to accommodate trampoline
+
+	writer.write(BCIns::from_ad(Op::FUNCF, maxslots, 0))?;
+	let mut free_register = nargs; // 0-indexed register after arguments
+	let detour_register = free_register;
+
+	writer.write(BCIns::from_ad(Op::UGET, free_register, 0))?; // get detour function from upvalue 0
+
+	// Begin allocating and setting up the argument registers, they are all at 0-nargs, we need them to nargs+1-2*nargs
+	free_register += 1; // No idea why, but a register needs to be skipped here. Maybe something to do with frame linkage?
+	for i in 0..nargs {
+		writer.write(BCIns::from_ad(Op::MOV, free_register + i, i as i16))?;
+		free_register += 1;
+	}
+
+	// write final callt
+	writer.write(BCIns::from_ad(Op::CALLT, detour_register, (nargs + 1) as i16))?;
+
+	// all done, no return necessary as CALLT handles it
+	Ok(())
+}
