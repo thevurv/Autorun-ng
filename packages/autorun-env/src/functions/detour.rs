@@ -7,7 +7,8 @@ use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_tram
 use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
 use autorun_lua::{LuaApi, LuaCFunction, LuaTypeId, RawHandle, RawLuaReturn};
-use autorun_luajit::{GCfunc, LJState, get_gcobj, get_gcobj_mut};
+use autorun_luajit::bytecode::{BCWriter, Op};
+use autorun_luajit::{BCIns, GCfunc, LJState, get_gcobj, get_gcobj_mut};
 use autorun_types::LuaState;
 use retour::GenericDetour;
 use std::ffi::c_int;
@@ -117,4 +118,33 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHa
 	std::mem::forget(trampoline);
 
 	Ok(RawLuaReturn(1))
+}
+
+pub fn test_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+	if lua.raw.typeid(state, 1) != LuaTypeId::Function {
+		anyhow::bail!("First argument must be a function.");
+	}
+
+	// get function
+	let lj_state = state as *mut LJState;
+	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
+	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
+
+	let gcfunc_l = gcfunc.as_l().context("Must be a Lua function.")?;
+	let proto = unsafe { gcfunc_l.get_proto()?.as_mut() }.context("Failed to get prototype.")?;
+
+	if proto.sizebc < 3 {
+		autorun_log::debug!("Bytecode instruction count: {}, cannot patch test function.", proto.sizebc);
+		anyhow::bail!("Not enough bytecode instructions to patch.");
+	}
+
+	let mut bc_writer = BCWriter::from_gcfunc_l(gcfunc_l)?;
+	bc_writer.set_offset(1)?; // skip after the FUNCF opcode
+	let old_ins = bc_writer.replace(BCIns::from_ad(Op::KSHORT, 0, 1337))?; // KSHORT
+	let old_ins2 = bc_writer.replace(BCIns::from_ad(Op::RET1, 0, 2))?; // RET1
+
+	autorun_log::debug!("Patched bytecode instructions.");
+	autorun_log::debug!("Old instructions: \n{:#?}\n{:#?}", old_ins, old_ins2);
+
+	Ok(RawLuaReturn(0))
 }

@@ -1,5 +1,6 @@
 // Subset of lj_obj.h
 
+use crate::bytecode::Op;
 use anyhow::Context;
 use std::ffi::{c_int, c_void};
 use std::fmt::Debug;
@@ -58,7 +59,7 @@ pub type LuaAllocFn = extern "C-unwind" fn(
 	nsize: usize,
 ) -> *mut core::ffi::c_void;
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct MRef {
 	pub ptr64: u64,
@@ -67,7 +68,7 @@ pub struct MRef {
 impl MRef {
 	// equivalent to the mref macro in LuaJIT
 	pub fn as_ptr<T>(&self) -> *mut T {
-		self.ptr64 as *mut T
+		(self.ptr64 & LJ_GCVMASK) as *mut T
 	}
 
 	pub fn tvref(&self) -> *mut TValue {
@@ -75,7 +76,7 @@ impl MRef {
 	}
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct GCRef {
 	pub gcptr64: u64,
@@ -100,12 +101,19 @@ impl PartialEq<Self> for GCRef {
 	}
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct GCHeader {
 	pub nextgc: GCRef,
 	pub marked: u8,
 	pub gct: u8,
+}
+
+impl GCHeader {
+	pub fn check_type(&self, lj_type: u32) -> bool {
+		// GCT is stored as the bitwise NOT of the type
+		self.gct as u32 == (!lj_type & 0xFF)
+	}
 }
 
 // #define LJ_GCVMASK		(((uint64_t)1 << 47) - 1)
@@ -182,10 +190,12 @@ pub struct GCFuncHeader {
 	pub nupvalues: u8,
 	pub env: GCRef,
 	pub gclist: GCRef,
+	// Compiler randomly adds 4 bytes of padding here for alignment, not too sure why since it is packed
+	pub _pad: [u8; 4],
 	pub pc: MRef,
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub struct GCfuncC {
 	pub header: GCFuncHeader,
@@ -193,7 +203,7 @@ pub struct GCfuncC {
 	pub upvalue: [TValue; 1],
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub struct GCfuncL {
 	pub header: GCFuncHeader,
@@ -201,17 +211,20 @@ pub struct GCfuncL {
 }
 
 impl GCfuncL {
-	pub fn get_proto(&self) -> anyhow::Result<&GCProto> {
+	pub fn get_proto(&self) -> anyhow::Result<*mut GCProto> {
 		let pc_ref = self.header.pc;
 		// proto starts immediately before the pc pointer
 		let proto = unsafe { pc_ref.as_ptr::<GCProto>().offset(-1) };
-		let proto_ref = unsafe { proto.as_ref().context("Failed to dereference GCProto from GCfuncL")? };
+		Ok(proto)
+	}
 
-		Ok(proto_ref)
+	pub fn get_bc_ins(&self) -> anyhow::Result<*mut BCIns> {
+		let pc_ref = self.header.pc;
+		Ok(pc_ref.as_ptr::<BCIns>())
 	}
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub union GCfunc {
 	pub c: GCfuncC,
@@ -400,13 +413,63 @@ impl IntoLJType for GCUpval {
 	const LJ_TYPE: u32 = LJ_TUPVAL;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct BCIns(u32);
 
 impl BCIns {
+	// instruction consisting of an opcode, 8-bit A and 16-bit D fields
+	pub fn from_ad(opcode: Op, a: u8, d: i16) -> Self {
+		Self((opcode as u32) | ((a as u32) << 8) | (((d as i32 as u32) & 0xFFFF) << 16))
+	}
+
+	pub fn from_abc(opcode: Op, a: u8, b: u8, c: u8) -> Self {
+		Self((opcode as u32) | ((a as u32) << 8) | ((c as u32) << 16) | ((b as u32) << 24))
+	}
+
+	pub fn opcode(&self) -> Op {
+		//#define bc_op(i)		((BCOp)((i)&0xff))
+		Op::try_from((self.0 & 0xff) as u8).unwrap()
+	}
+
+	/*
+		#define bc_a(i)		((BCReg)(((i)>>8)&0xff))
+	#define bc_b(i)		((BCReg)((i)>>24))
+	#define bc_c(i)		((BCReg)(((i)>>16)&0xff))
+	#define bc_d(i)		((BCReg)((i)>>16))
+		 */
 	pub fn a(&self) -> u8 {
 		//#define bc_a(i)		((BCReg)(((i)>>8)&0xff))
 		((self.0 >> 8) & 0xff) as u8
+	}
+
+	pub fn b(&self) -> u8 {
+		//#define bc_b(i)		((BCReg)((i)>>24))
+		((self.0 >> 24) & 0xff) as u8
+	}
+
+	pub fn c(&self) -> u8 {
+		//#define bc_c(i)		((BCReg)(((i)>>16)&0xff))
+		((self.0 >> 16) & 0xff) as u8
+	}
+
+	pub fn d(&self) -> i16 {
+		//#define bc_d(i)		((BCReg)((i)>>16))
+		((self.0 >> 16) & 0xffff) as i16
+	}
+}
+
+impl Debug for BCIns {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"BCIns {{ opcode: {:?}, a: {}, b: {}, c: {}, d: {}, raw: 0x{:08x} }}",
+			self.opcode(),
+			self.a(),
+			self.b(),
+			self.c(),
+			self.d(),
+			self.0
+		)
 	}
 }
 
@@ -435,6 +498,8 @@ pub struct GCProto {
 	pub lineinfo: MRef,
 	pub uvinfo: MRef,
 	pub varinfo: MRef,
+	// padding for alignment
+	pub _pad: [u8; 4],
 }
 
 impl GCProto {
