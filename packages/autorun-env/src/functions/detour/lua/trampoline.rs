@@ -36,8 +36,8 @@ pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL) -> anyhow::Result<()> {
 	// Begin allocating and setting up the argument registers, they are all at 0-nargs, we need them to nargs+1-2*nargs
 	free_register += 1; // No idea why, but a register needs to be skipped here. Maybe something to do with frame linkage?
 	for i in 0..nargs {
-		writer.write(BCIns::from_ad(Op::MOV, free_register + i, i as i16))?;
 		free_register += 1;
+		writer.write(BCIns::from_ad(Op::MOV, free_register, i as i16))?;
 	}
 
 	// write final callt
