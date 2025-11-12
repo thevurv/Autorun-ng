@@ -28,6 +28,11 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 				args.push(String::from(if val { "true" } else { "false" }));
 			}
 
+			LuaValue::Function(_func) => {
+				let func_str = lua.raw.topointer(state, i);
+				args.push(format!("function: {:p}", func_str));
+			}
+
 			_ => {
 				let arg = lua.raw.try_to::<String>(state, i)?;
 				args.push(arg);
