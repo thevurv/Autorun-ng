@@ -33,9 +33,20 @@ pub fn print(lua: &LuaApi, state: *mut LuaState, env: crate::EnvHandle) -> anyho
 				args.push(format!("function: {:p}", func_str));
 			}
 
+			LuaValue::Table(_table) => {
+				let func_str = lua.raw.topointer(state, i);
+				args.push(format!("table: {:p}", func_str));
+			}
+
+			LuaValue::Number(val) => {
+				args.push(val.to_string());
+			}
+
 			_ => {
-				let arg = lua.raw.try_to::<String>(state, i)?;
-				args.push(arg);
+				match lua.raw.tostring(state, i) {
+					Some(s) => args.push(s.to_string()),
+					None => args.push(String::from("<tostring failed>")),
+				}
 			}
 		}
 	}
