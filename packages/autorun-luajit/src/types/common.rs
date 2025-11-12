@@ -71,6 +71,10 @@ impl MRef {
 		(self.ptr64 & LJ_GCVMASK) as *mut T
 	}
 
+	pub fn as_mut_ptr<T>(&self) -> *mut T {
+		(self.ptr64 & LJ_GCVMASK) as *mut T
+	}
+
 	pub fn tvref(&self) -> *mut TValue {
 		self.as_ptr::<TValue>()
 	}
@@ -91,7 +95,7 @@ impl GCRef {
 
 	// equivalent to the gcref macro in LuaJIT
 	pub fn as_ptr<T>(&self) -> *mut T {
-		self.gcptr64 as *mut T
+		(self.gcptr64 & LJ_GCVMASK) as *mut T
 	}
 }
 

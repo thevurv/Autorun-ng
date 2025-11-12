@@ -1,4 +1,5 @@
 mod handlers;
+mod lua;
 mod raw;
 mod userdata;
 
