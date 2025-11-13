@@ -426,7 +426,7 @@ pub struct Node {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct GCUpvalUVLink {
 	pub next: GCRef,
 	pub prev: GCRef,
@@ -438,7 +438,17 @@ pub union GCUpvalUV {
 	pub link: GCUpvalUVLink,
 }
 
+impl Debug for GCUpvalUV {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		// we can't know which field is valid here, so just print both
+		write!(f, "GCUpvalUV {{ tv: {:?}, link: {:?} }}", unsafe { self.tv }, unsafe {
+			self.link
+		})
+	}
+}
+
 #[repr(C)]
+#[derive(Debug)]
 pub struct GCUpval {
 	pub header: GCHeader,
 	pub closed: u8,
