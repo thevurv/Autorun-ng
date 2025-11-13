@@ -75,6 +75,10 @@ impl MRef {
 		(self.ptr64 & LJ_GCVMASK) as *mut T
 	}
 
+	pub fn set_ptr<T>(&mut self, ptr: *mut T) {
+		self.ptr64 = (ptr as u64) & LJ_GCVMASK;
+	}
+
 	pub fn tvref(&self) -> *mut TValue {
 		self.as_ptr::<TValue>()
 	}
@@ -154,6 +158,15 @@ impl TValue {
 		Self { it64: -1 }
 	}
 
+	pub fn from_ptr<T: IntoLJType>(ptr: *mut T) -> Self {
+		let gcr = GCRef::from_ptr(ptr);
+		let itype = T::LJ_TYPE as u64;
+		let mut tv = Self { gcr };
+
+		tv.set_itype(itype);
+		tv
+	}
+
 	pub fn as_ptr<T: IntoLJType>(&self) -> anyhow::Result<*mut T> {
 		if self.itype() != T::LJ_TYPE {
 			anyhow::bail!("TValue type mismatch: expected {}, got {}", T::LJ_TYPE, self.itype());
@@ -172,6 +185,11 @@ impl TValue {
 
 	pub fn itype(&self) -> u32 {
 		unsafe { ((self.it64 >> 47) & 0xFFFFFFFF) as u32 }
+	}
+
+	pub fn set_itype(&mut self, itype: u64) {
+		let it64 = unsafe { self.it64 & 0x00007FFFFFFFFFFF }; // clear the type bits
+		self.it64 = it64 | ((itype as i64) << 47);
 	}
 
 	impl_tvalue_type_check!(is_nil, LJ_TNIL);
@@ -327,6 +345,17 @@ pub struct Sbuf {
 	pub b: MRef,
 	pub l: MRef,
 }
+
+pub const LJ_GC_WHITE0: u8 = 0x01;
+pub const LJ_GC_WHITE1: u8 = 0x02;
+pub const LJ_GC_BLACK: u8 = 0x04;
+pub const LJ_GC_FINALIZED: u8 = 0x08;
+pub const LJ_GC_WEAKKEY: u8 = 0x08;
+pub const LJ_GC_WEAKVAL: u8 = 0x10;
+pub const LJ_GC_CDATA_FIN: u8 = 0x10;
+pub const LJ_GC_FIXED: u8 = 0x20;
+pub const LJ_GC_SFIXED: u8 = 0x40;
+pub const LJ_GC_WHITES: u8 = LJ_GC_WHITE0 | LJ_GC_WHITE1;
 
 #[repr(C)]
 pub struct GCState {

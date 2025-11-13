@@ -65,3 +65,49 @@ pub fn push_frame_func(state: &mut LJState, frame: &Frame) -> anyhow::Result<()>
 	push_tvalue(state, unsafe { &*frame.get_func_tv() });
 	Ok(())
 }
+
+// Our number one goal is to avoid having to depend on things like sigscanning to find internal functions.
+// Therefore we re-implement the functionality we need here.
+/**
+/* Allocate new GC object and link it to the root set. */
+void * LJ_FASTCALL lj_mem_newgco(lua_State *L, GCSize size)
+{
+  global_State *g = G(L);
+  GCobj *o = (GCobj *)g->allocf(g->allocd, NULL, 0, size);
+  if (o == NULL)
+	lj_err_mem(L);
+  lj_assertG(checkptrGC(o),
+		 "allocated memory address %p outside required range", o);
+  g->gc.total += size;
+  setgcrefr(o->gch.nextgc, g->gc.root);
+  setgcref(g->gc.root, o);
+  newwhite(g, o);
+  return o;
+}
+
+#define newwhite(g, x)	(obj2gco(x)->gch.marked = (uint8_t)curwhite(g))
+#define curwhite(g)	((g)->gc.currentwhite & LJ_GC_WHITES)
+*/
+
+pub fn mem_newgco<T: IntoLJType>(state: &mut LJState, size: GCSize) -> anyhow::Result<*mut T> {
+	let global_state = global_state(state);
+	let global_state = unsafe { global_state.as_mut().context("Failed to dereference GlobalState")? };
+	let allocf = global_state.allocf;
+	let allocd = global_state.allocd;
+	let obj_ptr = unsafe { allocf(allocd, std::ptr::null_mut(), 0, size as usize) };
+	if obj_ptr.is_null() {
+		anyhow::bail!("Memory allocation failed in lj_mem_newgco.");
+	}
+
+	unsafe {
+		global_state.gc.total += size;
+		let gc_header_ptr = obj_ptr as *mut GCHeader;
+		(*gc_header_ptr).nextgc = global_state.gc.root;
+		global_state.gc.root.gcptr64 = obj_ptr as u64;
+
+		// newwhite
+		(*gc_header_ptr).marked = (global_state.gc.currentwhite & LJ_GC_WHITES) as u8;
+	}
+
+	Ok(obj_ptr as *mut T)
+}
