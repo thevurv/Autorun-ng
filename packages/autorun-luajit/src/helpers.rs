@@ -113,6 +113,7 @@ pub fn mem_newgco<T: IntoLJType>(state: &mut LJState, size: GCSize) -> anyhow::R
 
 		// newwhite
 		(*gc_header_ptr).marked = (global_state.gc.currentwhite & LJ_GC_WHITES) as u8;
+		(*gc_header_ptr).gct = !T::LJ_TYPE as u8;
 	}
 
 	Ok(obj_ptr as *mut T)

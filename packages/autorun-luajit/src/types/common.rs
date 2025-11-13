@@ -230,7 +230,7 @@ pub struct GCfuncC {
 }
 
 #[repr(C, packed)]
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct GCfuncL {
 	pub header: GCFuncHeader,
 	pub uvptr: [GCRef; 1],

@@ -8,6 +8,7 @@ use autorun_luajit::{BCIns, GCHeader, GCProto, GCRef, GCSize, GCfunc, GCfuncL, L
 /// Clones the given Lua function deeply, duplicating its internal structures.
 /// Pushes the cloned function onto the Lua stack.
 pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()> {
+	dbg!(&target_func);
 	// Proto must be cloned first.
 	let proto = target_func.get_proto()?;
 	let proto_size = unsafe { (*proto).sizept } as GCSize;
@@ -23,8 +24,8 @@ pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()
 		// Treat every pointer as raw bytes, since sizept is specified as bytes.
 		std::ptr::copy_nonoverlapping(
 			(proto as *const u8).byte_add(size_of::<GCHeader>()),
-			new_proto_ptr as *mut u8,
-			proto_size as usize,
+			(new_proto_ptr as *mut u8).byte_add(size_of::<GCHeader>()),
+			proto_size as usize - size_of::<GCHeader>(),
 		);
 	};
 
@@ -43,11 +44,12 @@ pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()
 
 	unsafe {
 		let target_func = target_func as *const GCfuncL as *const u8;
+		dbg!(&target_func);
 
 		std::ptr::copy_nonoverlapping(
 			target_func.byte_add(size_of::<GCHeader>()),
-			new_func_ptr as *mut u8,
-			func_size as usize,
+			(new_func_ptr as *mut u8).byte_add(size_of::<GCHeader>()),
+			func_size as usize - size_of::<GCHeader>(),
 		);
 	};
 
@@ -58,6 +60,7 @@ pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()
 		(*new_func_ptr).header_mut().pc.set_ptr(bc_ptr);
 	}
 
+	dbg!(unsafe { &(*new_func_ptr).l });
 	// Create a TValue for the new function and push it onto the stack
 	let func_tvalue = TValue::from_ptr(new_func_ptr);
 	push_tvalue(lj_state, &func_tvalue);
