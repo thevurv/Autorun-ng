@@ -56,12 +56,7 @@ fn write_trampoline_bytecode(writer: &mut BCWriter, nargs: u8, maxslots: u8) -> 
 
 	writer.write(BCIns::from_ad(Op::UGET, free_register, 0))?; // get detour function from upvalue 0
 
-	// Begin allocating and setting up the argument registers, they are all at 0-nargs, we need them to nargs+1-2*nargs
-	free_register += 1; // No idea why, but a register needs to be skipped here. Maybe something to do with frame linkage?
-	for i in 0..nargs {
-		free_register += 1;
-		writer.write(BCIns::from_ad(Op::MOV, free_register, i as i16))?;
-	}
+	allocate_arguments(writer, nargs, free_register)?;
 
 	// write final callt
 	writer.write(BCIns::from_ad(Op::CALLT, detour_register, (nargs + 1) as i16))?;
@@ -77,17 +72,21 @@ fn write_varg_trampoline_bytecode(writer: &mut BCWriter, nargs: u8, maxslots: u8
 
 	writer.write(BCIns::from_ad(Op::UGET, free_register, 0))?; // get detour function from upvalue 0
 
-	// Do the same allocation and setup of argument registers
-	free_register += 1;
-	for i in 0..nargs {
-		free_register += 1;
-		writer.write(BCIns::from_ad(Op::MOV, free_register, i as i16))?;
-	}
+	allocate_arguments(writer, nargs, free_register)?;
 
 	// Set up vararg handling
 	writer.write(BCIns::from_abc(Op::VARG, nargs * 2 + 2, 0, nargs))?;
 
 	// Use a metatable call to deal with the vararg pseudo-frame accordingly
 	writer.write(BCIns::from_ad(Op::CALLMT, detour_register, nargs as i16))?;
+	Ok(())
+}
+
+fn allocate_arguments(writer: &mut BCWriter, nargs: u8, mut free_register: u8) -> anyhow::Result<()> {
+	free_register += 1; // No idea why, but a register needs to be skipped here. Maybe something to do with frame linkage?
+	for i in 0..nargs {
+		free_register += 1;
+		writer.write(BCIns::from_ad(Op::MOV, free_register, i as i16))?;
+	}
 	Ok(())
 }
