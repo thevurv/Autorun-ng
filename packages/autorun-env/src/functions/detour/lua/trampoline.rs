@@ -72,6 +72,7 @@ fn write_varg_trampoline_bytecode(writer: &mut BCWriter, nargs: u8, maxslots: u8
 
 	writer.write(BCIns::from_ad(Op::UGET, free_register, 0))?; // get detour function from upvalue 0
 
+	// Vararg functions can still have fixed arguments, so we need to allocate those first before handling varargs
 	allocate_arguments(writer, nargs, free_register)?;
 
 	// Set up vararg handling
