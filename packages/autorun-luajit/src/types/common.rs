@@ -101,6 +101,10 @@ impl GCRef {
 	pub fn as_ptr<T>(&self) -> *mut T {
 		(self.gcptr64 & LJ_GCVMASK) as *mut T
 	}
+
+	pub fn set_ptr<T>(&mut self, ptr: *mut T) {
+		self.gcptr64 = (ptr as u64) & LJ_GCVMASK;
+	}
 }
 
 impl PartialEq<Self> for GCRef {
