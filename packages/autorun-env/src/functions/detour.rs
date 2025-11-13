@@ -184,3 +184,18 @@ pub fn restore_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -
 
 	Ok(RawLuaReturn(0))
 }
+
+pub fn clone_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+	if lua.raw.typeid(state, 1) != LuaTypeId::Function {
+		anyhow::bail!("First argument must be a function.");
+	}
+
+	let lj_state = state as *mut LJState;
+	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
+
+	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
+	let gcfunc_l = gcfunc.as_l().context("Target function must be a Lua function.")?;
+
+	lua::clone(lj_state, gcfunc_l)?;
+	Ok(RawLuaReturn(1))
+}

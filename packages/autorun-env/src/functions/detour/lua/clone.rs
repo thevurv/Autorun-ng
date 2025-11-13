@@ -13,6 +13,9 @@ pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()
 	let proto_size = unsafe { (*proto).sizept } as GCSize;
 	let proto_uv_size = unsafe { (*proto).sizeuv } as GCSize;
 
+	dbg!(unsafe { &(*proto) });
+	dbg!(&proto_size);
+	dbg!(&proto_uv_size);
 	// What we want to do is allocate a new proto and copy over everything, but
 	// keep the GCHeader intact or else the GC system will get super confused.
 	let new_proto_ptr = unsafe { mem_newgco::<GCProto>(lj_state, proto_size)? };
@@ -24,6 +27,11 @@ pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()
 			proto_size as usize,
 		);
 	};
+
+	dbg!("Fixing up proto offsets...");
+
+	// Fix up internal offsets within the proto
+	fixup_proto_offsets(proto, new_proto_ptr)?;
 
 	// Now create the new function, we'll keep everything about it intact, of course except for the GCHeader like
 	// the proto.
@@ -53,6 +61,31 @@ pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()
 	// Create a TValue for the new function and push it onto the stack
 	let func_tvalue = TValue::from_ptr(new_func_ptr);
 	push_tvalue(lj_state, &func_tvalue);
+
+	Ok(())
+}
+
+pub fn fixup_proto_offsets(original_proto: *mut GCProto, new_proto: *mut GCProto) -> anyhow::Result<()> {
+	// Basically, the proto contains several offsets that point to various internal structures within its own allocation.
+	// Technically speaking, we can hardcode these, but it would be better to read them from the original proto and adjust them accordingly.
+
+	let original_base = original_proto as usize;
+	let new_base = new_proto as usize;
+
+	let k_offset = unsafe { (*original_proto).k.ptr64 as usize - original_base };
+	let uv_offset = unsafe { (*original_proto).uv.ptr64 as usize - original_base };
+	let lineinfo_offset = unsafe { (*original_proto).lineinfo.ptr64 as usize - original_base };
+	let uvinfo_offset = unsafe { (*original_proto).uvinfo.ptr64 as usize - original_base };
+	let varinfo_offset = unsafe { (*original_proto).varinfo.ptr64 as usize - original_base };
+
+	// apply offsets to new proto
+	unsafe {
+		(*new_proto).k.ptr64 = (new_base + k_offset) as u64;
+		(*new_proto).uv.ptr64 = (new_base + uv_offset) as u64;
+		(*new_proto).lineinfo.ptr64 = (new_base + lineinfo_offset) as u64;
+		(*new_proto).uvinfo.ptr64 = (new_base + uvinfo_offset) as u64;
+		(*new_proto).varinfo.ptr64 = (new_base + varinfo_offset) as u64;
+	}
 
 	Ok(())
 }

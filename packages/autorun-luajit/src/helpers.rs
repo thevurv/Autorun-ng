@@ -92,6 +92,12 @@ void * LJ_FASTCALL lj_mem_newgco(lua_State *L, GCSize size)
 pub fn mem_newgco<T: IntoLJType>(state: &mut LJState, size: GCSize) -> anyhow::Result<*mut T> {
 	let global_state = global_state(state);
 	let global_state = unsafe { global_state.as_mut().context("Failed to dereference GlobalState")? };
+
+	dbg!(&global_state.gc);
+	dbg!(&global_state.allocd);
+	dbg!(&global_state.allocf);
+	dbg!(&size);
+
 	let allocf = global_state.allocf;
 	let allocd = global_state.allocd;
 	let obj_ptr = unsafe { allocf(allocd, std::ptr::null_mut(), 0, size as usize) };

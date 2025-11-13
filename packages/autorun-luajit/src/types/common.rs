@@ -326,6 +326,7 @@ pub struct LJState {
 	pub header: GCHeader,
 	pub dummy_ffid: u8,
 	pub status: u8,
+	pub pad: [u8; 4],
 	pub glref: MRef,
 	pub gclist: GCRef,
 	pub base: *mut TValue,
@@ -358,6 +359,7 @@ pub const LJ_GC_SFIXED: u8 = 0x40;
 pub const LJ_GC_WHITES: u8 = LJ_GC_WHITE0 | LJ_GC_WHITE1;
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct GCState {
 	pub total: GCSize,
 	pub threshold: GCSize,
@@ -530,6 +532,7 @@ pub struct GCProto {
 	pub framesize: u8,
 	pub sizebc: MSize,
 	pub unused: u32,
+	pub pad: [u8; 4],
 	pub gclist: GCRef,
 	pub k: MRef,
 	pub uv: MRef,
@@ -537,7 +540,6 @@ pub struct GCProto {
 	pub sizekn: MSize,
 	pub sizept: MSize,
 	pub sizeuv: u8,
-	pub pad: [u8; 4],
 	pub flags: u8,
 	pub trace: u16,
 	pub chunkname: GCRef,
