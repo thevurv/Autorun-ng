@@ -482,6 +482,9 @@ impl Debug for BCIns {
 }
 
 pub type BCLine = u32;
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProtoFlags {
 	Child = 0x01,
 	Vararg = 0x02,
@@ -505,6 +508,7 @@ pub struct GCProto {
 	pub sizekn: MSize,
 	pub sizept: MSize,
 	pub sizeuv: u8,
+	pub pad: [u8; 4],
 	pub flags: u8,
 	pub trace: u16,
 	pub chunkname: GCRef,
@@ -513,8 +517,6 @@ pub struct GCProto {
 	pub lineinfo: MRef,
 	pub uvinfo: MRef,
 	pub varinfo: MRef,
-	// padding for alignment
-	pub _pad: [u8; 4],
 }
 
 impl GCProto {
