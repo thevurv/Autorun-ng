@@ -1,3 +1,4 @@
+pub mod bytecode;
 mod helpers;
 mod types;
 

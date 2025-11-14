@@ -1,5 +1,6 @@
 // Subset of lj_obj.h
 
+use crate::bytecode::Op;
 use anyhow::Context;
 use std::ffi::{c_int, c_void};
 use std::fmt::Debug;
@@ -58,7 +59,7 @@ pub type LuaAllocFn = extern "C-unwind" fn(
 	nsize: usize,
 ) -> *mut core::ffi::c_void;
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct MRef {
 	pub ptr64: u64,
@@ -67,7 +68,15 @@ pub struct MRef {
 impl MRef {
 	// equivalent to the mref macro in LuaJIT
 	pub fn as_ptr<T>(&self) -> *mut T {
-		self.ptr64 as *mut T
+		(self.ptr64 & LJ_GCVMASK) as *mut T
+	}
+
+	pub fn as_mut_ptr<T>(&self) -> *mut T {
+		(self.ptr64 & LJ_GCVMASK) as *mut T
+	}
+
+	pub fn set_ptr<T>(&mut self, ptr: *mut T) {
+		self.ptr64 = (ptr as u64) & LJ_GCVMASK;
 	}
 
 	pub fn tvref(&self) -> *mut TValue {
@@ -75,7 +84,7 @@ impl MRef {
 	}
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct GCRef {
 	pub gcptr64: u64,
@@ -83,14 +92,20 @@ pub struct GCRef {
 
 impl GCRef {
 	pub fn from_ptr<T>(ptr: *mut T) -> Self {
-		Self {
-			gcptr64: (ptr as u64) & LJ_GCVMASK,
-		}
+		Self { gcptr64: ptr as u64 }
 	}
 
 	// equivalent to the gcref macro in LuaJIT
 	pub fn as_ptr<T>(&self) -> *mut T {
-		self.gcptr64 as *mut T
+		(self.gcptr64 & LJ_GCVMASK) as *mut T
+	}
+
+	pub fn as_direct_ptr<T>(&self) -> *mut T {
+		self.gcptr64 as *mut T // without masking
+	}
+
+	pub fn set_ptr<T>(&mut self, ptr: *mut T) {
+		self.gcptr64 = (ptr as u64) & LJ_GCVMASK;
 	}
 }
 
@@ -100,12 +115,19 @@ impl PartialEq<Self> for GCRef {
 	}
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct GCHeader {
 	pub nextgc: GCRef,
 	pub marked: u8,
 	pub gct: u8,
+}
+
+impl GCHeader {
+	pub fn check_type(&self, lj_type: u32) -> bool {
+		// GCT is stored as the bitwise NOT of the type
+		self.gct as u32 == (!lj_type & 0xFF)
+	}
 }
 
 // #define LJ_GCVMASK		(((uint64_t)1 << 47) - 1)
@@ -138,6 +160,19 @@ macro_rules! impl_tvalue_type_check {
 }
 
 impl TValue {
+	pub fn nil() -> Self {
+		Self { it64: -1 }
+	}
+
+	pub fn from_ptr<T: IntoLJType>(ptr: *mut T) -> Self {
+		let gcr = GCRef::from_ptr(ptr);
+		let itype = T::LJ_TYPE as u64;
+		let mut tv = Self { gcr };
+
+		tv.set_itype(itype);
+		tv
+	}
+
 	pub fn as_ptr<T: IntoLJType>(&self) -> anyhow::Result<*mut T> {
 		if self.itype() != T::LJ_TYPE {
 			anyhow::bail!("TValue type mismatch: expected {}, got {}", T::LJ_TYPE, self.itype());
@@ -156,6 +191,11 @@ impl TValue {
 
 	pub fn itype(&self) -> u32 {
 		unsafe { ((self.it64 >> 47) & 0xFFFFFFFF) as u32 }
+	}
+
+	pub fn set_itype(&mut self, itype: u64) {
+		let it64 = unsafe { self.it64 & 0x00007FFFFFFFFFFF }; // clear the type bits
+		self.it64 = it64 | ((itype as i64) << 47);
 	}
 
 	impl_tvalue_type_check!(is_nil, LJ_TNIL);
@@ -180,12 +220,13 @@ pub struct GCFuncHeader {
 	pub header: GCHeader,
 	pub ffid: u8,
 	pub nupvalues: u8,
+	pub _pad: [u8; 4],
 	pub env: GCRef,
 	pub gclist: GCRef,
 	pub pc: MRef,
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub struct GCfuncC {
 	pub header: GCFuncHeader,
@@ -194,24 +235,27 @@ pub struct GCfuncC {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct GCfuncL {
 	pub header: GCFuncHeader,
 	pub uvptr: [GCRef; 1],
 }
 
 impl GCfuncL {
-	pub fn get_proto(&self) -> anyhow::Result<&GCProto> {
+	pub fn get_proto(&self) -> anyhow::Result<*mut GCProto> {
 		let pc_ref = self.header.pc;
 		// proto starts immediately before the pc pointer
 		let proto = unsafe { pc_ref.as_ptr::<GCProto>().offset(-1) };
-		let proto_ref = unsafe { proto.as_ref().context("Failed to dereference GCProto from GCfuncL")? };
+		Ok(proto)
+	}
 
-		Ok(proto_ref)
+	pub fn get_bc_ins(&self) -> anyhow::Result<*mut BCIns> {
+		let pc_ref = self.header.pc;
+		Ok(pc_ref.as_ptr::<BCIns>())
 	}
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub union GCfunc {
 	pub c: GCfuncC,
@@ -287,6 +331,7 @@ pub struct LJState {
 	pub header: GCHeader,
 	pub dummy_ffid: u8,
 	pub status: u8,
+	pub pad: [u8; 4],
 	pub glref: MRef,
 	pub gclist: GCRef,
 	pub base: *mut TValue,
@@ -307,7 +352,19 @@ pub struct Sbuf {
 	pub l: MRef,
 }
 
+pub const LJ_GC_WHITE0: u8 = 0x01;
+pub const LJ_GC_WHITE1: u8 = 0x02;
+pub const LJ_GC_BLACK: u8 = 0x04;
+pub const LJ_GC_FINALIZED: u8 = 0x08;
+pub const LJ_GC_WEAKKEY: u8 = 0x08;
+pub const LJ_GC_WEAKVAL: u8 = 0x10;
+pub const LJ_GC_CDATA_FIN: u8 = 0x10;
+pub const LJ_GC_FIXED: u8 = 0x20;
+pub const LJ_GC_SFIXED: u8 = 0x40;
+pub const LJ_GC_WHITES: u8 = LJ_GC_WHITE0 | LJ_GC_WHITE1;
+
 #[repr(C)]
+#[derive(Debug)]
 pub struct GCState {
 	pub total: GCSize,
 	pub threshold: GCSize,
@@ -374,7 +431,7 @@ pub struct Node {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct GCUpvalUVLink {
 	pub next: GCRef,
 	pub prev: GCRef,
@@ -386,7 +443,17 @@ pub union GCUpvalUV {
 	pub link: GCUpvalUVLink,
 }
 
+impl Debug for GCUpvalUV {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		// we can't know which field is valid here, so just print both
+		write!(f, "GCUpvalUV {{ tv: {:?}, link: {:?} }}", unsafe { self.tv }, unsafe {
+			self.link
+		})
+	}
+}
+
 #[repr(C)]
+#[derive(Debug)]
 pub struct GCUpval {
 	pub header: GCHeader,
 	pub closed: u8,
@@ -400,17 +467,77 @@ impl IntoLJType for GCUpval {
 	const LJ_TYPE: u32 = LJ_TUPVAL;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct BCIns(u32);
 
 impl BCIns {
+	// instruction consisting of an opcode, 8-bit A and 16-bit D fields
+	pub fn from_ad(opcode: Op, a: u8, d: i16) -> Self {
+		Self((opcode as u32) | ((a as u32) << 8) | (((d as i32 as u32) & 0xFFFF) << 16))
+	}
+
+	pub fn from_abc(opcode: Op, a: u8, b: u8, c: u8) -> Self {
+		Self((opcode as u32) | ((a as u32) << 8) | ((c as u32) << 16) | ((b as u32) << 24))
+	}
+
+	pub fn opcode(&self) -> Op {
+		//#define bc_op(i)		((BCOp)((i)&0xff))
+		Op::try_from((self.0 & 0xff) as u8).unwrap()
+	}
+
+	/*
+		#define bc_a(i)		((BCReg)(((i)>>8)&0xff))
+	#define bc_b(i)		((BCReg)((i)>>24))
+	#define bc_c(i)		((BCReg)(((i)>>16)&0xff))
+	#define bc_d(i)		((BCReg)((i)>>16))
+		 */
 	pub fn a(&self) -> u8 {
 		//#define bc_a(i)		((BCReg)(((i)>>8)&0xff))
 		((self.0 >> 8) & 0xff) as u8
 	}
+
+	pub fn b(&self) -> u8 {
+		//#define bc_b(i)		((BCReg)((i)>>24))
+		((self.0 >> 24) & 0xff) as u8
+	}
+
+	pub fn c(&self) -> u8 {
+		//#define bc_c(i)		((BCReg)(((i)>>16)&0xff))
+		((self.0 >> 16) & 0xff) as u8
+	}
+
+	pub fn d(&self) -> i16 {
+		//#define bc_d(i)		((BCReg)((i)>>16))
+		((self.0 >> 16) & 0xffff) as i16
+	}
+}
+
+impl Debug for BCIns {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"BCIns {{ opcode: {:?}, a: {}, b: {}, c: {}, d: {}, raw: 0x{:08x} }}",
+			self.opcode(),
+			self.a(),
+			self.b(),
+			self.c(),
+			self.d(),
+			self.0
+		)
+	}
 }
 
 pub type BCLine = u32;
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProtoFlags {
+	Child = 0x01,
+	Vararg = 0x02,
+	FFI = 0x04,
+	NoJIT = 0x08,
+	ILoop = 0x10,
+}
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -420,6 +547,7 @@ pub struct GCProto {
 	pub framesize: u8,
 	pub sizebc: MSize,
 	pub unused: u32,
+	pub pad: [u8; 4],
 	pub gclist: GCRef,
 	pub k: MRef,
 	pub uv: MRef,
@@ -447,6 +575,10 @@ impl GCProto {
 		};
 
 		chunk_name.as_str()
+	}
+
+	pub fn has_flag(&self, flag: ProtoFlags) -> bool {
+		(self.flags & (flag as u8)) != 0
 	}
 }
 

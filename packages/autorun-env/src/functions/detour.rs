@@ -1,13 +1,16 @@
 mod handlers;
+mod lua;
 mod raw;
 mod userdata;
 
 use crate::functions::detour::handlers::{detour_handler, retour_handler};
+use crate::functions::detour::lua::state::OriginalDetourState;
 use crate::functions::detour::raw::{make_detour_trampoline, make_retour_lua_trampoline};
 use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
 use autorun_lua::{LuaApi, LuaCFunction, LuaTypeId, RawHandle, RawLuaReturn};
-use autorun_luajit::{GCfunc, LJState, get_gcobj, get_gcobj_mut};
+use autorun_luajit::bytecode::{BCWriter, Op};
+use autorun_luajit::{BCIns, GCfunc, GCfuncL, LJState, get_gcobj, get_gcobj_mut, get_gcobj_ptr, index2adr};
 use autorun_types::LuaState;
 use retour::GenericDetour;
 use std::ffi::c_int;
@@ -116,5 +119,96 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHa
 	// TODO: Handle garbage collection of the trampoline function?
 	std::mem::forget(trampoline);
 
+	Ok(RawLuaReturn(1))
+}
+
+pub fn detour_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+	if lua.raw.typeid(state, 1) != LuaTypeId::Function {
+		anyhow::bail!("First argument must be a function.");
+	}
+
+	// get function
+	let lj_state = state as *mut LJState;
+	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
+	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
+	let gcfunc_ptr = get_gcobj_ptr::<GCfunc>(lj_state, 1).context("Failed to get GCfunc pointer for target function.")?;
+	autorun_log::debug!("Detouring Lua function at {:p}", gcfunc_ptr);
+	let gcfunc_l_ptr = unsafe { std::mem::transmute::<*mut GCfunc, *mut GCfuncL>(gcfunc_ptr) };
+
+	let gcfunc_l = gcfunc.as_l().context("Target function must be a Lua function.")?;
+	let proto = gcfunc_l.get_proto()?;
+	let proto = unsafe { proto.as_mut().context("Failed to get proto for target function.")? };
+
+	let replacement_tv = unsafe {
+		index2adr(lj_state, 2)
+			.context("Failed to get TValue for replacement upvalue.")?
+			.read()
+	};
+
+	let detour_gcfunc = get_gcobj::<GCfunc>(lj_state, 2).context("Failed to get GCfunc for detour function.")?;
+	let detour_gcfunc_l = detour_gcfunc.as_l().context("Detour function must be a Lua function.")?;
+	let detour_proto = detour_gcfunc_l.get_proto()?;
+	let detour_proto = unsafe { detour_proto.as_mut().context("Failed to get proto for detour function.")? };
+
+	// Copy over debug information from detour to target
+	detour_proto.chunkname = proto.chunkname;
+	detour_proto.firstline = proto.firstline;
+	detour_proto.lineinfo = proto.lineinfo;
+	detour_proto.uvinfo = proto.uvinfo;
+	detour_proto.varinfo = proto.varinfo;
+
+	// Another thing, now this is technically UB. But, LuaJIT relies on the uvptr being whats known as a flexible array member.
+	// It is not allocated if there are no upvalues, but with padding and the like, we can just use it as normal.
+
+	if proto.sizeuv == 0 {
+		proto.sizeuv = 1;
+		unsafe {
+			(*gcfunc_l_ptr).header.nupvalues = 1;
+		}
+	}
+
+	let gcfunc_l = gcfunc.as_l().context("Must be a Lua function.")?;
+	autorun_log::debug!("Patching upvalue...");
+	let mut original_detour_state = OriginalDetourState::new();
+	lua::upvalue::replace(lj_state, gcfunc_l_ptr, 0, replacement_tv, &mut original_detour_state)?;
+	lua::trampoline::overwrite_with_trampoline(gcfunc_l, &mut original_detour_state)?;
+
+	let original_function_ptr = index2adr(lj_state, 1).context("Failed to get TValue for target function.")?;
+	let original_function_ptr =
+		unsafe { (*original_function_ptr).as_ptr::<GCfunc>() }.context("Failed to get GCfunc pointer.")?;
+
+	lua::state::save_state(original_function_ptr, original_detour_state);
+
+	Ok(RawLuaReturn(0))
+}
+
+pub fn restore_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+	if lua.raw.typeid(state, 1) != LuaTypeId::Function {
+		anyhow::bail!("First argument must be a function.");
+	}
+
+	// get function
+	let lj_state = state as *mut LJState;
+	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
+	let original_function_ptr = index2adr(lj_state, 1).context("Failed to get TValue for target function.")?;
+	let original_function_ptr =
+		unsafe { (*original_function_ptr).as_ptr::<GCfunc>() }.context("Failed to get GCfunc pointer.")?;
+
+	lua::state::restore_func(original_function_ptr)?;
+
+	Ok(RawLuaReturn(0))
+}
+
+pub fn clone_lua_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+	if lua.raw.typeid(state, 1) != LuaTypeId::Function {
+		anyhow::bail!("First argument must be a function.");
+	}
+
+	let lj_state = state as *mut LJState;
+	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
+
+	let gcfunc = get_gcobj_ptr::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
+	let gcfunc_l = unsafe { std::mem::transmute::<*mut GCfunc, *mut GCfuncL>(gcfunc) };
+	lua::clone(lj_state, gcfunc_l)?;
 	Ok(RawLuaReturn(1))
 }
