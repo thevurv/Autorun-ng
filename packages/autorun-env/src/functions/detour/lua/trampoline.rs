@@ -5,7 +5,6 @@ use anyhow::Context;
 use autorun_luajit::bytecode::{BCWriter, Op};
 use autorun_luajit::{BCIns, GCProto, GCfuncL, ProtoFlags};
 
-const MINIMUM_BYTECODES: u32 = 15;
 const MINIMUM_UPVALUES: u8 = 1;
 
 /// Assumes detour function is in UV 0.
@@ -19,7 +18,20 @@ pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL, original_detour_state: &mut
 	let proto = gcfunc_l.get_proto().context("Failed to get proto from GCfuncL")?;
 	let proto = unsafe { proto.as_mut().context("Failed to dereference proto")? };
 
-	if proto.sizebc < MINIMUM_BYTECODES {
+	let min_required_sizebc = if proto.has_flag(ProtoFlags::Vararg) {
+		1 // FUNCV
+		+ 1 // UGET
+		+ proto.numparams as u32
+		+ 1 // VARG
+		+ 1 // CALLMT
+	} else {
+		1 // FUNCF
+		+ 1 // UGET
+		+ proto.numparams as u32
+		+ 1 // CALLT
+	};
+
+	if proto.sizebc < min_required_sizebc {
 		anyhow::bail!("Target function's proto is too small to overwrite with trampoline.");
 	}
 
@@ -42,6 +54,8 @@ pub fn overwrite_with_trampoline(gcfunc_l: &GCfuncL, original_detour_state: &mut
 	} else {
 		write_trampoline_bytecode(&mut writer, nargs, maxslots)?;
 	}
+
+	autorun_log::debug!("Total trampoline bytecodes written: {}", writer.total_written());
 
 	// all done, no return necessary as CALLT handles it
 	// CALLT also jumps directly to the function, so no need for us to fix up

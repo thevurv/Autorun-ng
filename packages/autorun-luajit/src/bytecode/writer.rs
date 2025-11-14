@@ -69,4 +69,8 @@ impl BCWriter {
 	pub fn get_ptr(&self) -> *mut BCIns {
 		self.ptr
 	}
+
+	pub fn total_written(&self) -> usize {
+		self.offset
+	}
 }

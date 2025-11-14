@@ -48,18 +48,14 @@ pub fn overwrite_upvalue(
 	let target_uv = unsafe { target_uv_gcr.as_direct_ptr::<GCUpval>() };
 	let new_target_uv = unsafe { mem_newgco::<GCUpval>(lj_state, size_of::<GCUpval>() as GCSize)? };
 
-	// copy
+	// no copy needed, its simple enough to just fill it out.
 	unsafe {
-		std::ptr::copy_nonoverlapping(
-			target_uv.byte_add(size_of::<GCHeader>()) as *const u8,
-			new_target_uv.byte_add(size_of::<GCHeader>()) as *mut u8,
-			size_of::<GCUpval>() - size_of::<GCHeader>(),
-		);
+		(*new_target_uv).immutable = 0;
+		(*new_target_uv).dhash = 0x41414141;
 	}
 
 	// close it, and replace the value
 	close_upvalue(new_target_uv, Some(replacement_tv))?;
-	unsafe { (*new_target_uv).dhash = 0x41414141 }; // for debugging purposes
 
 	// update the GCRef to point to the new upvalue
 	unsafe {

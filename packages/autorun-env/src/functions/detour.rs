@@ -132,6 +132,7 @@ pub fn detour_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) ->
 	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
 	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
 	let gcfunc_ptr = get_gcobj_ptr::<GCfunc>(lj_state, 1).context("Failed to get GCfunc pointer for target function.")?;
+	autorun_log::debug!("Detouring Lua function at {:p}", gcfunc_ptr);
 	let gcfunc_l_ptr = unsafe { std::mem::transmute::<*mut GCfunc, *mut GCfuncL>(gcfunc_ptr) };
 
 	let gcfunc_l = gcfunc.as_l().context("Target function must be a Lua function.")?;
@@ -155,6 +156,16 @@ pub fn detour_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) ->
 	detour_proto.lineinfo = proto.lineinfo;
 	detour_proto.uvinfo = proto.uvinfo;
 	detour_proto.varinfo = proto.varinfo;
+
+	// Another thing, now this is technically UB. But, LuaJIT relies on the uvptr being whats known as a flexible array member.
+	// It is not allocated if there are no upvalues, but with padding and the like, we can just use it as normal.
+
+	if proto.sizeuv == 0 {
+		proto.sizeuv = 1;
+		unsafe {
+			(*gcfunc_l_ptr).header.nupvalues = 1;
+		}
+	}
 
 	let gcfunc_l = gcfunc.as_l().context("Must be a Lua function.")?;
 	autorun_log::debug!("Patching upvalue...");
