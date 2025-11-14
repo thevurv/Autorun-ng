@@ -59,6 +59,7 @@ pub fn overwrite_upvalue(
 
 	// close it, and replace the value
 	close_upvalue(new_target_uv, Some(replacement_tv))?;
+	unsafe { (*new_target_uv).dhash = 0x41414141 }; // for debugging purposes
 
 	// update the GCRef to point to the new upvalue
 	unsafe {
