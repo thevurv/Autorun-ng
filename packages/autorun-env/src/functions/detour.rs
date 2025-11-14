@@ -122,7 +122,7 @@ pub fn copy_fast_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHa
 	Ok(RawLuaReturn(1))
 }
 
-pub fn test_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+pub fn detour_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
 	if lua.raw.typeid(state, 1) != LuaTypeId::Function {
 		anyhow::bail!("First argument must be a function.");
 	}
@@ -131,6 +131,9 @@ pub fn test_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> a
 	let lj_state = state as *mut LJState;
 	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
 	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
+	let gcfunc_ptr = get_gcobj_ptr::<GCfunc>(lj_state, 1).context("Failed to get GCfunc pointer for target function.")?;
+	let gcfunc_l_ptr = unsafe { std::mem::transmute::<*mut GCfunc, *mut GCfuncL>(gcfunc_ptr) };
+
 	let gcfunc_l = gcfunc.as_l().context("Target function must be a Lua function.")?;
 	let proto = gcfunc_l.get_proto()?;
 	let proto = unsafe { proto.as_mut().context("Failed to get proto for target function.")? };
@@ -156,7 +159,7 @@ pub fn test_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> a
 	let gcfunc_l = gcfunc.as_l().context("Must be a Lua function.")?;
 	autorun_log::debug!("Patching upvalue...");
 	let mut original_detour_state = OriginalDetourState::new();
-	lua::upvalue::replace(gcfunc_l, 0, replacement_tv, &mut original_detour_state)?;
+	lua::upvalue::replace(lj_state, gcfunc_l_ptr, 0, replacement_tv, &mut original_detour_state)?;
 	lua::trampoline::overwrite_with_trampoline(gcfunc_l, &mut original_detour_state)?;
 
 	let original_function_ptr = index2adr(lj_state, 1).context("Failed to get TValue for target function.")?;
@@ -185,7 +188,7 @@ pub fn restore_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -
 	Ok(RawLuaReturn(0))
 }
 
-pub fn clone_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
+pub fn clone_lua_function(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> anyhow::Result<RawLuaReturn> {
 	if lua.raw.typeid(state, 1) != LuaTypeId::Function {
 		anyhow::bail!("First argument must be a function.");
 	}

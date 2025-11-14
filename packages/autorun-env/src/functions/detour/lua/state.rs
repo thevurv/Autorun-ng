@@ -42,7 +42,7 @@ pub fn restore_func(func: *mut GCfunc) -> anyhow::Result<()> {
 
 	// Fix upvalues
 	autorun_log::debug!("Fixing upvalues...");
-	overwrite_upvalue(gcfunc_l, 0, state.original_upvalue_0)?;
+	//overwrite_upvalue(gcfunc_l, 0, state.original_upvalue_0)?;
 	autorun_log::debug!("Upvalues fixed.");
 
 	// Restore bytecode and frame size

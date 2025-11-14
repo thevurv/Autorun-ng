@@ -146,7 +146,7 @@ pub fn clone_upvalue_list(lj_state: &mut LJState, func: *mut GCfunc) -> anyhow::
 		}
 
 		// Close it out
-		close_upvalue(new_upvalue_ptr)?;
+		close_upvalue(new_upvalue_ptr, None)?;
 
 		// update the reference to point to the new upvalue
 		upvalue_gcr.set_ptr(new_upvalue_ptr);
@@ -156,7 +156,7 @@ pub fn clone_upvalue_list(lj_state: &mut LJState, func: *mut GCfunc) -> anyhow::
 	Ok(())
 }
 
-fn close_upvalue(new_upvalue_ptr: *mut GCUpval) -> anyhow::Result<()> {
+pub fn close_upvalue(new_upvalue_ptr: *mut GCUpval, replacement_value: Option<TValue>) -> anyhow::Result<()> {
 	unsafe {
 		let new_upvalue = new_upvalue_ptr.as_mut().context("Failed to deref new upvalue.")?;
 		dbg!(&new_upvalue);
@@ -164,7 +164,12 @@ fn close_upvalue(new_upvalue_ptr: *mut GCUpval) -> anyhow::Result<()> {
 
 		// copy TV from wherever it was pointing to
 		autorun_log::debug!("Reading original TV pointer: {:p}", new_upvalue.v.as_ptr::<TValue>());
-		new_upvalue.uv.tv = new_upvalue.v.as_ptr::<TValue>().read();
+		new_upvalue.uv.tv = if let Some(replacement) = replacement_value {
+			replacement
+		} else {
+			new_upvalue.v.as_ptr::<TValue>().read()
+		};
+
 		// point v to the new TV
 		new_upvalue
 			.v

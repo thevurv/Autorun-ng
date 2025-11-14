@@ -92,9 +92,7 @@ pub struct GCRef {
 
 impl GCRef {
 	pub fn from_ptr<T>(ptr: *mut T) -> Self {
-		Self {
-			gcptr64: (ptr as u64) & LJ_GCVMASK,
-		}
+		Self { gcptr64: ptr as u64 }
 	}
 
 	// equivalent to the gcref macro in LuaJIT
