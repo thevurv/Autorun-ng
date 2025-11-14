@@ -54,6 +54,14 @@ pub fn get_gcobj_mut<T: IntoLJType>(state: &mut LJState, idx: i32) -> anyhow::Re
 	}
 }
 
+pub fn get_gcobj_ptr<T: IntoLJType>(state: &LJState, idx: i32) -> anyhow::Result<*mut T> {
+	unsafe {
+		let tv = index2adr(state, idx).context("Failed to get TValue for given index.")?;
+		let gcobj_ptr = (*tv).as_ptr::<T>()?;
+		Ok(gcobj_ptr)
+	}
+}
+
 pub fn push_tvalue(state: &mut LJState, tvalue: &TValue) {
 	unsafe {
 		std::ptr::write(state.top, *tvalue);

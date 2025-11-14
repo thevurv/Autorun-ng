@@ -28,8 +28,8 @@ pub fn overwrite_upvalue(func: &GCfuncL, target_index: u32, replacement_tv: TVal
 		);
 	}
 
-	let upvalue_array_ptr = func.uvptr.as_ptr();
-	let target_uv_gcr = unsafe { *upvalue_array_ptr.add(target_index as usize) };
+	let upvalue_array_ptr = func.uvptr;
+	let target_uv_gcr = unsafe { *upvalue_array_ptr.as_ptr().add(target_index as usize) };
 	let target_uv = unsafe {
 		target_uv_gcr
 			.as_ptr::<GCUpval>()

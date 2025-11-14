@@ -10,7 +10,7 @@ use crate::functions::detour::userdata::Detour;
 use anyhow::Context;
 use autorun_lua::{LuaApi, LuaCFunction, LuaTypeId, RawHandle, RawLuaReturn};
 use autorun_luajit::bytecode::{BCWriter, Op};
-use autorun_luajit::{BCIns, GCfunc, LJState, get_gcobj, get_gcobj_mut, index2adr};
+use autorun_luajit::{BCIns, GCfunc, GCfuncL, LJState, get_gcobj, get_gcobj_mut, get_gcobj_ptr, index2adr};
 use autorun_types::LuaState;
 use retour::GenericDetour;
 use std::ffi::c_int;
@@ -193,9 +193,8 @@ pub fn clone_lua(lua: &LuaApi, state: *mut LuaState, _env: crate::EnvHandle) -> 
 	let lj_state = state as *mut LJState;
 	let lj_state = unsafe { lj_state.as_mut().context("Failed to dereference LJState.")? };
 
-	let gcfunc = get_gcobj::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
-	let gcfunc_l = gcfunc.as_l().context("Target function must be a Lua function.")?;
-
+	let gcfunc = get_gcobj_ptr::<GCfunc>(lj_state, 1).context("Failed to get GCfunc for target function.")?;
+	let gcfunc_l = unsafe { std::mem::transmute::<*mut GCfunc, *mut GCfuncL>(gcfunc) };
 	lua::clone(lj_state, gcfunc_l)?;
 	Ok(RawLuaReturn(1))
 }

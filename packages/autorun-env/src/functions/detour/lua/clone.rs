@@ -10,10 +10,10 @@ use std::mem::offset_of;
 
 /// Clones the given Lua function deeply, duplicating its internal structures.
 /// Pushes the cloned function onto the Lua stack.
-pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()> {
+pub fn clone(lj_state: &mut LJState, target_func: *mut GCfuncL) -> anyhow::Result<()> {
 	dbg!(&target_func);
 	// Proto must be cloned first.
-	let proto = target_func.get_proto()?;
+	let proto = unsafe { (*target_func).get_proto()? };
 	let proto_size = unsafe { (*proto).sizept } as GCSize;
 	let proto_uv_size = unsafe { (*proto).sizeuv } as GCSize;
 
@@ -47,7 +47,6 @@ pub fn clone(lj_state: &mut LJState, target_func: &GCfuncL) -> anyhow::Result<()
 
 	unsafe {
 		let target_func = target_func as *const GCfuncL as *const u8;
-		dbg!(&target_func);
 
 		std::ptr::copy_nonoverlapping(
 			target_func.byte_add(size_of::<GCHeader>()),
@@ -106,18 +105,37 @@ pub fn clone_upvalue_list(lj_state: &mut LJState, func: *mut GCfunc) -> anyhow::
 	let gcfunc_l = gcfunc.as_l_mut().context("Function is not a Lua function.")?;
 	let nupvalues = gcfunc_l.header.nupvalues;
 	autorun_log::debug!("Cloning {} upvalues...", nupvalues);
+	unsafe {
+		autorun_log::debug!("uvptr: {:p}", (gcfunc_l as *mut GCfuncL).byte_add(offset_of!(GCfuncL, uvptr)));
+		autorun_log::debug!("uvptr offset: {}", offset_of!(GCfuncL, uvptr));
+	}
 
 	for i in 0..nupvalues {
 		autorun_log::debug!("Cloning upvalue {}...", i);
 		let upvalue_gcr = unsafe { gcfunc_l.uvptr.as_mut_ptr().add(i as usize) };
 		let upvalue_gcr = unsafe { upvalue_gcr.as_mut().context("Failed to deref upvalue GCRef.")? };
 
-		let upvalue = unsafe { upvalue_gcr.as_ptr::<GCUpval>() };
+		let upvalue = unsafe { upvalue_gcr.as_direct_ptr::<GCUpval>() };
+		if upvalue.is_null() {
+			anyhow::bail!("Upvalue pointer is null.");
+		}
+
 		let new_upvalue_ptr = unsafe { mem_newgco::<GCUpval>(lj_state, size_of::<GCUpval>() as GCSize)? };
 
+		let expected_address = (gcfunc_l as *const GCfuncL as usize) + 0x28usize + ((i as usize) * 8);
+
+		autorun_log::debug!(
+			"Upvalue {}: reading from {:p}, expected 0x{:x}",
+			i,
+			upvalue_gcr as *mut GCRef,
+			expected_address,
+		);
+
+		autorun_log::debug!("Original GCR pointer: {:p}", upvalue_gcr.gcptr64 as *const ());
 		autorun_log::debug!("Original upvalue pointer: {:p}", upvalue);
 		autorun_log::debug!("New upvalue pointer: {:p}", new_upvalue_ptr);
 
+		dbg!(&unsafe { &*upvalue });
 		// copy excluding GCHeader
 		unsafe {
 			std::ptr::copy_nonoverlapping(
@@ -141,9 +159,11 @@ pub fn clone_upvalue_list(lj_state: &mut LJState, func: *mut GCfunc) -> anyhow::
 fn close_upvalue(new_upvalue_ptr: *mut GCUpval) -> anyhow::Result<()> {
 	unsafe {
 		let new_upvalue = new_upvalue_ptr.as_mut().context("Failed to deref new upvalue.")?;
+		dbg!(&new_upvalue);
 		new_upvalue.closed = 1;
 
 		// copy TV from wherever it was pointing to
+		autorun_log::debug!("Reading original TV pointer: {:p}", new_upvalue.v.as_ptr::<TValue>());
 		new_upvalue.uv.tv = new_upvalue.v.as_ptr::<TValue>().read();
 		// point v to the new TV
 		new_upvalue

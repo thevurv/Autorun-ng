@@ -102,6 +102,10 @@ impl GCRef {
 		(self.gcptr64 & LJ_GCVMASK) as *mut T
 	}
 
+	pub fn as_direct_ptr<T>(&self) -> *mut T {
+		self.gcptr64 as *mut T // without masking
+	}
+
 	pub fn set_ptr<T>(&mut self, ptr: *mut T) {
 		self.gcptr64 = (ptr as u64) & LJ_GCVMASK;
 	}
@@ -218,10 +222,9 @@ pub struct GCFuncHeader {
 	pub header: GCHeader,
 	pub ffid: u8,
 	pub nupvalues: u8,
+	pub _pad: [u8; 4],
 	pub env: GCRef,
 	pub gclist: GCRef,
-	// Compiler randomly adds 4 bytes of padding here for alignment, not too sure why since it is packed
-	pub _pad: [u8; 4],
 	pub pc: MRef,
 }
 
@@ -233,7 +236,7 @@ pub struct GCfuncC {
 	pub upvalue: [TValue; 1],
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct GCfuncL {
 	pub header: GCFuncHeader,
